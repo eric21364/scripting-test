@@ -1,0 +1,18 @@
+{
+  "contributors" : [
+
+  ],
+  "localizedNames" : null,
+  "localizedDescriptions" : null,
+  "version" : null,
+  "runInApp" : false,
+  "description" : null,
+  "color" : "rgba(124, 76, 179,1)",
+  "icon" : "square.stack.3d.up.fill",
+  "remoteResource" : null,
+  "author" : null,
+  "name" : "Docker面板",
+  "intentInputTypes" : [
+
+  ]
+}
