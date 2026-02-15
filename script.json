@@ -1,0 +1,18 @@
+{
+  "remoteResource" : null,
+  "author" : null,
+  "name" : "App Store翻译",
+  "runInApp" : false,
+  "intentInputTypes" : [
+    "URLs"
+  ],
+  "description" : null,
+  "contributors" : [
+
+  ],
+  "version" : "1.0.0",
+  "color" : "rgba(28, 140, 255,1)",
+  "localizedNames" : null,
+  "icon" : "translate",
+  "localizedDescriptions" : null
+}
