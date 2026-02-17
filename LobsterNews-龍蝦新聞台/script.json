@@ -1,0 +1,14 @@
+{
+  "contributors" : [],
+  "localizedNames" : null,
+  "localizedDescriptions" : null,
+  "version" : "1.0.0",
+  "runInApp" : false,
+  "description" : "台灣即時新聞頭條",
+  "color" : "rgba(255, 69, 0, 1)",
+  "icon" : "newspaper.fill",
+  "remoteResource" : null,
+  "author" : null,
+  "name" : "龍蝦新聞台",
+  "intentInputTypes" : []
+}
