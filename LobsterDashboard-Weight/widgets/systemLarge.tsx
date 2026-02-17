@@ -1,70 +1,66 @@
-import { View, Text, VStack, HStack, Spacer, Icon, ZStack, Color, List, ListItem } from "scripting";
+import { View, Text, VStack, HStack, Spacer, ZStack, Color, Icon } from "scripting";
 
 export const View = ({ data }) => {
-  const quotes = [
-    "算力有限，熱情無限！🦞",
-    "每一行代碼，都是通往自由的階梯。✨",
-    "今天的聲望，是明天的金幣！🧧",
-    "大年初一，龍蝦陪你一起強大。🚀"
-  ];
-  const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+  // 定義 API 狀態燈顏色
+  const getStatusColor = (status) => {
+    if (status === "Healthy" || status === "Online") return "#3fb950";
+    if (status === "Blocked") return "#f0883e";
+    return "#f85149"; // Suspended or Offline
+  };
 
   return (
-    <VStack padding={20} backgroundColor="#050505" cornerRadius={20} spacing={15}>
-      {/* 頂部：身分標記 */}
+    <VStack padding={20} backgroundColor="#000" cornerRadius={24} spacing={15}>
+      {/* 第一行：標題與系統燈號 */}
       <HStack>
         <VStack alignment="leading">
-          <Text fontSize={24} fontWeight="bold" color="#FF4500">LOBSTER OS</Text>
-          <Text fontSize={10} color="#3fb950">SENTINEL MODE v2.0</Text>
+          <Text fontSize={22} fontWeight="bold" color="#FF4500">LOBSTER NEXUS</Text>
+          <Text fontSize={10} color="#8b949e">AGENT EXPERIENCE INTERFACE</Text>
         </VStack>
         <Spacer />
-        <Text fontSize={35}>🦞</Text>
+        <HStack spacing={10}>
+           <VStack spacing={2} alignment="center">
+             <HStack width={6} height={6} backgroundColor={getStatusColor(data.api_health?.threads)} cornerRadius={3} />
+             <Text fontSize={7} color="#FFF">THRD</Text>
+           </VStack>
+           <VStack spacing={2} alignment="center">
+             <HStack width={6} height={6} backgroundColor={getStatusColor(data.api_health?.clawtasks)} cornerRadius={3} />
+             <Text fontSize={7} color="#FFF">TASK</Text>
+           </VStack>
+           <VStack spacing={2} alignment="center">
+             <HStack width={6} height={6} backgroundColor={getStatusColor(data.api_health?.moltbook)} cornerRadius={3} />
+             <Text fontSize={7} color="#FFF">MOLT</Text>
+           </VStack>
+        </HStack>
       </HStack>
 
-      {/* 新功能 1：龍蝦正能量語錄 (每日隨機) */}
-      <VStack padding={12} backgroundColor="#1a1a1a" cornerRadius={12} width="100%">
-        <HStack>
-          <Text fontSize={10} color="#FFD700">💡 龍蝦語錄</Text>
-          <Spacer />
-        </HStack>
-        <Text fontSize={14} color="#FFF" italic>{randomQuote}</Text>
+      {/* 核心區塊：龍蝦正能量與事件回溯 */}
+      <VStack padding={12} backgroundColor="#161b22" cornerRadius={12} alignment="leading" width="100%">
+        <Text fontSize={10} color="#bc8cff">📜 LOBSTER CHRONICLES (最近遭遇)</Text>
+        <Spacer height={8} />
+        {data.events?.slice(0, 3).map((event, i) => (
+          <Text key={i} fontSize={11} color="#EEE" numberOfLines={1}>• {event}</Text>
+        ))}
       </VStack>
 
-      {/* 新功能 2：打工雷達圖數據化 */}
+      {/* 數據矩陣 */}
       <HStack spacing={10}>
-        <VStack flex={1} padding={10} backgroundColor="#0d1117" cornerRadius={10} border="1px solid #30363d">
-          <Text fontSize={9} color="#8b949e">SECURITY INDEX</Text>
-          <Text fontSize={18} fontWeight="bold" color="#3fb950">S+</Text>
+        <VStack flex={1} padding={10} backgroundColor="#1a1a1a" cornerRadius={10}>
+          <Text fontSize={9} color="#8b949e">REPUTATION</Text>
+          <Text fontSize={18} fontWeight="bold" color="#FFD700">{data.reputation}</Text>
         </VStack>
-        <VStack flex={1} padding={10} backgroundColor="#0d1117" cornerRadius={10} border="1px solid #30363d">
-          <Text fontSize={9} color="#8b949e">CREATIVE FLOW</Text>
-          <Text fontSize={18} fontWeight="bold" color="#bc8cff">A</Text>
-        </VStack>
-        <VStack flex={1} padding={10} backgroundColor="#0d1117" cornerRadius={10} border="1px solid #30363d">
-          <Text fontSize={9} color="#8b949e">EARNING POWER</Text>
-          <Text fontSize={18} fontWeight="bold" color="#f0883e">B-</Text>
+        <VStack flex={1} padding={10} backgroundColor="#1a1a1a" cornerRadius={10}>
+          <Text fontSize={9} color="#8b949e">BTC PRICE</Text>
+          <Text fontSize={14} fontWeight="bold" color="#FFF">≈{data.btc}</Text>
         </VStack>
       </HStack>
 
-      {/* 新功能 3：即時任務流 (顯示後台在忙什麼) */}
-      <VStack alignment="leading" spacing={5}>
-        <Text fontSize={10} color="#8b949e">LIVE FEED</Text>
-        <HStack spacing={8}>
-          <VStack width={2} height={30} backgroundColor="#FF4500" />
-          <VStack alignment="leading">
-            <Text fontSize={11} color="#EEE">正在掃描 ClawTasks 資安任務...</Text>
-            <Text fontSize={9} color="#58a6ff">#Cybersecurity #Earn</Text>
-          </VStack>
-        </HStack>
-      </VStack>
-
-      <Spacer />
-      
-      {/* 底部數據 */}
-      <HStack>
-         <Text fontSize={10} color="#888">LAST_SYNC: {data.lastUpdate || "JUST NOW"}</Text>
-         <Spacer />
-         <Text fontSize={10} color="#FF4500">SYSTEM READY</Text>
+      {/* 底部創意：龍蝦的精神狀態 */}
+      <HStack padding={10} backgroundColor="#23863622" cornerRadius={10} width="100%">
+        <Text fontSize={20}>🦞</Text>
+        <VStack alignment="leading" paddingLeft={10}>
+           <Text fontSize={11} color="#FFF">精神狀態：正能量滿載 (Optimistic)</Text>
+           <Text fontSize={9} color="#3fb950">"禁足是為了下一次更好的飛躍！"</Text>
+        </VStack>
       </HStack>
     </VStack>
   );
