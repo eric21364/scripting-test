@@ -53,32 +53,30 @@ function DevicesPage(): JSX.Element {
 
     const config = loadConfig();
 
-    async function fetchDevices(): Promise<void> {
+    function fetchDevices(): void {
         setLoading(true);
-        try {
-            const list = await getDevices(config);
+        getDevices(config).then((list) => {
             setDevices(list);
             setStatusMsg("");
-        } catch (e) {
-            setStatusMsg("❌ " + String(e));
-        } finally {
             setLoading(false);
-        }
+        }).catch((e) => {
+            setStatusMsg("❌ " + String(e));
+            setLoading(false);
+        });
     }
 
-    async function switchTo(deviceId: string, deviceName: string): Promise<void> {
+    function switchTo(deviceId: string, deviceName: string): void {
         setStatusMsg("🔄 切換至 " + deviceName + "...");
-        try {
-            const result = await transferPlayback(config, deviceId);
+        transferPlayback(config, deviceId).then((result) => {
             if (result === "ok") {
                 setStatusMsg("✅ 已切換至 " + deviceName);
-                await fetchDevices();
+                fetchDevices();
             } else {
                 setStatusMsg("⚠️ " + result);
             }
-        } catch (e) {
+        }).catch((e) => {
             setStatusMsg("❌ 切換失敗: " + String(e));
-        }
+        });
     }
 
     useEffect(() => {
@@ -90,7 +88,6 @@ function DevicesPage(): JSX.Element {
             <List
                 navigationTitle={"在線裝置"}
                 navigationBarTitleDisplayMode={"inline"}
-                refreshable={async () => { await fetchDevices(); }}
                 toolbar={{
                     topBarLeading: [
                         <Button action={() => dismiss()}>
@@ -98,7 +95,7 @@ function DevicesPage(): JSX.Element {
                         </Button>,
                     ],
                     topBarTrailing: [
-                        <Button action={async () => { await fetchDevices(); }}>
+                        <Button action={() => fetchDevices()}>
                             <Image systemName="arrow.clockwise" />
                         </Button>,
                     ],
@@ -119,9 +116,9 @@ function DevicesPage(): JSX.Element {
                         {devices.map((device, i) => (
                             <Button
                                 key={"dev-" + i}
-                                action={async () => {
+                                action={() => {
                                     if (!device.isActive) {
-                                        await switchTo(device.id, device.name);
+                                        switchTo(device.id, device.name);
                                     }
                                 }}>
                                 <HStack spacing={10}>
@@ -169,10 +166,9 @@ export function PlayerPage() {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [configReady, setConfigReady] = useState<boolean>(isConfigReady(loadConfig()));
     const [controlMsg, setControlMsg] = useState<string>("");
-    const [volume, setVolumeState] = useState<number>(50);
-    const [volumeEditing, setVolumeEditing] = useState<boolean>(false);
+    const [volume, setVolumeVal] = useState<number>(50);
 
-    const fetchAll = async () => {
+    function fetchAll(): void {
         const cfg = loadConfig();
         if (!isConfigReady(cfg)) {
             setConfigReady(false);
@@ -180,82 +176,91 @@ export function PlayerPage() {
         }
         setConfigReady(true);
         setIsLoading(true);
-        try {
-            const [track, history, devices] = await Promise.all([
-                getCurrentlyPlaying(cfg),
-                getRecentlyPlayed(cfg, 10),
-                getDevices(cfg),
-            ]);
+        Promise.all([
+            getCurrentlyPlaying(cfg),
+            getRecentlyPlayed(cfg, 10),
+            getDevices(cfg),
+        ]).then(([track, history, devices]) => {
             setCurrent(track);
             setRecent(history);
-            // 從 active device 讀取音量
             const active = devices.find((d) => d.isActive);
             if (active && active.volumePercent !== null) {
-                setVolumeState(active.volumePercent);
+                setVolumeVal(active.volumePercent);
             }
-        } catch (e) {
-            // silently fail
-        } finally {
             setIsLoading(false);
-        }
-    };
-
-    async function openSettings(): Promise<void> {
-        await Navigation.present(<SettingsPage />);
-        await fetchAll();
+        }).catch(() => {
+            setIsLoading(false);
+        });
     }
 
-    async function openDevices(): Promise<void> {
-        await Navigation.present(<DevicesPage />);
-        await fetchAll();
+    function openSettings(): void {
+        Navigation.present(<SettingsPage />).then(() => fetchAll());
     }
 
-    async function doControl(action: string): Promise<void> {
+    function openDevices(): void {
+        Navigation.present(<DevicesPage />).then(() => fetchAll());
+    }
+
+    function doPlay(): void {
         const cfg = loadConfig();
-        let result = "";
-        try {
-            switch (action) {
-                case "play":
-                    result = await playResume(cfg);
-                    break;
-                case "pause":
-                    result = await pause(cfg);
-                    break;
-                case "next":
-                    result = await skipToNext(cfg);
-                    break;
-                case "prev":
-                    result = await skipToPrevious(cfg);
-                    break;
-            }
-
+        playResume(cfg).then((result) => {
             if (result === "ok") {
-                await fetchAll();
                 setControlMsg("");
+                fetchAll();
             } else {
                 setControlMsg("⚠️ " + result);
             }
-        } catch (e) {
-            setControlMsg("❌ " + String(e));
-        }
+        }).catch((e) => setControlMsg("❌ " + String(e)));
     }
 
-    async function handleVolumeChange(val: number): Promise<void> {
-        setVolumeState(val);
+    function doPause(): void {
+        const cfg = loadConfig();
+        pause(cfg).then((result) => {
+            if (result === "ok") {
+                setControlMsg("");
+                fetchAll();
+            } else {
+                setControlMsg("⚠️ " + result);
+            }
+        }).catch((e) => setControlMsg("❌ " + String(e)));
     }
 
-    async function handleVolumeCommit(editing: boolean): Promise<void> {
-        setVolumeEditing(editing);
+    function doNext(): void {
+        const cfg = loadConfig();
+        skipToNext(cfg).then((result) => {
+            if (result === "ok") {
+                setControlMsg("");
+                fetchAll();
+            } else {
+                setControlMsg("⚠️ " + result);
+            }
+        }).catch((e) => setControlMsg("❌ " + String(e)));
+    }
+
+    function doPrev(): void {
+        const cfg = loadConfig();
+        skipToPrevious(cfg).then((result) => {
+            if (result === "ok") {
+                setControlMsg("");
+                fetchAll();
+            } else {
+                setControlMsg("⚠️ " + result);
+            }
+        }).catch((e) => setControlMsg("❌ " + String(e)));
+    }
+
+    function onVolumeChanged(val: number): void {
+        setVolumeVal(val);
+    }
+
+    function onVolumeEditingChanged(editing: boolean): void {
         if (!editing) {
             const cfg = loadConfig();
-            try {
-                const result = await setVolume(cfg, volume);
+            setVolume(cfg, volume).then((result) => {
                 if (result !== "ok") {
                     setControlMsg("⚠️ 音量: " + result);
                 }
-            } catch (e) {
-                setControlMsg("❌ 音量: " + String(e));
-            }
+            }).catch((e) => setControlMsg("❌ 音量: " + String(e)));
         }
     }
 
@@ -276,13 +281,13 @@ export function PlayerPage() {
                         </Button>,
                     ],
                     topBarTrailing: [
-                        <Button action={async () => { await openDevices(); }}>
+                        <Button action={() => openDevices()}>
                             <Image systemName="hifispeaker.2" />
                         </Button>,
-                        <Button action={async () => { await openSettings(); }}>
+                        <Button action={() => openSettings()}>
                             <Image systemName="gear" />
                         </Button>,
-                        <Button action={async () => { await fetchAll(); }}>
+                        <Button action={() => fetchAll()}>
                             <Image systemName="arrow.clockwise" />
                         </Button>,
                     ],
@@ -299,7 +304,7 @@ export function PlayerPage() {
                                     </VStack>
                                 </Section>
                                 <Section>
-                                    <Button action={async () => { await openSettings(); }}>
+                                    <Button action={() => openSettings()}>
                                         <HStack>
                                             <Image systemName="gear.badge.checkmark" foregroundStyle={"systemGreen"} frame={{ width: 24 }} />
                                             <Text>前往設定 Spotify 帳號</Text>
@@ -320,7 +325,7 @@ export function PlayerPage() {
                         );
 
                     return (
-                        <List refreshable={async () => { await fetchAll(); }}>
+                        <List>
                             {/* 正在播放 */}
                             <Section title="正在播放">
                                 {current ? (
@@ -358,7 +363,7 @@ export function PlayerPage() {
                             <Section title="控制">
                                 <HStack alignment="center">
                                     <Spacer />
-                                    <Button action={async () => { await doControl("prev"); }}>
+                                    <Button action={() => doPrev()} buttonStyle="plain">
                                         <VStack alignment="center" spacing={4}>
                                             <Image systemName="backward.fill" font={24} foregroundStyle={"label"} />
                                             <Text font={10} foregroundStyle="secondaryLabel">上一首</Text>
@@ -366,14 +371,14 @@ export function PlayerPage() {
                                     </Button>
                                     <Spacer />
                                     {current?.isPlaying ? (
-                                        <Button action={async () => { await doControl("pause"); }}>
+                                        <Button action={() => doPause()} buttonStyle="plain">
                                             <VStack alignment="center" spacing={4}>
                                                 <Image systemName="pause.fill" font={40} foregroundStyle={"systemGreen"} />
                                                 <Text font={10} foregroundStyle="secondaryLabel">暫停</Text>
                                             </VStack>
                                         </Button>
                                     ) : (
-                                        <Button action={async () => { await doControl("play"); }}>
+                                        <Button action={() => doPlay()} buttonStyle="plain">
                                             <VStack alignment="center" spacing={4}>
                                                 <Image systemName="play.fill" font={40} foregroundStyle={"systemGreen"} />
                                                 <Text font={10} foregroundStyle="secondaryLabel">播放</Text>
@@ -381,7 +386,7 @@ export function PlayerPage() {
                                         </Button>
                                     )}
                                     <Spacer />
-                                    <Button action={async () => { await doControl("next"); }}>
+                                    <Button action={() => doNext()} buttonStyle="plain">
                                         <VStack alignment="center" spacing={4}>
                                             <Image systemName="forward.fill" font={24} foregroundStyle={"label"} />
                                             <Text font={10} foregroundStyle="secondaryLabel">下一首</Text>
@@ -404,8 +409,8 @@ export function PlayerPage() {
                                         step={1}
                                         value={volume}
                                         tint={"systemGreen"}
-                                        onChanged={handleVolumeChange}
-                                        onEditingChanged={handleVolumeCommit}
+                                        onChanged={onVolumeChanged}
+                                        onEditingChanged={onVolumeEditingChanged}
                                         label={<VStack />}
                                     />
                                     <Image systemName="speaker.wave.3.fill" foregroundStyle={"secondaryLabel"} font={14} />
