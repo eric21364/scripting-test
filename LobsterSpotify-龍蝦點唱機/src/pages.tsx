@@ -378,24 +378,6 @@ export function PlayerPage() {
                                 ) : null}
                             </Section>
 
-                            {/* 音量 */}
-                            <Section title={"音量 " + Math.round(volume) + "%"}>
-                                <HStack spacing={10}>
-                                    <Image systemName="speaker.fill" foregroundStyle={"secondaryLabel"} font={14} />
-                                    <Slider
-                                        min={0}
-                                        max={100}
-                                        step={1}
-                                        value={volume}
-                                        tint={"systemGreen"}
-                                        onChanged={onVolumeChanged}
-                                        onEditingChanged={onVolumeEditingChanged}
-                                        label={<VStack />}
-                                    />
-                                    <Image systemName="speaker.wave.3.fill" foregroundStyle={"secondaryLabel"} font={14} />
-                                </HStack>
-                            </Section>
-
                             {/* 最近播放 */}
                             <Section title={"最近播放（" + recent.length + "）"}>
                                 {recent.length === 0 ? (
