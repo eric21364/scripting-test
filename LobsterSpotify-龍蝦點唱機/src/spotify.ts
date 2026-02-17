@@ -298,3 +298,10 @@ export function deviceIcon(type: string): string {
         default: return "speaker.wave.2";
     }
 }
+
+// ─── 音量控制 ───
+
+export async function setVolume(config: SpotifyConfig, volumePercent: number): Promise<string> {
+    const vol = Math.max(0, Math.min(100, Math.round(volumePercent)));
+    return spotifyCommand(config, "PUT", "volume?volume_percent=" + vol);
+}

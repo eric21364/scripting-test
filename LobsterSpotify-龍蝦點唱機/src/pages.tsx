@@ -9,6 +9,7 @@ import {
     Navigation,
     Spacer,
     Button,
+    Slider,
     useState,
     useEffect,
     ProgressView,
@@ -25,6 +26,7 @@ import {
     skipToPrevious,
     getDevices,
     transferPlayback,
+    setVolume,
     formatDuration,
     deviceIcon,
 } from "./spotify";
@@ -108,14 +110,8 @@ function DevicesPage(): JSX.Element {
                 ) : devices.length === 0 ? (
                     <Section>
                         <HStack>
-                            <Image
-                                systemName="wifi.slash"
-                                foregroundStyle={"systemGray"}
-                                frame={{ width: 24 }}
-                            />
-                            <Text foregroundStyle="secondaryLabel">
-                                沒有在線裝置，請先開啟 Spotify App
-                            </Text>
+                            <Image systemName="wifi.slash" foregroundStyle={"systemGray"} frame={{ width: 24 }} />
+                            <Text foregroundStyle="secondaryLabel">沒有在線裝置，請先開啟 Spotify App</Text>
                         </HStack>
                     </Section>
                 ) : (
@@ -136,9 +132,7 @@ function DevicesPage(): JSX.Element {
                                         frame={{ width: 28 }}
                                     />
                                     <VStack alignment="leading" spacing={2}>
-                                        <Text bold={device.isActive}>
-                                            {device.name}
-                                        </Text>
+                                        <Text bold={device.isActive}>{device.name}</Text>
                                         <Text font={12} foregroundStyle="secondaryLabel">
                                             {device.type}{device.isActive ? " · 使用中" : ""}
                                             {device.volumePercent !== null ? " · 🔊 " + device.volumePercent + "%" : ""}
@@ -146,15 +140,9 @@ function DevicesPage(): JSX.Element {
                                     </VStack>
                                     <Spacer />
                                     {device.isActive ? (
-                                        <Image
-                                            systemName="checkmark.circle.fill"
-                                            foregroundStyle={"systemGreen"}
-                                        />
+                                        <Image systemName="checkmark.circle.fill" foregroundStyle={"systemGreen"} />
                                     ) : (
-                                        <Image
-                                            systemName="arrow.right.circle"
-                                            foregroundStyle={"tertiaryLabel"}
-                                        />
+                                        <Image systemName="arrow.right.circle" foregroundStyle={"tertiaryLabel"} />
                                     )}
                                 </HStack>
                             </Button>
@@ -181,6 +169,8 @@ export function PlayerPage() {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [configReady, setConfigReady] = useState<boolean>(isConfigReady(loadConfig()));
     const [controlMsg, setControlMsg] = useState<string>("");
+    const [volume, setVolumeState] = useState<number>(50);
+    const [volumeEditing, setVolumeEditing] = useState<boolean>(false);
 
     const fetchAll = async () => {
         const cfg = loadConfig();
@@ -191,12 +181,18 @@ export function PlayerPage() {
         setConfigReady(true);
         setIsLoading(true);
         try {
-            const [track, history] = await Promise.all([
+            const [track, history, devices] = await Promise.all([
                 getCurrentlyPlaying(cfg),
                 getRecentlyPlayed(cfg, 10),
+                getDevices(cfg),
             ]);
             setCurrent(track);
             setRecent(history);
+            // 從 active device 讀取音量
+            const active = devices.find((d) => d.isActive);
+            if (active && active.volumePercent !== null) {
+                setVolumeState(active.volumePercent);
+            }
         } catch (e) {
             // silently fail
         } finally {
@@ -211,6 +207,7 @@ export function PlayerPage() {
 
     async function openDevices(): Promise<void> {
         await Navigation.present(<DevicesPage />);
+        await fetchAll();
     }
 
     async function doControl(action: string): Promise<void> {
@@ -218,12 +215,11 @@ export function PlayerPage() {
         let result = "";
         try {
             switch (action) {
-                case "playpause":
-                    if (current?.isPlaying) {
-                        result = await pause(cfg);
-                    } else {
-                        result = await playResume(cfg);
-                    }
+                case "play":
+                    result = await playResume(cfg);
+                    break;
+                case "pause":
+                    result = await pause(cfg);
                     break;
                 case "next":
                     result = await skipToNext(cfg);
@@ -241,6 +237,25 @@ export function PlayerPage() {
             }
         } catch (e) {
             setControlMsg("❌ " + String(e));
+        }
+    }
+
+    async function handleVolumeChange(val: number): Promise<void> {
+        setVolumeState(val);
+    }
+
+    async function handleVolumeCommit(editing: boolean): Promise<void> {
+        setVolumeEditing(editing);
+        if (!editing) {
+            const cfg = loadConfig();
+            try {
+                const result = await setVolume(cfg, volume);
+                if (result !== "ok") {
+                    setControlMsg("⚠️ 音量: " + result);
+                }
+            } catch (e) {
+                setControlMsg("❌ 音量: " + String(e));
+            }
         }
     }
 
@@ -278,25 +293,15 @@ export function PlayerPage() {
                             <List>
                                 <Section title="歡迎使用龍蝦點唱機 🦞🎵">
                                     <VStack alignment="center" spacing={12} padding>
-                                        <Image
-                                            systemName="music.note.house.fill"
-                                            font={48}
-                                            foregroundStyle={"systemGreen"}
-                                        />
+                                        <Image systemName="music.note.house.fill" font={48} foregroundStyle={"systemGreen"} />
                                         <Text bold font={17}>尚未連接 Spotify</Text>
-                                        <Text foregroundStyle="secondaryLabel" font={14}>
-                                            請先設定您的 Spotify OAuth 憑證
-                                        </Text>
+                                        <Text foregroundStyle="secondaryLabel" font={14}>請先設定您的 Spotify OAuth 憑證</Text>
                                     </VStack>
                                 </Section>
                                 <Section>
                                     <Button action={async () => { await openSettings(); }}>
                                         <HStack>
-                                            <Image
-                                                systemName="gear.badge.checkmark"
-                                                foregroundStyle={"systemGreen"}
-                                                frame={{ width: 24 }}
-                                            />
+                                            <Image systemName="gear.badge.checkmark" foregroundStyle={"systemGreen"} frame={{ width: 24 }} />
                                             <Text>前往設定 Spotify 帳號</Text>
                                             <Spacer />
                                             <Image systemName="chevron.right" foregroundStyle={"tertiaryLabel"} />
@@ -316,6 +321,7 @@ export function PlayerPage() {
 
                     return (
                         <List refreshable={async () => { await fetchAll(); }}>
+                            {/* 正在播放 */}
                             <Section title="正在播放">
                                 {current ? (
                                     <>
@@ -328,9 +334,7 @@ export function PlayerPage() {
                                             />
                                             <VStack alignment="leading" spacing={2}>
                                                 <Text bold lineLimit={1}>{current.name}</Text>
-                                                <Text font={13} foregroundStyle="secondaryLabel" lineLimit={1}>
-                                                    {current.artist}
-                                                </Text>
+                                                <Text font={13} foregroundStyle="secondaryLabel" lineLimit={1}>{current.artist}</Text>
                                             </VStack>
                                         </HStack>
                                         <HStack>
@@ -350,24 +354,38 @@ export function PlayerPage() {
                                 )}
                             </Section>
 
+                            {/* 播放控制 */}
                             <Section title="控制">
-                                <HStack alignment="center" spacing={0}>
+                                <HStack alignment="center">
                                     <Spacer />
                                     <Button action={async () => { await doControl("prev"); }}>
-                                        <Image systemName="backward.fill" font={28} foregroundStyle={"label"} frame={{ width: 60 }} />
+                                        <VStack alignment="center" spacing={4}>
+                                            <Image systemName="backward.fill" font={24} foregroundStyle={"label"} />
+                                            <Text font={10} foregroundStyle="secondaryLabel">上一首</Text>
+                                        </VStack>
                                     </Button>
                                     <Spacer />
-                                    <Button action={async () => { await doControl("playpause"); }}>
-                                        <Image
-                                            systemName={current?.isPlaying ? "pause.circle.fill" : "play.circle.fill"}
-                                            font={44}
-                                            foregroundStyle={"systemGreen"}
-                                            frame={{ width: 60 }}
-                                        />
-                                    </Button>
+                                    {current?.isPlaying ? (
+                                        <Button action={async () => { await doControl("pause"); }}>
+                                            <VStack alignment="center" spacing={4}>
+                                                <Image systemName="pause.fill" font={40} foregroundStyle={"systemGreen"} />
+                                                <Text font={10} foregroundStyle="secondaryLabel">暫停</Text>
+                                            </VStack>
+                                        </Button>
+                                    ) : (
+                                        <Button action={async () => { await doControl("play"); }}>
+                                            <VStack alignment="center" spacing={4}>
+                                                <Image systemName="play.fill" font={40} foregroundStyle={"systemGreen"} />
+                                                <Text font={10} foregroundStyle="secondaryLabel">播放</Text>
+                                            </VStack>
+                                        </Button>
+                                    )}
                                     <Spacer />
                                     <Button action={async () => { await doControl("next"); }}>
-                                        <Image systemName="forward.fill" font={28} foregroundStyle={"label"} frame={{ width: 60 }} />
+                                        <VStack alignment="center" spacing={4}>
+                                            <Image systemName="forward.fill" font={24} foregroundStyle={"label"} />
+                                            <Text font={10} foregroundStyle="secondaryLabel">下一首</Text>
+                                        </VStack>
                                     </Button>
                                     <Spacer />
                                 </HStack>
@@ -376,6 +394,25 @@ export function PlayerPage() {
                                 ) : null}
                             </Section>
 
+                            {/* 音量 */}
+                            <Section title={"音量 " + Math.round(volume) + "%"}>
+                                <HStack spacing={10}>
+                                    <Image systemName="speaker.fill" foregroundStyle={"secondaryLabel"} font={14} />
+                                    <Slider
+                                        min={0}
+                                        max={100}
+                                        step={1}
+                                        value={volume}
+                                        tint={"systemGreen"}
+                                        onChanged={handleVolumeChange}
+                                        onEditingChanged={handleVolumeCommit}
+                                        label={<VStack />}
+                                    />
+                                    <Image systemName="speaker.wave.3.fill" foregroundStyle={"secondaryLabel"} font={14} />
+                                </HStack>
+                            </Section>
+
+                            {/* 最近播放 */}
                             <Section title={"最近播放（" + recent.length + "）"}>
                                 {recent.length === 0 ? (
                                     <Text foregroundStyle="secondaryLabel">沒有播放紀錄</Text>
