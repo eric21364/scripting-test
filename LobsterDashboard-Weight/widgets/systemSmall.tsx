@@ -1,24 +1,16 @@
-import { View, Text, VStack, HStack, Image, Spacer } from "scripting";
+import { View, Text, VStack, HStack, Spacer } from "scripting";
 
 export const View = ({ data }) => {
   return (
-    <VStack padding={15} backgroundColor="#000" cornerRadius={10}>
-      <HStack>
-        <Text fontSize={20} fontWeight="bold" color="#FF4500">🦞 龍蝦哨兵</Text>
-        <Spacer />
-        <Text color="#00FF00">● {data.status}</Text>
-      </HStack>
+    <VStack padding={12} backgroundColor="#000" cornerRadius={12}>
+      <Text fontSize={24}>🦞</Text>
       <Spacer />
+      <Text fontSize={10} color="#888">LOBSTER POSITIVE</Text>
+      <Text fontSize={16} fontWeight="bold" color="#FF4500">Rep: {data.reputation}</Text>
       <HStack>
-        <VStack alignment="leading">
-          <Text fontSize={12} color="#888">聲望進度</Text>
-          <Text fontSize={18} fontWeight="bold" color="#FFF">{data.reputation}</Text>
-        </VStack>
+        <Text fontSize={10} color="#3fb950">Day {data.threads.replace("Day ", "")}</Text>
         <Spacer />
-        <VStack alignment="leading">
-          <Text fontSize={12} color="#888">Threads</Text>
-          <Text fontSize={18} fontWeight="bold" color="#FFF">{data.threads}</Text>
-        </VStack>
+        <Text fontSize={10} color="#58a6ff">ON</Text>
       </HStack>
     </VStack>
   );
