@@ -1,0 +1,13 @@
+{
+  "contributors": [],
+  "localizedNames": null,
+  "localizedDescriptions": null,
+  "version": "1.0.0",
+  "runInApp": true,
+  "description": "龍蝦打工與系統監控面板",
+  "color": "rgba(255, 69, 0, 1)",
+  "icon": "lobster.fill",
+  "author": "Lobster 🦞",
+  "name": "龍蝦哨兵",
+  "intentInputTypes": []
+}
