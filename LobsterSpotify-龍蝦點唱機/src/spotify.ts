@@ -245,9 +245,9 @@ export async function getDevices(config: SpotifyConfig): Promise<SpotifyDevice[]
 export async function transferPlayback(
     config: SpotifyConfig,
     deviceId: string
-): Promise<void> {
+): Promise<string> {
     const token = await getAccessToken(config);
-    await fetch("https://api.spotify.com/v1/me/player", {
+    const response = await fetch("https://api.spotify.com/v1/me/player", {
         method: "PUT",
         headers: {
             Authorization: "Bearer " + token,
@@ -256,6 +256,18 @@ export async function transferPlayback(
         body: JSON.stringify({ device_ids: [deviceId], play: true }),
         timeout: 10,
     });
+
+    if (response.status === 204 || response.status === 200) {
+        return "ok";
+    }
+    if (response.status === 403) {
+        return "需要 Spotify Premium 才能切換裝置";
+    }
+    if (response.status === 404) {
+        return "裝置已離線";
+    }
+    const errData = await response.text();
+    return "HTTP " + response.status + ": " + errData;
 }
 
 // ─── 工具 ───

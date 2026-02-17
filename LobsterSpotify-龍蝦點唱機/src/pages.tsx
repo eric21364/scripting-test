@@ -67,9 +67,13 @@ function DevicesPage(): JSX.Element {
     async function switchTo(deviceId: string, deviceName: string): Promise<void> {
         setStatusMsg("🔄 切換至 " + deviceName + "...");
         try {
-            await transferPlayback(config, deviceId);
-            setStatusMsg("✅ 已切換至 " + deviceName);
-            await fetchDevices();
+            const result = await transferPlayback(config, deviceId);
+            if (result === "ok") {
+                setStatusMsg("✅ 已切換至 " + deviceName);
+                await fetchDevices();
+            } else {
+                setStatusMsg("⚠️ " + result);
+            }
         } catch (e) {
             setStatusMsg("❌ 切換失敗: " + String(e));
         }
