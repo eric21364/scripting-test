@@ -6,7 +6,6 @@ import {
     pause,
     skipToNext,
     skipToPrevious,
-    getCurrentlyPlaying,
 } from "./src/spotify";
 
 export const reloadSpotify = AppIntentManager.register({
@@ -26,15 +25,12 @@ export const spotifyControl = AppIntentManager.register({
 
         try {
             switch (params.action) {
-                case "playpause": {
-                    const track = await getCurrentlyPlaying(config);
-                    if (track?.isPlaying) {
-                        await pause(config);
-                    } else {
-                        await playResume(config);
-                    }
+                case "play":
+                    await playResume(config);
                     break;
-                }
+                case "pause":
+                    await pause(config);
+                    break;
                 case "next":
                     await skipToNext(config);
                     break;

@@ -6,7 +6,6 @@ import {
     Image,
     Spacer,
     Divider,
-    Color,
     Button,
     Notification,
 } from "scripting";
@@ -14,30 +13,24 @@ import { loadConfig, isConfigReady, getCurrentlyPlaying, formatDuration } from "
 import { SpotifyTrack } from "./src/types";
 import { reloadSpotify, spotifyControl } from "./app_intents";
 
-function ControlButtons() {
+function ControlButtons({ isPlaying }: { isPlaying: boolean }) {
     return (
-        <HStack spacing={16}>
+        <HStack spacing={12}>
             <Spacer />
             <Button buttonStyle={"plain"} intent={spotifyControl({ action: "prev" })}>
-                <Image
-                    systemName="backward.fill"
-                    foregroundStyle={"label"}
-                    font={14}
-                />
+                <Image systemName="backward.fill" foregroundStyle={"label"} font={13} />
             </Button>
-            <Button buttonStyle={"plain"} intent={spotifyControl({ action: "playpause" })}>
-                <Image
-                    systemName="playpause.fill"
-                    foregroundStyle={"systemGreen"}
-                    font={18}
-                />
-            </Button>
+            {isPlaying ? (
+                <Button buttonStyle={"plain"} intent={spotifyControl({ action: "pause" })}>
+                    <Image systemName="pause.fill" foregroundStyle={"systemGreen"} font={18} />
+                </Button>
+            ) : (
+                <Button buttonStyle={"plain"} intent={spotifyControl({ action: "play" })}>
+                    <Image systemName="play.fill" foregroundStyle={"systemGreen"} font={18} />
+                </Button>
+            )}
             <Button buttonStyle={"plain"} intent={spotifyControl({ action: "next" })}>
-                <Image
-                    systemName="forward.fill"
-                    foregroundStyle={"label"}
-                    font={14}
-                />
+                <Image systemName="forward.fill" foregroundStyle={"label"} font={13} />
             </Button>
             <Spacer />
         </HStack>
@@ -63,7 +56,7 @@ function SmallView({ track }: { track: SpotifyTrack | null }) {
                         {track.artist}
                     </Text>
                     <Spacer />
-                    <ControlButtons />
+                    <ControlButtons isPlaying={track.isPlaying} />
                 </>
             ) : (
                 <Text foregroundStyle="secondaryLabel" font={13}>沒有在播放</Text>
@@ -107,7 +100,7 @@ function MediumView({ track }: { track: SpotifyTrack | null }) {
                             {formatDuration(track.progressMs)} / {formatDuration(track.durationMs)}
                         </Text>
                         <Spacer />
-                        <ControlButtons />
+                        <ControlButtons isPlaying={track.isPlaying} />
                     </HStack>
                 </>
             ) : (
@@ -154,20 +147,14 @@ function LargeView({ track }: { track: SpotifyTrack | null }) {
                             {formatDuration(track.progressMs)} / {formatDuration(track.durationMs)}
                         </Text>
                     </HStack>
-                    <ControlButtons />
+                    <ControlButtons isPlaying={track.isPlaying} />
                 </>
             ) : (
                 <>
                     <Spacer />
                     <VStack alignment="center" spacing={8}>
-                        <Image
-                            systemName="music.note.house"
-                            foregroundStyle={"systemGray"}
-                            font={40}
-                        />
-                        <Text foregroundStyle="secondaryLabel" font={15}>
-                            目前沒有在播放音樂
-                        </Text>
+                        <Image systemName="music.note.house" foregroundStyle={"systemGray"} font={40} />
+                        <Text foregroundStyle="secondaryLabel" font={15}>目前沒有在播放音樂</Text>
                     </VStack>
                     <Spacer />
                 </>
@@ -184,7 +171,7 @@ function LargeView({ track }: { track: SpotifyTrack | null }) {
         try {
             track = await getCurrentlyPlaying(config);
         } catch (e) {
-            // silently fail, show "not playing"
+            // silently fail
         }
     }
 
