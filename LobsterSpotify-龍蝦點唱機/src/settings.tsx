@@ -13,6 +13,7 @@ import {
     VStack,
     useState,
     Pasteboard,
+    Safari,
     fetch,
     Script,
 } from "scripting";
@@ -37,7 +38,6 @@ export function SettingsPage(): JSX.Element {
     const [authCode, setAuthCode] = useState<string>("");
     const [statusMsg, setStatusMsg] = useState<string>("");
     const [testing, setTesting] = useState<boolean>(false);
-    const [authUrl, setAuthUrl] = useState<string>("");
 
     const blockWidth = 96;
 
@@ -185,51 +185,48 @@ export function SettingsPage(): JSX.Element {
                     </HStack>
                 </Section>
 
-                <Section title={"Step 2 — 產生授權連結"}>
+                <Section title={"Step 2 — 開啟授權頁面"}>
+                    <Button
+                        action={async () => {
+                            if (!clientId) {
+                                setStatusMsg("❌ 請先填 Client ID");
+                                return;
+                            }
+                            const url = buildAuthUrl();
+                            await Safari.present(url);
+                            setStatusMsg("✅ 授權頁已開啟，完成後請回來貼上授權碼");
+                        }}>
+                        <HStack>
+                            <Image
+                                systemName="safari"
+                                foregroundStyle={"systemBlue"}
+                                frame={{ width: 24 }}
+                            />
+                            <Text>開啟 Spotify 授權頁面</Text>
+                            <Spacer />
+                            <Image systemName="arrow.up.right" foregroundStyle={"tertiaryLabel"} />
+                        </HStack>
+                    </Button>
                     <Button
                         action={() => {
                             if (!clientId) {
                                 setStatusMsg("❌ 請先填 Client ID");
                                 return;
                             }
-                            setAuthUrl(buildAuthUrl());
-                            setStatusMsg("👇 授權連結已產生，請長按複製後在瀏覽器開啟");
+                            Pasteboard.setString(buildAuthUrl());
+                            setStatusMsg("📋 授權連結已複製到剪貼簿");
                         }}>
                         <HStack>
                             <Image
-                                systemName="link.badge.plus"
-                                foregroundStyle={"systemBlue"}
+                                systemName="doc.on.doc"
+                                foregroundStyle={"systemIndigo"}
                                 frame={{ width: 24 }}
                             />
-                            <Text>產生授權連結</Text>
+                            <Text>複製授權連結</Text>
                         </HStack>
                     </Button>
-                    {authUrl.length > 0 ? (
-                        <>
-                            <Text
-                                font={12}
-                                foregroundStyle="link"
-                                textSelection={"enabled"}>
-                                {authUrl}
-                            </Text>
-                            <Button
-                                action={() => {
-                                    Pasteboard.copy(authUrl);
-                                    setStatusMsg("📋 已複製到剪貼簿！");
-                                }}>
-                                <HStack>
-                                    <Image
-                                        systemName="doc.on.doc"
-                                        foregroundStyle={"systemIndigo"}
-                                        frame={{ width: 24 }}
-                                    />
-                                    <Text>複製連結</Text>
-                                </HStack>
-                            </Button>
-                        </>
-                    ) : null}
                     <Text font={12} foregroundStyle="secondaryLabel">
-                        授權後頁面會跳轉失敗，把網址列整串 URL 貼回 Step 3
+                        授權後頁面會跳轉失敗，請複製網址列的整串 URL 貼回 Step 3
                     </Text>
                 </Section>
 
