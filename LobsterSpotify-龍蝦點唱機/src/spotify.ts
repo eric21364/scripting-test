@@ -161,40 +161,62 @@ export async function getRecentlyPlayed(
 
 // ─── 播放控制 ───
 
-export async function playResume(config: SpotifyConfig): Promise<void> {
+async function spotifyCommand(
+    config: SpotifyConfig,
+    method: string,
+    endpoint: string,
+    body?: string
+): Promise<string> {
     const token = await getAccessToken(config);
-    await fetch("https://api.spotify.com/v1/me/player/play", {
-        method: "PUT",
-        headers: { Authorization: "Bearer " + token },
+    const headers: Record<string, string> = {
+        Authorization: "Bearer " + token,
+    };
+    if (body) {
+        headers["Content-Type"] = "application/json";
+    }
+
+    const opts: any = {
+        method: method,
+        headers: headers,
         timeout: 10,
-    });
+    };
+    if (body) {
+        opts.body = body;
+    }
+
+    const response = await fetch(
+        "https://api.spotify.com/v1/me/player/" + endpoint,
+        opts
+    );
+
+    if (response.status === 204 || response.status === 200) {
+        return "ok";
+    }
+    if (response.status === 403) {
+        return "需要 Spotify Premium 才能使用此功能";
+    }
+    if (response.status === 404) {
+        return "找不到播放裝置，請先開啟 Spotify App";
+    }
+
+    const errData = await response.text();
+    return "HTTP " + response.status + ": " + errData;
 }
 
-export async function pause(config: SpotifyConfig): Promise<void> {
-    const token = await getAccessToken(config);
-    await fetch("https://api.spotify.com/v1/me/player/pause", {
-        method: "PUT",
-        headers: { Authorization: "Bearer " + token },
-        timeout: 10,
-    });
+export async function playResume(config: SpotifyConfig): Promise<string> {
+    return spotifyCommand(config, "PUT", "play");
 }
 
-export async function skipToNext(config: SpotifyConfig): Promise<void> {
-    const token = await getAccessToken(config);
-    await fetch("https://api.spotify.com/v1/me/player/next", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + token },
-        timeout: 10,
-    });
+export async function pause(config: SpotifyConfig): Promise<string> {
+    return spotifyCommand(config, "PUT", "pause");
 }
 
-export async function skipToPrevious(config: SpotifyConfig): Promise<void> {
-    const token = await getAccessToken(config);
-    await fetch("https://api.spotify.com/v1/me/player/previous", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + token },
-        timeout: 10,
-    });
+export async function skipToNext(config: SpotifyConfig): Promise<string> {
+    return spotifyCommand(config, "POST", "next");
+}
+
+export async function skipToPrevious(config: SpotifyConfig): Promise<string> {
+    return spotifyCommand(config, "POST", "previous");
 }
 
 // ─── 裝置管理 ───

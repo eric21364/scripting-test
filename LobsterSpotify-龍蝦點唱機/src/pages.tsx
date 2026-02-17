@@ -172,7 +172,6 @@ function DevicesPage(): JSX.Element {
 export function PlayerPage() {
     const dismiss = Navigation.useDismiss();
 
-    const [config, setConfig] = useState<SpotifyConfig>(loadConfig());
     const [current, setCurrent] = useState<SpotifyTrack | null>(null);
     const [recent, setRecent] = useState<SpotifyRecentTrack[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -181,7 +180,6 @@ export function PlayerPage() {
 
     const fetchAll = async () => {
         const cfg = loadConfig();
-        setConfig(cfg);
         if (!isConfigReady(cfg)) {
             setConfigReady(false);
             return;
@@ -213,30 +211,30 @@ export function PlayerPage() {
 
     async function doControl(action: string): Promise<void> {
         const cfg = loadConfig();
+        let result = "";
         try {
             switch (action) {
                 case "playpause":
                     if (current?.isPlaying) {
-                        await pause(cfg);
-                        setControlMsg("⏸️ 已暫停");
+                        result = await pause(cfg);
                     } else {
-                        await playResume(cfg);
-                        setControlMsg("▶️ 播放中");
+                        result = await playResume(cfg);
                     }
                     break;
                 case "next":
-                    await skipToNext(cfg);
-                    setControlMsg("⏭️ 下一首");
+                    result = await skipToNext(cfg);
                     break;
                 case "prev":
-                    await skipToPrevious(cfg);
-                    setControlMsg("⏮️ 上一首");
+                    result = await skipToPrevious(cfg);
                     break;
             }
-            setTimeout(async () => {
+
+            if (result === "ok") {
                 await fetchAll();
                 setControlMsg("");
-            }, 500);
+            } else {
+                setControlMsg("⚠️ " + result);
+            }
         } catch (e) {
             setControlMsg("❌ " + String(e));
         }
@@ -281,9 +279,7 @@ export function PlayerPage() {
                                             font={48}
                                             foregroundStyle={"systemGreen"}
                                         />
-                                        <Text bold font={17}>
-                                            尚未連接 Spotify
-                                        </Text>
+                                        <Text bold font={17}>尚未連接 Spotify</Text>
                                         <Text foregroundStyle="secondaryLabel" font={14}>
                                             請先設定您的 Spotify OAuth 憑證
                                         </Text>
@@ -321,60 +317,31 @@ export function PlayerPage() {
                                     <>
                                         <HStack>
                                             <Image
-                                                systemName={
-                                                    current.isPlaying
-                                                        ? "play.circle.fill"
-                                                        : "pause.circle.fill"
-                                                }
-                                                foregroundStyle={
-                                                    current.isPlaying
-                                                        ? "systemGreen"
-                                                        : "systemOrange"
-                                                }
+                                                systemName={current.isPlaying ? "play.circle.fill" : "pause.circle.fill"}
+                                                foregroundStyle={current.isPlaying ? "systemGreen" : "systemOrange"}
                                                 font={24}
                                                 frame={{ width: 32 }}
                                             />
                                             <VStack alignment="leading" spacing={2}>
-                                                <Text bold lineLimit={1}>
-                                                    {current.name}
-                                                </Text>
-                                                <Text
-                                                    font={13}
-                                                    foregroundStyle="secondaryLabel"
-                                                    lineLimit={1}>
+                                                <Text bold lineLimit={1}>{current.name}</Text>
+                                                <Text font={13} foregroundStyle="secondaryLabel" lineLimit={1}>
                                                     {current.artist}
                                                 </Text>
                                             </VStack>
                                         </HStack>
                                         <HStack>
-                                            <Image
-                                                systemName="opticaldisc"
-                                                foregroundStyle={"systemPurple"}
-                                                frame={{ width: 24 }}
-                                            />
+                                            <Image systemName="opticaldisc" foregroundStyle={"systemPurple"} frame={{ width: 24 }} />
                                             <Text lineLimit={1}>{current.album}</Text>
                                         </HStack>
                                         <HStack>
-                                            <Image
-                                                systemName="timer"
-                                                foregroundStyle={"systemBlue"}
-                                                frame={{ width: 24 }}
-                                            />
-                                            <Text>
-                                                {formatDuration(current.progressMs)} / {formatDuration(current.durationMs)}
-                                            </Text>
+                                            <Image systemName="timer" foregroundStyle={"systemBlue"} frame={{ width: 24 }} />
+                                            <Text>{formatDuration(current.progressMs)} / {formatDuration(current.durationMs)}</Text>
                                         </HStack>
                                     </>
                                 ) : (
                                     <HStack>
-                                        <Image
-                                            systemName="speaker.slash"
-                                            foregroundStyle={"systemGray"}
-                                            frame={{ width: 24 }}
-                                        />
-                                        <Text foregroundStyle="secondaryLabel">
-                                            目前沒有在播放音樂 🎵
-                                        </Text>
+                                        <Image systemName="speaker.slash" foregroundStyle={"systemGray"} frame={{ width: 24 }} />
+                                        <Text foregroundStyle="secondaryLabel">目前沒有在播放音樂 🎵</Text>
                                     </HStack>
                                 )}
                             </Section>
@@ -383,12 +350,7 @@ export function PlayerPage() {
                                 <HStack alignment="center" spacing={0}>
                                     <Spacer />
                                     <Button action={async () => { await doControl("prev"); }}>
-                                        <Image
-                                            systemName="backward.fill"
-                                            font={28}
-                                            foregroundStyle={"label"}
-                                            frame={{ width: 60 }}
-                                        />
+                                        <Image systemName="backward.fill" font={28} foregroundStyle={"label"} frame={{ width: 60 }} />
                                     </Button>
                                     <Spacer />
                                     <Button action={async () => { await doControl("playpause"); }}>
@@ -401,51 +363,31 @@ export function PlayerPage() {
                                     </Button>
                                     <Spacer />
                                     <Button action={async () => { await doControl("next"); }}>
-                                        <Image
-                                            systemName="forward.fill"
-                                            font={28}
-                                            foregroundStyle={"label"}
-                                            frame={{ width: 60 }}
-                                        />
+                                        <Image systemName="forward.fill" font={28} foregroundStyle={"label"} frame={{ width: 60 }} />
                                     </Button>
                                     <Spacer />
                                 </HStack>
                                 {controlMsg.length > 0 ? (
-                                    <Text font={12} foregroundStyle="secondaryLabel">
-                                        {controlMsg}
-                                    </Text>
+                                    <Text font={13} foregroundStyle="secondaryLabel">{controlMsg}</Text>
                                 ) : null}
                             </Section>
 
                             <Section title={"最近播放（" + recent.length + "）"}>
                                 {recent.length === 0 ? (
-                                    <Text foregroundStyle="secondaryLabel">
-                                        沒有播放紀錄
-                                    </Text>
+                                    <Text foregroundStyle="secondaryLabel">沒有播放紀錄</Text>
                                 ) : (
                                     recent.map((track, i) => (
-                                        <HStack
-                                            key={"recent-" + i}
-                                            alignment="center"
-                                            spacing={8}>
+                                        <HStack key={"recent-" + i} alignment="center" spacing={8}>
                                             <VStack
                                                 alignment="leading"
                                                 spacing={2}
-                                                frame={{
-                                                    maxWidth: "infinity",
-                                                    alignment: "leading",
-                                                }}>
+                                                frame={{ maxWidth: "infinity", alignment: "leading" }}>
                                                 <Text lineLimit={1}>{track.name}</Text>
-                                                <Text
-                                                    lineLimit={1}
-                                                    font="caption"
-                                                    foregroundStyle="secondaryLabel">
+                                                <Text lineLimit={1} font="caption" foregroundStyle="secondaryLabel">
                                                     {track.artist} · {track.album}
                                                 </Text>
                                             </VStack>
-                                            <Text
-                                                font={11}
-                                                foregroundStyle="tertiaryLabel">
+                                            <Text font={11} foregroundStyle="tertiaryLabel">
                                                 {formatTimeAgo(track.playedAt)}
                                             </Text>
                                         </HStack>
