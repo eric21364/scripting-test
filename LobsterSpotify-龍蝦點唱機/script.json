@@ -1,0 +1,14 @@
+{
+  "contributors" : [],
+  "localizedNames" : null,
+  "localizedDescriptions" : null,
+  "version" : "1.0.0",
+  "runInApp" : false,
+  "description" : "Spotify 正在播放監控",
+  "color" : "rgba(30, 215, 96, 1)",
+  "icon" : "music.note",
+  "remoteResource" : null,
+  "author" : null,
+  "name" : "龍蝦點唱機",
+  "intentInputTypes" : []
+}
