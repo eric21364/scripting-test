@@ -18,7 +18,7 @@ import {
 import { SpotifyConfig } from "./types";
 import { loadConfig, saveConfig, isConfigReady, getCurrentlyPlaying } from "./spotify";
 
-const DEFAULT_REDIRECT = "https://localhost:8888/callback";
+const DEFAULT_REDIRECT = "http://localhost:8888/callback";
 const SCOPES = [
     "user-read-currently-playing",
     "user-read-recently-played",
