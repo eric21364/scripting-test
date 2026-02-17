@@ -40,15 +40,18 @@ export function PlayerPage() {
     const [config, setConfig] = useState<SpotifyConfig>(loadConfig());
     const [current, setCurrent] = useState<SpotifyTrack | null>(null);
     const [recent, setRecent] = useState<SpotifyRecentTrack[]>([]);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [configReady, setConfigReady] = useState<boolean>(isConfigReady(loadConfig()));
 
     const fetchAll = async () => {
         const cfg = loadConfig();
         setConfig(cfg);
         if (!isConfigReady(cfg)) {
-            setIsLoading(false);
+            setConfigReady(false);
             return;
         }
+        setConfigReady(true);
+        setIsLoading(true);
         try {
             const [track, history] = await Promise.all([
                 getCurrentlyPlaying(cfg),
@@ -63,15 +66,15 @@ export function PlayerPage() {
         }
     };
 
+    async function openSettings(): Promise<void> {
+        await Navigation.present(<SettingsPage />);
+        await fetchAll();
+    }
+
     useEffect(() => {
-        async function init() {
-            const cfg = loadConfig();
-            if (!isConfigReady(cfg)) {
-                await Navigation.present(<SettingsPage />);
-            }
-            await fetchAll();
+        if (configReady) {
+            fetchAll();
         }
-        init();
     }, []);
 
     return (
@@ -83,18 +86,13 @@ export function PlayerPage() {
                         <Button action={() => dismiss()}>
                             <Image systemName="xmark" />
                         </Button>,
-                        <Button
-                            action={async () => {
-                                await Navigation.present(<SettingsPage />);
-                                await fetchAll();
-                            }}>
-                            <Image systemName="gear" />
-                        </Button>,
                     ],
                     topBarTrailing: [
+                        <Button action={() => { void openSettings(); }}>
+                            <Image systemName="gear" />
+                        </Button>,
                         <Button
                             action={async () => {
-                                setIsLoading(true);
                                 await fetchAll();
                             }}>
                             <Image systemName="arrow.clockwise" />
@@ -102,6 +100,63 @@ export function PlayerPage() {
                     ],
                 }}>
                 {(() => {
+                    // 尚未設定：顯示引導畫面
+                    if (!configReady)
+                        return (
+                            <List>
+                                <Section title="歡迎使用龍蝦點唱機 🦞🎵">
+                                    <VStack alignment="center" spacing={12} padding>
+                                        <Image
+                                            systemName="music.note.house.fill"
+                                            font={48}
+                                            foregroundStyle={"systemGreen"}
+                                        />
+                                        <Text bold font={17}>
+                                            尚未連接 Spotify
+                                        </Text>
+                                        <Text foregroundStyle="secondaryLabel" font={14}>
+                                            請先設定您的 Spotify OAuth 憑證，即可在桌面即時查看正在播放的音樂。
+                                        </Text>
+                                    </VStack>
+                                </Section>
+                                <Section>
+                                    <Button action={() => { void openSettings(); }}>
+                                        <HStack>
+                                            <Image
+                                                systemName="gear.badge.checkmark"
+                                                foregroundStyle={"systemGreen"}
+                                                frame={{ width: 24 }}
+                                            />
+                                            <Text>前往設定 Spotify 帳號</Text>
+                                            <Spacer />
+                                            <Image systemName="chevron.right" foregroundStyle={"tertiaryLabel"} />
+                                        </HStack>
+                                    </Button>
+                                </Section>
+                                <Section title="設定指引">
+                                    <HStack>
+                                        <Text foregroundStyle="secondaryLabel" font={13}>
+                                            1️⃣
+                                        </Text>
+                                        <Text font={13}>前往 Spotify Developer Dashboard</Text>
+                                    </HStack>
+                                    <HStack>
+                                        <Text foregroundStyle="secondaryLabel" font={13}>
+                                            2️⃣
+                                        </Text>
+                                        <Text font={13}>取得 Client ID 與 Client Secret</Text>
+                                    </HStack>
+                                    <HStack>
+                                        <Text foregroundStyle="secondaryLabel" font={13}>
+                                            3️⃣
+                                        </Text>
+                                        <Text font={13}>產生 Refresh Token 並填入設定</Text>
+                                    </HStack>
+                                </Section>
+                            </List>
+                        );
+
+                    // 載入中
                     if (isLoading)
                         return (
                             <>
@@ -110,6 +165,7 @@ export function PlayerPage() {
                             </>
                         );
 
+                    // 已連接：顯示播放資訊
                     return (
                         <List
                             refreshable={async () => {
@@ -166,9 +222,16 @@ export function PlayerPage() {
                                         </HStack>
                                     </>
                                 ) : (
-                                    <Text foregroundStyle="secondaryLabel">
-                                        目前沒有在播放音樂 🎵
-                                    </Text>
+                                    <HStack>
+                                        <Image
+                                            systemName="speaker.slash"
+                                            foregroundStyle={"systemGray"}
+                                            frame={{ width: 24 }}
+                                        />
+                                        <Text foregroundStyle="secondaryLabel">
+                                            目前沒有在播放音樂 🎵
+                                        </Text>
+                                    </HStack>
                                 )}
                             </Section>
                             <Section title={`最近播放（${recent.length}）`}>
