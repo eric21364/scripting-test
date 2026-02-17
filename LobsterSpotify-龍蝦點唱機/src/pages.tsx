@@ -88,7 +88,7 @@ export function PlayerPage() {
                         </Button>,
                     ],
                     topBarTrailing: [
-                        <Button action={() => { void openSettings(); }}>
+                        <Button action={async () => { await openSettings(); }}>
                             <Image systemName="gear" />
                         </Button>,
                         <Button
@@ -120,7 +120,7 @@ export function PlayerPage() {
                                     </VStack>
                                 </Section>
                                 <Section>
-                                    <Button action={() => { void openSettings(); }}>
+                                    <Button action={async () => { await openSettings(); }}>
                                         <HStack>
                                             <Image
                                                 systemName="gear.badge.checkmark"

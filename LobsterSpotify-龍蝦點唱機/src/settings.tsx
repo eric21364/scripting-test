@@ -2,7 +2,6 @@ import {
     HStack,
     Divider,
     TextField,
-    SecureField,
     Text,
     Section,
     List,
@@ -24,29 +23,20 @@ export function SettingsPage(): JSX.Element {
     const [testMsg, setTestMsg] = useState<string>("");
     const [testing, setTesting] = useState<boolean>(false);
 
-    const blockWidth = 96;
+    const titleMap: Record<keyof SpotifyConfig, string> = {
+        clientId: "Client ID",
+        clientSecret: "Secret",
+        refreshToken: "Refresh Token",
+    };
 
-    async function testConnection(): Promise<void> {
-        if (!isConfigReady(config)) {
-            setTestMsg("請先填寫所有欄位");
-            return;
-        }
-        setTesting(true);
-        setTestMsg("測試連線中...");
-        try {
-            saveConfig(config);
-            const track = await getCurrentlyPlaying(config);
-            if (track) {
-                setTestMsg(`✅ 連線成功！正在播放: ${track.name}`);
-            } else {
-                setTestMsg("✅ 連線成功！目前沒有在播放音樂");
-            }
-        } catch (e) {
-            setTestMsg(`❌ 連線失敗: ${String(e)}`);
-        } finally {
-            setTesting(false);
-        }
+    function updateField<K extends keyof SpotifyConfig>(key: K, val: string) {
+        setConfig((prev) => ({
+            ...prev,
+            [key]: val,
+        }));
     }
+
+    const blockWidth = 96;
 
     return (
         <NavigationStack>
@@ -63,62 +53,48 @@ export function SettingsPage(): JSX.Element {
                         </Button>,
                     ],
                 }}>
-                <Section title="OAuth 憑證" footer="從 Spotify Developer Dashboard 取得 Client ID 與 Secret，Refresh Token 需透過 OAuth 流程產生。">
-                    <HStack>
-                        <HStack frame={{ width: blockWidth }}>
-                            <Text>Client ID</Text>
-                            <Spacer />
-                        </HStack>
-                        <Divider />
-                        <TextField
-                            title="Client ID"
-                            prompt="Client ID"
-                            value={config.clientId}
-                            onChanged={(val: string) =>
-                                setConfig((prev) => ({ ...prev, clientId: val }))
-                            }
-                        />
-                    </HStack>
-                    <HStack>
-                        <HStack frame={{ width: blockWidth }}>
-                            <Text>Secret</Text>
-                            <Spacer />
-                        </HStack>
-                        <Divider />
-                        <SecureField
-                            title="Client Secret"
-                            prompt="Client Secret"
-                            value={config.clientSecret}
-                            onChanged={(val: string) =>
-                                setConfig((prev) => ({
-                                    ...prev,
-                                    clientSecret: val,
-                                }))
-                            }
-                        />
-                    </HStack>
-                    <HStack>
-                        <HStack frame={{ width: blockWidth }}>
-                            <Text>Refresh Token</Text>
-                            <Spacer />
-                        </HStack>
-                        <Divider />
-                        <SecureField
-                            title="Refresh Token"
-                            prompt="Refresh Token"
-                            value={config.refreshToken}
-                            onChanged={(val: string) =>
-                                setConfig((prev) => ({
-                                    ...prev,
-                                    refreshToken: val,
-                                }))
-                            }
-                        />
-                    </HStack>
+                <Section title={"OAuth 憑證"}>
+                    {(Object.keys(config) as (keyof SpotifyConfig)[]).map(
+                        (item) => (
+                            <HStack key={item}>
+                                <HStack frame={{ width: blockWidth }}>
+                                    <Text>{titleMap[item]}</Text>
+                                    <Spacer />
+                                </HStack>
+                                <Divider />
+                                <TextField
+                                    title={titleMap[item]}
+                                    prompt={titleMap[item]}
+                                    value={config[item]}
+                                    onChanged={(val: string) => updateField(item, val)}
+                                />
+                            </HStack>
+                        )
+                    )}
                 </Section>
-                <Section title="測試連線">
+                <Section title={"連線測試"}>
                     <Button
-                        action={testConnection}
+                        action={async () => {
+                            if (!isConfigReady(config)) {
+                                setTestMsg("請先填寫所有欄位");
+                                return;
+                            }
+                            setTesting(true);
+                            setTestMsg("測試連線中...");
+                            try {
+                                saveConfig(config);
+                                const track = await getCurrentlyPlaying(config);
+                                if (track) {
+                                    setTestMsg(`✅ 成功！正在播放: ${track.name}`);
+                                } else {
+                                    setTestMsg("✅ 連線成功！目前沒有在播放");
+                                }
+                            } catch (e) {
+                                setTestMsg(`❌ 失敗: ${String(e)}`);
+                            } finally {
+                                setTesting(false);
+                            }
+                        }}
                         disabled={testing}>
                         <HStack>
                             <Image
@@ -128,7 +104,7 @@ export function SettingsPage(): JSX.Element {
                             <Text>{testing ? "測試中..." : "測試 Spotify 連線"}</Text>
                         </HStack>
                     </Button>
-                    {testMsg ? (
+                    {testMsg.length > 0 ? (
                         <Text font={13} foregroundStyle="secondaryLabel">
                             {testMsg}
                         </Text>
