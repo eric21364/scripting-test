@@ -34,6 +34,8 @@ export function loadConfig(): SpotifyConfig {
 
 export function saveConfig(config: SpotifyConfig): void {
     Storage.set(CONFIG_KEY, config);
+    // 清除舊的 access token 快取，強制用新 refresh token 重新取得
+    Storage.remove(TOKEN_KEY);
 }
 
 export function isConfigReady(config: SpotifyConfig): boolean {
