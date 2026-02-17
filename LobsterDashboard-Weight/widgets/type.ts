@@ -1,12 +1,14 @@
 export interface LobsterStatusData {
+    lastUpdate: string;
     status: string;
+    vibe: string;
     reputation: number;
-    threadsDay: number;
-    btcPrice: string;
-    diskAvail: string;
+    threads: string;
+    btc: string;
+    disk: string;
     moltbook: string;
-    uptime: string;
-    apiHealth: {
+    events: string[];
+    api_health: {
         threads: string;
         clawtasks: string;
         moltbook: string;

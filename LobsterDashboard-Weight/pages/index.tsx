@@ -16,7 +16,6 @@ import {
 import { SettingView, getProfile, Profile } from "./setting";
 import { sshExecuteCommand } from "../utils/ssh";
 import { LobsterStatusData, lobsterStatusCmd } from "../widgets/type";
-import { getApiStatusIcon, getApiStatusColor } from "../utils/format";
 
 export function View() {
     const dismiss = Navigation.useDismiss();
@@ -73,9 +72,7 @@ export function View() {
                             action={async () => {
                                 await Navigation.present(<SettingView />);
                             }}>
-                            <HStack>
-                                <Image systemName="gear" />
-                            </HStack>
+                            <Image systemName="gear" />
                         </Button>,
                     ],
                     topBarTrailing: [
@@ -125,7 +122,19 @@ export function View() {
                                     <Text>磁碟空間</Text>
                                     <Spacer />
                                     <Text foregroundStyle="secondaryLabel">
-                                        {data.diskAvail}
+                                        {data.disk}
+                                    </Text>
+                                </HStack>
+                                <HStack>
+                                    <Image
+                                        systemName="clock.fill"
+                                        foregroundStyle={"systemIndigo"}
+                                        frame={{ width: 24 }}
+                                    />
+                                    <Text>最後更新</Text>
+                                    <Spacer />
+                                    <Text foregroundStyle="secondaryLabel">
+                                        {data.lastUpdate}
                                     </Text>
                                 </HStack>
                             </Section>
@@ -151,7 +160,7 @@ export function View() {
                                     <Text>Threads 連載</Text>
                                     <Spacer />
                                     <Text foregroundStyle="secondaryLabel">
-                                        Day {data.threadsDay}
+                                        {data.threads}
                                     </Text>
                                 </HStack>
                                 <HStack>
@@ -163,27 +172,9 @@ export function View() {
                                     <Text>BTC 價格</Text>
                                     <Spacer />
                                     <Text foregroundStyle="secondaryLabel">
-                                        {data.btcPrice} TWD
+                                        {data.btc} TWD
                                     </Text>
                                 </HStack>
-                            </Section>
-                            <Section title="API 健康度">
-                                {Object.entries(data.apiHealth).map(
-                                    ([name, status]) => (
-                                        <HStack key={name}>
-                                            <Image
-                                                systemName={getApiStatusIcon(status)}
-                                                foregroundStyle={getApiStatusColor(status)}
-                                                frame={{ width: 24 }}
-                                            />
-                                            <Text>{name}</Text>
-                                            <Spacer />
-                                            <Text foregroundStyle="secondaryLabel">
-                                                {status}
-                                            </Text>
-                                        </HStack>
-                                    )
-                                )}
                             </Section>
                         </List>
                     );

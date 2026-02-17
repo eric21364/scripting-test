@@ -10,18 +10,16 @@ import {
 } from "scripting";
 import { LobsterStatusData } from "./type";
 import { reloadWidget } from "../app_intents";
-import { formatPrice, getApiStatusIcon, getApiStatusColor } from "../utils/format";
 
 export function View({ data }: { data: LobsterStatusData }) {
     const {
         status,
         reputation,
-        threadsDay,
-        btcPrice,
-        diskAvail,
+        threads,
+        btc,
+        disk,
         moltbook,
-        uptime,
-        apiHealth,
+        api_health,
     } = data;
 
     const dividerLength = 37;
@@ -60,14 +58,14 @@ export function View({ data }: { data: LobsterStatusData }) {
                 <ArgView
                     icon="text.bubble.fill"
                     title="連載"
-                    body={`Day ${threadsDay}`}
+                    body={threads}
                     color="systemPurple"
                 />
                 <Divider frame={{ height: dividerLength }} />
                 <ArgView
                     icon="bitcoinsign.circle"
                     title="BTC"
-                    body={formatPrice(btcPrice)}
+                    body={btc}
                     color="systemYellow"
                 />
             </HStack>
@@ -76,21 +74,21 @@ export function View({ data }: { data: LobsterStatusData }) {
                 <ArgView
                     icon="internaldrive.fill"
                     title="磁碟"
-                    body={diskAvail}
+                    body={disk}
                     color="systemGreen"
                 />
                 <Divider frame={{ height: dividerLength }} />
                 <ArgView
-                    icon="person.crop.circle.badge.xmark"
+                    icon="person.crop.circle"
                     title="Moltbook"
                     body={moltbook}
                     color="systemRed"
                 />
                 <Divider frame={{ height: dividerLength }} />
                 <ArgView
-                    icon="clock.fill"
-                    title="運行"
-                    body={uptime}
+                    icon="shield.checkered"
+                    title="資安"
+                    body="S+"
                     color="systemIndigo"
                 />
             </HStack>
@@ -98,17 +96,17 @@ export function View({ data }: { data: LobsterStatusData }) {
             <HStack padding={{ bottom: true }}>
                 <ApiStatusView
                     title="Threads"
-                    status={apiHealth.threads}
+                    status={api_health.threads}
                 />
                 <Divider frame={{ height: dividerLength }} />
                 <ApiStatusView
-                    title="ClawTasks"
-                    status={apiHealth.clawtasks}
+                    title="Tasks"
+                    status={api_health.clawtasks}
                 />
                 <Divider frame={{ height: dividerLength }} />
                 <ApiStatusView
                     title="OpenClaw"
-                    status={apiHealth.openclaw}
+                    status={api_health.openclaw}
                 />
             </HStack>
         </VStack>
@@ -153,17 +151,29 @@ function ApiStatusView({
     title: string;
     status: string;
 }) {
+    const color: Color =
+        status === "Healthy" || status === "Online"
+            ? "systemGreen"
+            : status === "Blocked"
+            ? "systemOrange"
+            : "systemRed";
+    const icon =
+        status === "Healthy" || status === "Online"
+            ? "checkmark.circle.fill"
+            : status === "Blocked"
+            ? "exclamationmark.triangle.fill"
+            : "xmark.circle.fill";
     return (
         <VStack>
             <HStack foregroundStyle={"secondaryLabel"}>
                 <Spacer />
-                <Image systemName={getApiStatusIcon(status)} />
+                <Image systemName={icon} />
                 <Text>{title}</Text>
                 <Spacer />
             </HStack>
             <Text
                 bold
-                foregroundStyle={getApiStatusColor(status) as Color}
+                foregroundStyle={color}
                 padding={{ top: 4 }}
                 lineLimit={1}
                 allowsTightening={true}>

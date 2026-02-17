@@ -10,10 +10,9 @@ import {
 } from "scripting";
 import { LobsterStatusData } from "./type";
 import { reloadWidget } from "../app_intents";
-import { formatPrice } from "../utils/format";
 
 export function View({ data }: { data: LobsterStatusData }) {
-    const { status, reputation, threadsDay, btcPrice, diskAvail, moltbook } = data;
+    const { status, reputation, threads, btc, disk, moltbook } = data;
     const dividerLength = 27;
     return (
         <VStack padding>
@@ -40,14 +39,14 @@ export function View({ data }: { data: LobsterStatusData }) {
                 <ArgView
                     icon="text.bubble.fill"
                     title="連載"
-                    body={`Day ${threadsDay}`}
+                    body={threads}
                     color="systemPurple"
                 />
                 <Divider frame={{ height: dividerLength }} />
                 <ArgView
                     icon="bitcoinsign.circle"
                     title="BTC"
-                    body={formatPrice(btcPrice)}
+                    body={btc}
                     color="systemYellow"
                 />
             </HStack>
@@ -56,12 +55,12 @@ export function View({ data }: { data: LobsterStatusData }) {
                 <ArgView
                     icon="internaldrive.fill"
                     title="磁碟"
-                    body={diskAvail}
+                    body={disk}
                     color="systemGreen"
                 />
                 <Divider frame={{ height: dividerLength }} />
                 <ArgView
-                    icon="person.crop.circle.badge.xmark"
+                    icon="person.crop.circle"
                     title="Moltbook"
                     body={moltbook}
                     color="systemRed"

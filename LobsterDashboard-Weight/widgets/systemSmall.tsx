@@ -11,7 +11,7 @@ import {
 import { LobsterStatusData } from "./type";
 
 export function View({ data }: { data: LobsterStatusData }) {
-    const { reputation, threadsDay, status } = data;
+    const { reputation, threads, status } = data;
     return (
         <ZStack>
             <VStack>
@@ -26,7 +26,7 @@ export function View({ data }: { data: LobsterStatusData }) {
                     <ArgView
                         icon="text.bubble.fill"
                         title="連載"
-                        body={`Day ${threadsDay}`}
+                        body={threads}
                         color="systemPurple"
                     />
                 </HStack>
