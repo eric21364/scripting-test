@@ -4,6 +4,26 @@ import { SpotifyConfig, SpotifyTrack, SpotifyRecentTrack } from "./types";
 const CONFIG_KEY = "lobster_spotify_config";
 const TOKEN_KEY = "lobster_spotify_token";
 
+// Scripting 環境沒有 btoa，手寫 Base64 編碼
+export function toBase64(input: string): string {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let result = "";
+    const bytes: number[] = [];
+    for (let i = 0; i < input.length; i++) {
+        bytes.push(input.charCodeAt(i) & 0xff);
+    }
+    for (let i = 0; i < bytes.length; i += 3) {
+        const b0 = bytes[i];
+        const b1 = i + 1 < bytes.length ? bytes[i + 1] : 0;
+        const b2 = i + 2 < bytes.length ? bytes[i + 2] : 0;
+        result += chars[b0 >> 2];
+        result += chars[((b0 & 3) << 4) | (b1 >> 4)];
+        result += i + 1 < bytes.length ? chars[((b1 & 15) << 2) | (b2 >> 6)] : "=";
+        result += i + 2 < bytes.length ? chars[b2 & 63] : "=";
+    }
+    return result;
+}
+
 export function loadConfig(): SpotifyConfig {
     return (Storage.get(CONFIG_KEY) as SpotifyConfig) || {
         clientId: "",
@@ -25,23 +45,20 @@ export function isConfigReady(config: SpotifyConfig): boolean {
 }
 
 async function refreshAccessToken(config: SpotifyConfig): Promise<string> {
-    const basic = btoa(`${config.clientId}:${config.clientSecret}`);
+    const basic = toBase64(config.clientId + ":" + config.clientSecret);
 
     const response = await fetch("https://accounts.spotify.com/api/token", {
         method: "POST",
         headers: {
-            Authorization: `Basic ${basic}`,
+            Authorization: "Basic " + basic,
             "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(
-            config.refreshToken
-        )}`,
+        body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(config.refreshToken),
         timeout: 10,
-        debugLabel: "SpotifyTokenRefresh",
     });
 
     if (!response.ok) {
-        throw new Error(`Token refresh failed: HTTP ${response.status}`);
+        throw new Error("Token refresh failed: HTTP " + response.status);
     }
 
     const data = await response.json();
@@ -76,14 +93,13 @@ export async function getCurrentlyPlaying(
     const response = await fetch(
         "https://api.spotify.com/v1/me/player/currently-playing",
         {
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: "Bearer " + token },
             timeout: 10,
-            debugLabel: "SpotifyNowPlaying",
         }
     );
 
     if (response.status === 204) return null;
-    if (!response.ok) throw new Error(`API error: HTTP ${response.status}`);
+    if (!response.ok) throw new Error("API error: HTTP " + response.status);
 
     const data = await response.json();
     if (!data || !data.item) return null;
@@ -115,15 +131,14 @@ export async function getRecentlyPlayed(
     const token = await getAccessToken(config);
 
     const response = await fetch(
-        `https://api.spotify.com/v1/me/player/recently-played?limit=${limit}`,
+        "https://api.spotify.com/v1/me/player/recently-played?limit=" + limit,
         {
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: "Bearer " + token },
             timeout: 10,
-            debugLabel: "SpotifyRecent",
         }
     );
 
-    if (!response.ok) throw new Error(`API error: HTTP ${response.status}`);
+    if (!response.ok) throw new Error("API error: HTTP " + response.status);
 
     const data = await response.json();
     const items = (data.items as any[]) || [];
@@ -146,5 +161,5 @@ export function formatDuration(ms: number): string {
     const totalSec = Math.floor(ms / 1000);
     const min = Math.floor(totalSec / 60);
     const sec = totalSec % 60;
-    return `${min}:${String(sec).padStart(2, "0")}`;
+    return min + ":" + String(sec).padStart(2, "0");
 }

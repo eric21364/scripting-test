@@ -16,6 +16,7 @@ import {
     Script,
 } from "scripting";
 import { SpotifyConfig } from "./types";
+import { toBase64 } from "./spotify";
 import { loadConfig, saveConfig, isConfigReady, getCurrentlyPlaying } from "./spotify";
 
 const DEFAULT_REDIRECT = "http://127.0.0.1:8888/callback";
@@ -25,25 +26,6 @@ const SCOPES = [
     "user-read-playback-state",
 ].join("%20");
 
-// Scripting 環境沒有 btoa，手寫 Base64 編碼
-function toBase64(input: string): string {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let result = "";
-    const bytes: number[] = [];
-    for (let i = 0; i < input.length; i++) {
-        bytes.push(input.charCodeAt(i) & 0xff);
-    }
-    for (let i = 0; i < bytes.length; i += 3) {
-        const b0 = bytes[i];
-        const b1 = i + 1 < bytes.length ? bytes[i + 1] : 0;
-        const b2 = i + 2 < bytes.length ? bytes[i + 2] : 0;
-        result += chars[b0 >> 2];
-        result += chars[((b0 & 3) << 4) | (b1 >> 4)];
-        result += i + 1 < bytes.length ? chars[((b1 & 15) << 2) | (b2 >> 6)] : "=";
-        result += i + 2 < bytes.length ? chars[b2 & 63] : "=";
-    }
-    return result;
-}
 
 export function SettingsPage(): JSX.Element {
     const dismiss = Navigation.useDismiss();
