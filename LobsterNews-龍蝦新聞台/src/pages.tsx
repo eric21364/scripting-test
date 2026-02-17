@@ -1,6 +1,5 @@
 import {
     NavigationStack,
-    NavigationLink,
     Image,
     Text,
     List,
@@ -10,6 +9,10 @@ import {
     Navigation,
     Spacer,
     Button,
+    DragGesture,
+    ZStack,
+    Divider,
+    RoundedRectangle,
     useState,
     useEffect,
     ProgressView,
@@ -30,36 +33,106 @@ function formatTimeAgo(dateString: string): string {
     return `${Math.floor(diffHr / 24)} 天前`;
 }
 
-function NewsDetailPage({ item }: { item: NewsItem }) {
+function NewsDetailView({
+    news,
+    initialIndex,
+}: {
+    news: NewsItem[];
+    initialIndex: number;
+}) {
+    const [currentIndex, setCurrentIndex] = useState(initialIndex);
+    const item = news[currentIndex];
+    const total = news.length;
+
+    function swipe(deltaX: number): void {
+        if (Math.abs(deltaX) < 60) return;
+        if (deltaX < 0 && currentIndex < total - 1) {
+            setCurrentIndex(currentIndex + 1);
+        } else if (deltaX > 0 && currentIndex > 0) {
+            setCurrentIndex(currentIndex - 1);
+        }
+    }
+
     return (
-        <List navigationTitle={item.source || "新聞"} navigationBarTitleDisplayMode="inline">
-            <Section title="標題">
-                <Text font={17} bold>{item.title}</Text>
-            </Section>
-            <Section title="來源">
-                <HStack>
-                    <Image
-                        systemName="building.2.fill"
-                        foregroundStyle={"systemBlue"}
-                        frame={{ width: 24 }}
-                    />
-                    <Text>{item.source || "未知來源"}</Text>
-                </HStack>
-                <HStack>
-                    <Image
-                        systemName="clock.fill"
-                        foregroundStyle={"systemOrange"}
-                        frame={{ width: 24 }}
-                    />
-                    <Text>{formatTimeAgo(item.pubDate)}</Text>
-                </HStack>
-            </Section>
-            <Section title="連結">
-                <Text foregroundStyle="secondaryLabel" font={13} lineLimit={3}>
-                    {item.link}
-                </Text>
-            </Section>
-        </List>
+        <VStack
+            frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
+            simultaneousGesture={DragGesture({ minDistance: 24 }).onEnded((event) => {
+                const dx = event.translation.width;
+                const dy = event.translation.height;
+                if (Math.abs(dx) < Math.abs(dy) * 1.2) return;
+                swipe(dx);
+            })}
+        >
+            <List
+                navigationTitle={`${currentIndex + 1} / ${total}`}
+                navigationBarTitleDisplayMode="inline"
+            >
+                <Section title="標題">
+                    <Text font={17} bold>
+                        {item.title}
+                    </Text>
+                </Section>
+                <Section title="來源">
+                    <HStack>
+                        <Image
+                            systemName="building.2.fill"
+                            foregroundStyle={"systemBlue"}
+                            frame={{ width: 24 }}
+                        />
+                        <Text>{item.source || "未知來源"}</Text>
+                    </HStack>
+                    <HStack>
+                        <Image
+                            systemName="clock.fill"
+                            foregroundStyle={"systemOrange"}
+                            frame={{ width: 24 }}
+                        />
+                        <Text>{formatTimeAgo(item.pubDate)}</Text>
+                    </HStack>
+                </Section>
+                <Section title="操作提示">
+                    <HStack>
+                        <Image
+                            systemName="hand.draw.fill"
+                            foregroundStyle={"systemPurple"}
+                            frame={{ width: 24 }}
+                        />
+                        <Text foregroundStyle="secondaryLabel" font={13}>
+                            ← 右滑上一篇 / 左滑下一篇 →
+                        </Text>
+                    </HStack>
+                    <HStack>
+                        <Button
+                            action={() => {
+                                if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
+                            }}
+                            disabled={currentIndex <= 0}>
+                            <HStack>
+                                <Image systemName="chevron.left" />
+                                <Text>上一篇</Text>
+                            </HStack>
+                        </Button>
+                        <Spacer />
+                        <Button
+                            action={() => {
+                                if (currentIndex < total - 1)
+                                    setCurrentIndex(currentIndex + 1);
+                            }}
+                            disabled={currentIndex >= total - 1}>
+                            <HStack>
+                                <Text>下一篇</Text>
+                                <Image systemName="chevron.right" />
+                            </HStack>
+                        </Button>
+                    </HStack>
+                </Section>
+                <Section title="連結">
+                    <Text foregroundStyle="secondaryLabel" font={13} lineLimit={3}>
+                        {item.link}
+                    </Text>
+                </Section>
+            </List>
+        </VStack>
     );
 }
 
@@ -87,6 +160,14 @@ export function NewsListPage() {
         loadNews();
     }, []);
 
+    function openNewsDetail(index: number): void {
+        void Navigation.present(
+            <NavigationStack>
+                <NewsDetailView news={news} initialIndex={index} />
+            </NavigationStack>
+        );
+    }
+
     return (
         <NavigationStack>
             <VStack
@@ -113,7 +194,10 @@ export function NewsListPage() {
                     if (isLoading)
                         return (
                             <>
-                                <ProgressView progressViewStyle={"circular"} padding />
+                                <ProgressView
+                                    progressViewStyle={"circular"}
+                                    padding
+                                />
                                 <Spacer />
                             </>
                         );
@@ -133,10 +217,17 @@ export function NewsListPage() {
                             }}>
                             <Section title={`台灣即時頭條（${news.length}）`}>
                                 {news.map((item, index) => (
-                                    <NavigationLink
+                                    <Button
                                         key={`news-${index}`}
-                                        destination={<NewsDetailPage item={item} />}>
-                                        <VStack alignment="leading" spacing={4}>
+                                        action={() => openNewsDetail(index)}
+                                        buttonStyle="plain"
+                                        frame={{
+                                            maxWidth: "infinity",
+                                            alignment: "leading",
+                                        }}>
+                                        <VStack
+                                            alignment="leading"
+                                            spacing={4}>
                                             <Text lineLimit={2} bold>
                                                 {item.title}
                                             </Text>
@@ -154,7 +245,7 @@ export function NewsListPage() {
                                                 </Text>
                                             </HStack>
                                         </VStack>
-                                    </NavigationLink>
+                                    </Button>
                                 ))}
                             </Section>
                         </List>
