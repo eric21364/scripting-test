@@ -6,11 +6,12 @@ import {
     Image,
     Spacer,
     Divider,
-    Color,
+    Button,
     Notification,
 } from "scripting";
 import { fetchNews } from "./src/rss";
 import { NewsItem } from "./src/types";
+import { reloadNews } from "./app_intents";
 
 function SmallView({ news }: { news: NewsItem[] }) {
     const item = news[0];
@@ -20,6 +21,13 @@ function SmallView({ news }: { news: NewsItem[] }) {
                 <Image systemName="newspaper.fill" foregroundStyle={"systemOrange"} />
                 <Text bold font={12}>龍蝦新聞</Text>
                 <Spacer />
+                <Button buttonStyle={"plain"} intent={reloadNews(undefined)}>
+                    <Image
+                        systemName={"arrow.clockwise"}
+                        foregroundStyle={"accentColor"}
+                        font={12}
+                    />
+                </Button>
             </HStack>
             <Spacer />
             <Text bold lineLimit={3} font={14}>
@@ -34,13 +42,18 @@ function SmallView({ news }: { news: NewsItem[] }) {
 }
 
 function MediumView({ news }: { news: NewsItem[] }) {
-    const dividerLength = 1;
     return (
         <VStack padding spacing={6}>
             <HStack>
                 <Image systemName="newspaper.fill" foregroundStyle={"systemOrange"} />
                 <Text bold font={13}>🦞 龍蝦新聞台</Text>
                 <Spacer />
+                <Button buttonStyle={"plain"} intent={reloadNews(undefined)}>
+                    <Image
+                        systemName={"arrow.clockwise"}
+                        foregroundStyle={"accentColor"}
+                    />
+                </Button>
                 <Text font={10} foregroundStyle="secondaryLabel">台灣即時</Text>
             </HStack>
             <Divider />
@@ -65,6 +78,12 @@ function LargeView({ news }: { news: NewsItem[] }) {
                 <Image systemName="newspaper.fill" foregroundStyle={"systemOrange"} />
                 <Text bold font={15}>🦞 龍蝦新聞台</Text>
                 <Spacer />
+                <Button buttonStyle={"plain"} intent={reloadNews(undefined)}>
+                    <Image
+                        systemName={"arrow.clockwise"}
+                        foregroundStyle={"accentColor"}
+                    />
+                </Button>
                 <Text font={11} foregroundStyle="secondaryLabel">台灣即時頭條</Text>
             </HStack>
             <Divider />
