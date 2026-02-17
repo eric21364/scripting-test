@@ -10,6 +10,7 @@ import {
     Spacer,
     Button,
     Slider,
+    useRef,
     useState,
     useEffect,
     ProgressView,
@@ -167,6 +168,7 @@ export function PlayerPage() {
     const [configReady, setConfigReady] = useState<boolean>(isConfigReady(loadConfig()));
     const [controlMsg, setControlMsg] = useState<string>("");
     const [volume, setVolumeVal] = useState<number>(50);
+    const volumeRef = useRef<number>(50);
 
     function fetchAll(): void {
         const cfg = loadConfig();
@@ -186,6 +188,7 @@ export function PlayerPage() {
             const active = devices.find((d) => d.isActive);
             if (active && active.volumePercent !== null) {
                 setVolumeVal(active.volumePercent);
+                volumeRef.current = active.volumePercent;
             }
             setIsLoading(false);
         }).catch(() => {
@@ -251,12 +254,14 @@ export function PlayerPage() {
 
     function onVolumeChanged(val: number): void {
         setVolumeVal(val);
+        volumeRef.current = val;
     }
 
     function onVolumeEditingChanged(editing: boolean): void {
         if (!editing) {
             const cfg = loadConfig();
-            setVolume(cfg, volume).then((result) => {
+            const vol = volumeRef.current;
+            setVolume(cfg, vol).then((result) => {
                 if (result !== "ok") {
                     setControlMsg("⚠️ 音量: " + result);
                 }
