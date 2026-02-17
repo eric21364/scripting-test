@@ -18,12 +18,32 @@ import {
 import { SpotifyConfig } from "./types";
 import { loadConfig, saveConfig, isConfigReady, getCurrentlyPlaying } from "./spotify";
 
-const DEFAULT_REDIRECT = "http://localhost:8888/callback";
+const DEFAULT_REDIRECT = "http://127.0.0.1:8888/callback";
 const SCOPES = [
     "user-read-currently-playing",
     "user-read-recently-played",
     "user-read-playback-state",
 ].join("%20");
+
+// Scripting 環境沒有 btoa，手寫 Base64 編碼
+function toBase64(input: string): string {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let result = "";
+    const bytes: number[] = [];
+    for (let i = 0; i < input.length; i++) {
+        bytes.push(input.charCodeAt(i) & 0xff);
+    }
+    for (let i = 0; i < bytes.length; i += 3) {
+        const b0 = bytes[i];
+        const b1 = i + 1 < bytes.length ? bytes[i + 1] : 0;
+        const b2 = i + 2 < bytes.length ? bytes[i + 2] : 0;
+        result += chars[b0 >> 2];
+        result += chars[((b0 & 3) << 4) | (b1 >> 4)];
+        result += i + 1 < bytes.length ? chars[((b1 & 15) << 2) | (b2 >> 6)] : "=";
+        result += i + 2 < bytes.length ? chars[b2 & 63] : "=";
+    }
+    return result;
+}
 
 export function SettingsPage(): JSX.Element {
     const dismiss = Navigation.useDismiss();
@@ -56,38 +76,41 @@ export function SettingsPage(): JSX.Element {
         }
         setStatusMsg("🔄 正在換取 Refresh Token...");
 
-        let code = authCode;
+        let code = authCode.trim();
         if (code.includes("code=")) {
             const match = code.match(/code=([^&]+)/);
             if (match) code = match[1];
         }
 
         try {
-            const basic = btoa(clientId + ":" + clientSecret);
+            const basic = toBase64(clientId + ":" + clientSecret);
+            const bodyStr = [
+                "grant_type=authorization_code",
+                "code=" + encodeURIComponent(code),
+                "redirect_uri=" + encodeURIComponent(redirectUri),
+            ].join("&");
+
             const response = await fetch(
                 "https://accounts.spotify.com/api/token",
                 {
                     method: "POST",
                     headers: {
-                        Authorization: "Basic " + basic,
+                        "Authorization": "Basic " + basic,
                         "Content-Type": "application/x-www-form-urlencoded",
                     },
-                    body: [
-                        "grant_type=authorization_code",
-                        "code=" + encodeURIComponent(code),
-                        "redirect_uri=" + encodeURIComponent(redirectUri),
-                    ].join("&"),
+                    body: bodyStr,
                     timeout: 15,
                 }
             );
 
+            const data = await response.json();
+
             if (!response.ok) {
-                const err = await response.text();
-                setStatusMsg("❌ 換取失敗 (" + response.status + "): " + err);
+                const errMsg = data.error_description || data.error || response.status;
+                setStatusMsg("❌ 換取失敗: " + errMsg);
                 return;
             }
 
-            const data = await response.json();
             const rt = data.refresh_token as string;
 
             if (!rt) {
@@ -223,7 +246,7 @@ export function SettingsPage(): JSX.Element {
                         </HStack>
                     </Button>
                     <Text font={12} foregroundStyle="secondaryLabel">
-                        授權後頁面會跳轉失敗，請複製網址列的整串 URL 貼回 Step 3
+                        授權後頁面會跳轉失敗（正常），請複製網址列的整串 URL 貼回 Step 3
                     </Text>
                 </Section>
 
