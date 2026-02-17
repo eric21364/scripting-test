@@ -12,8 +12,6 @@ import {
     Image,
     VStack,
     useState,
-    Pasteboard,
-    Safari,
     fetch,
     Script,
 } from "scripting";
@@ -194,7 +192,6 @@ export function SettingsPage(): JSX.Element {
                             }
                             const url = buildAuthUrl();
                             await Safari.openURL(url);
-                            setStatusMsg("✅ 已在瀏覽器開啟授權頁面");
                         }}>
                         <HStack>
                             <Image
