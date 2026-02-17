@@ -16,7 +16,7 @@ import {
     Script,
 } from "scripting";
 import { SpotifyConfig } from "./types";
-import { toBase64 } from "./spotify";
+import { toBase64, clearTokenCache } from "./spotify";
 import { loadConfig, saveConfig, isConfigReady, getCurrentlyPlaying } from "./spotify";
 
 const DEFAULT_REDIRECT = "http://127.0.0.1:8888/callback";
@@ -259,6 +259,25 @@ export function SettingsPage(): JSX.Element {
                     </Button>
                 </Section>
 
+                <Section title={"🔄 Token 快取"}>
+                    <Button
+                        action={() => {
+                            clearTokenCache();
+                            setStatusMsg("✅ 已清除 Access Token 快取，下次操作會自動取得新 Token");
+                        }}>
+                        <HStack>
+                            <Image
+                                systemName="trash"
+                                foregroundStyle={"systemRed"}
+                                frame={{ width: 24 }}
+                            />
+                            <Text>清除 Token 快取</Text>
+                        </HStack>
+                    </Button>
+                    <Text font={12} foregroundStyle="secondaryLabel">
+                        重新授權後如果控制功能無法使用，請先清除舊的快取
+                    </Text>
+                </Section>
                 <Section title={"Step 4 — 測試連線"}>
                     {refreshToken.length > 0 ? (
                         <HStack>

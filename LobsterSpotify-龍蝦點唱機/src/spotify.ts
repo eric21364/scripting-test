@@ -38,6 +38,10 @@ export function saveConfig(config: SpotifyConfig): void {
     Storage.remove(TOKEN_KEY);
 }
 
+export function clearTokenCache(): void {
+    Storage.remove(TOKEN_KEY);
+}
+
 export function isConfigReady(config: SpotifyConfig): boolean {
     return (
         config.clientId.length > 0 &&
