@@ -9,8 +9,6 @@ import {
     Navigation,
     Spacer,
     Button,
-    Slider,
-    useRef,
     useState,
     useEffect,
     ProgressView,
@@ -27,7 +25,6 @@ import {
     skipToPrevious,
     getDevices,
     transferPlayback,
-    setVolume,
     formatDuration,
     deviceIcon,
 } from "./spotify";
@@ -167,8 +164,6 @@ export function PlayerPage() {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [configReady, setConfigReady] = useState<boolean>(isConfigReady(loadConfig()));
     const [controlMsg, setControlMsg] = useState<string>("");
-    const [volume, setVolumeVal] = useState<number>(50);
-    const volumeRef = useRef<number>(50);
 
     function fetchAll(): void {
         const cfg = loadConfig();
@@ -181,15 +176,9 @@ export function PlayerPage() {
         Promise.all([
             getCurrentlyPlaying(cfg),
             getRecentlyPlayed(cfg, 10),
-            getDevices(cfg),
-        ]).then(([track, history, devices]) => {
+        ]).then(([track, history]) => {
             setCurrent(track);
             setRecent(history);
-            const active = devices.find((d) => d.isActive);
-            if (active && active.volumePercent !== null) {
-                setVolumeVal(active.volumePercent);
-                volumeRef.current = active.volumePercent;
-            }
             setIsLoading(false);
         }).catch(() => {
             setIsLoading(false);
@@ -252,22 +241,7 @@ export function PlayerPage() {
         }).catch((e) => setControlMsg("❌ " + String(e)));
     }
 
-    function onVolumeChanged(val: number): void {
-        setVolumeVal(val);
-        volumeRef.current = val;
-    }
 
-    function onVolumeEditingChanged(editing: boolean): void {
-        if (!editing) {
-            const cfg = loadConfig();
-            const vol = volumeRef.current;
-            setVolume(cfg, vol).then((result) => {
-                if (result !== "ok") {
-                    setControlMsg("⚠️ 音量: " + result);
-                }
-            }).catch((e) => setControlMsg("❌ 音量: " + String(e)));
-        }
-    }
 
     useEffect(() => {
         if (configReady) {
