@@ -37,16 +37,17 @@ export function SettingsPage(): JSX.Element {
     const [authCode, setAuthCode] = useState<string>("");
     const [statusMsg, setStatusMsg] = useState<string>("");
     const [testing, setTesting] = useState<boolean>(false);
+    const [authUrl, setAuthUrl] = useState<string>("");
 
     const blockWidth = 96;
 
     function buildAuthUrl(): string {
         return (
             "https://accounts.spotify.com/authorize" +
-            `?client_id=${encodeURIComponent(clientId)}` +
+            "?client_id=" + encodeURIComponent(clientId) +
             "&response_type=code" +
-            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-            `&scope=${SCOPES}`
+            "&redirect_uri=" + encodeURIComponent(redirectUri) +
+            "&scope=" + SCOPES
         );
     }
 
@@ -57,7 +58,6 @@ export function SettingsPage(): JSX.Element {
         }
         setStatusMsg("🔄 正在換取 Refresh Token...");
 
-        // 從貼上的網址中提取 code
         let code = authCode;
         if (code.includes("code=")) {
             const match = code.match(/code=([^&]+)/);
@@ -65,19 +65,19 @@ export function SettingsPage(): JSX.Element {
         }
 
         try {
-            const basic = btoa(`${clientId}:${clientSecret}`);
+            const basic = btoa(clientId + ":" + clientSecret);
             const response = await fetch(
                 "https://accounts.spotify.com/api/token",
                 {
                     method: "POST",
                     headers: {
-                        Authorization: `Basic ${basic}`,
+                        Authorization: "Basic " + basic,
                         "Content-Type": "application/x-www-form-urlencoded",
                     },
                     body: [
                         "grant_type=authorization_code",
-                        `code=${encodeURIComponent(code)}`,
-                        `redirect_uri=${encodeURIComponent(redirectUri)}`,
+                        "code=" + encodeURIComponent(code),
+                        "redirect_uri=" + encodeURIComponent(redirectUri),
                     ].join("&"),
                     timeout: 15,
                 }
@@ -85,7 +85,7 @@ export function SettingsPage(): JSX.Element {
 
             if (!response.ok) {
                 const err = await response.text();
-                setStatusMsg(`❌ 換取失敗 (${response.status}): ${err}`);
+                setStatusMsg("❌ 換取失敗 (" + response.status + "): " + err);
                 return;
             }
 
@@ -99,9 +99,9 @@ export function SettingsPage(): JSX.Element {
 
             setRefreshToken(rt);
             saveConfig({ clientId, clientSecret, refreshToken: rt });
-            setStatusMsg(`✅ 成功！Refresh Token 已自動儲存`);
+            setStatusMsg("✅ 成功！Refresh Token 已自動儲存");
         } catch (e) {
-            setStatusMsg(`❌ 錯誤: ${String(e)}`);
+            setStatusMsg("❌ 錯誤: " + String(e));
         }
     }
 
@@ -117,12 +117,12 @@ export function SettingsPage(): JSX.Element {
             saveConfig(cfg);
             const track = await getCurrentlyPlaying(cfg);
             if (track) {
-                setStatusMsg(`✅ 連線成功！正在播放: ${track.name}`);
+                setStatusMsg("✅ 連線成功！正在播放: " + track.name);
             } else {
                 setStatusMsg("✅ 連線成功！目前沒有在播放");
             }
         } catch (e) {
-            setStatusMsg(`❌ 連線失敗: ${String(e)}`);
+            setStatusMsg("❌ 連線失敗: " + String(e));
         } finally {
             setTesting(false);
         }
@@ -143,7 +143,6 @@ export function SettingsPage(): JSX.Element {
                         </Button>,
                     ],
                 }}>
-                {/* Step 1: 基本憑證 */}
                 <Section title={"Step 1 — 填入憑證"}>
                     <HStack>
                         <HStack frame={{ width: blockWidth }}>
@@ -153,7 +152,7 @@ export function SettingsPage(): JSX.Element {
                         <Divider />
                         <TextField
                             title="Client ID"
-                            prompt="從 Developer Dashboard 取得"
+                            prompt="從 Dashboard 取得"
                             value={clientId}
                             onChanged={(v: string) => setClientId(v)}
                         />
@@ -166,7 +165,7 @@ export function SettingsPage(): JSX.Element {
                         <Divider />
                         <TextField
                             title="Client Secret"
-                            prompt="從 Developer Dashboard 取得"
+                            prompt="從 Dashboard 取得"
                             value={clientSecret}
                             onChanged={(v: string) => setClientSecret(v)}
                         />
@@ -186,17 +185,15 @@ export function SettingsPage(): JSX.Element {
                     </HStack>
                 </Section>
 
-                {/* Step 2: 產生授權連結 */}
-                <Section title={"Step 2 — 授權"}>
+                <Section title={"Step 2 — 產生授權連結"}>
                     <Button
                         action={() => {
                             if (!clientId) {
                                 setStatusMsg("❌ 請先填 Client ID");
                                 return;
                             }
-                            const url = buildAuthUrl();
-                            Pasteboard.copy(url);
-                            setStatusMsg("📋 授權連結已複製！請在瀏覽器中開啟");
+                            setAuthUrl(buildAuthUrl());
+                            setStatusMsg("👇 授權連結已產生，請長按複製後在瀏覽器開啟");
                         }}>
                         <HStack>
                             <Image
@@ -204,17 +201,38 @@ export function SettingsPage(): JSX.Element {
                                 foregroundStyle={"systemBlue"}
                                 frame={{ width: 24 }}
                             />
-                            <Text>複製授權連結</Text>
-                            <Spacer />
-                            <Image systemName="doc.on.doc" foregroundStyle={"tertiaryLabel"} />
+                            <Text>產生授權連結</Text>
                         </HStack>
                     </Button>
+                    {authUrl.length > 0 ? (
+                        <>
+                            <Text
+                                font={12}
+                                foregroundStyle="link"
+                                textSelection={"enabled"}>
+                                {authUrl}
+                            </Text>
+                            <Button
+                                action={() => {
+                                    Pasteboard.copy(authUrl);
+                                    setStatusMsg("📋 已複製到剪貼簿！");
+                                }}>
+                                <HStack>
+                                    <Image
+                                        systemName="doc.on.doc"
+                                        foregroundStyle={"systemIndigo"}
+                                        frame={{ width: 24 }}
+                                    />
+                                    <Text>複製連結</Text>
+                                </HStack>
+                            </Button>
+                        </>
+                    ) : null}
                     <Text font={12} foregroundStyle="secondaryLabel">
-                        在瀏覽器開啟連結並授權，頁面會跳轉到打不開的網址，把網址列的整串 URL 貼回下方
+                        授權後頁面會跳轉失敗，把網址列整串 URL 貼回 Step 3
                     </Text>
                 </Section>
 
-                {/* Step 3: 貼回 code 並換取 token */}
                 <Section title={"Step 3 — 貼回授權碼"}>
                     <HStack>
                         <HStack frame={{ width: blockWidth }}>
@@ -224,7 +242,7 @@ export function SettingsPage(): JSX.Element {
                         <Divider />
                         <TextField
                             title="授權碼"
-                            prompt="貼上 code 或整串網址"
+                            prompt="貼上整串網址或 code"
                             value={authCode}
                             onChanged={(v: string) => setAuthCode(v)}
                         />
@@ -241,7 +259,6 @@ export function SettingsPage(): JSX.Element {
                     </Button>
                 </Section>
 
-                {/* Step 4: 測試 */}
                 <Section title={"Step 4 — 測試連線"}>
                     {refreshToken.length > 0 ? (
                         <HStack>
@@ -276,7 +293,6 @@ export function SettingsPage(): JSX.Element {
                     </Button>
                 </Section>
 
-                {/* 狀態訊息 */}
                 {statusMsg.length > 0 ? (
                     <Section title={"狀態"}>
                         <Text font={13}>{statusMsg}</Text>
