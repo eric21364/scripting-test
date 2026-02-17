@@ -193,8 +193,8 @@ export function SettingsPage(): JSX.Element {
                                 return;
                             }
                             const url = buildAuthUrl();
-                            await Safari.present(url);
-                            setStatusMsg("✅ 授權頁已開啟，完成後請回來貼上授權碼");
+                            await Safari.openURL(url);
+                            setStatusMsg("✅ 已在瀏覽器開啟授權頁面");
                         }}>
                         <HStack>
                             <Image
