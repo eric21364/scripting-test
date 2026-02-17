@@ -21,3 +21,11 @@ export type SpotifyRecentTrack = {
     album: string;
     playedAt: string;
 };
+
+export type SpotifyDevice = {
+    id: string;
+    name: string;
+    type: string;
+    isActive: boolean;
+    volumePercent: number | null;
+};

@@ -1,5 +1,5 @@
 import { fetch, Script } from "scripting";
-import { SpotifyConfig, SpotifyTrack, SpotifyRecentTrack } from "./types";
+import { SpotifyConfig, SpotifyTrack, SpotifyRecentTrack, SpotifyDevice } from "./types";
 
 const CONFIG_KEY = "lobster_spotify_config";
 const TOKEN_KEY = "lobster_spotify_token";
@@ -85,6 +85,8 @@ async function getAccessToken(config: SpotifyConfig): Promise<string> {
     return refreshAccessToken(config);
 }
 
+// ─── 播放資訊 ───
+
 export async function getCurrentlyPlaying(
     config: SpotifyConfig
 ): Promise<SpotifyTrack | null> {
@@ -157,9 +159,102 @@ export async function getRecentlyPlayed(
     });
 }
 
+// ─── 播放控制 ───
+
+export async function playResume(config: SpotifyConfig): Promise<void> {
+    const token = await getAccessToken(config);
+    await fetch("https://api.spotify.com/v1/me/player/play", {
+        method: "PUT",
+        headers: { Authorization: "Bearer " + token },
+        timeout: 10,
+    });
+}
+
+export async function pause(config: SpotifyConfig): Promise<void> {
+    const token = await getAccessToken(config);
+    await fetch("https://api.spotify.com/v1/me/player/pause", {
+        method: "PUT",
+        headers: { Authorization: "Bearer " + token },
+        timeout: 10,
+    });
+}
+
+export async function skipToNext(config: SpotifyConfig): Promise<void> {
+    const token = await getAccessToken(config);
+    await fetch("https://api.spotify.com/v1/me/player/next", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token },
+        timeout: 10,
+    });
+}
+
+export async function skipToPrevious(config: SpotifyConfig): Promise<void> {
+    const token = await getAccessToken(config);
+    await fetch("https://api.spotify.com/v1/me/player/previous", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token },
+        timeout: 10,
+    });
+}
+
+// ─── 裝置管理 ───
+
+export async function getDevices(config: SpotifyConfig): Promise<SpotifyDevice[]> {
+    const token = await getAccessToken(config);
+    const response = await fetch("https://api.spotify.com/v1/me/player/devices", {
+        headers: { Authorization: "Bearer " + token },
+        timeout: 10,
+    });
+
+    if (!response.ok) throw new Error("Devices API error: HTTP " + response.status);
+
+    const data = await response.json();
+    const devices = (data.devices as any[]) || [];
+
+    return devices.map((d: any) => ({
+        id: d.id as string,
+        name: d.name as string,
+        type: d.type as string,
+        isActive: d.is_active as boolean,
+        volumePercent: d.volume_percent as number | null,
+    }));
+}
+
+export async function transferPlayback(
+    config: SpotifyConfig,
+    deviceId: string
+): Promise<void> {
+    const token = await getAccessToken(config);
+    await fetch("https://api.spotify.com/v1/me/player", {
+        method: "PUT",
+        headers: {
+            Authorization: "Bearer " + token,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ device_ids: [deviceId], play: true }),
+        timeout: 10,
+    });
+}
+
+// ─── 工具 ───
+
 export function formatDuration(ms: number): string {
     const totalSec = Math.floor(ms / 1000);
     const min = Math.floor(totalSec / 60);
     const sec = totalSec % 60;
     return min + ":" + String(sec).padStart(2, "0");
+}
+
+export function deviceIcon(type: string): string {
+    switch (type.toLowerCase()) {
+        case "computer": return "desktopcomputer";
+        case "smartphone": return "iphone";
+        case "tablet": return "ipad";
+        case "speaker": return "hifispeaker";
+        case "tv": return "tv";
+        case "automobile": return "car";
+        case "castaudio": return "airplayaudio";
+        case "castvideo": return "airplayvideo";
+        default: return "speaker.wave.2";
+    }
 }
