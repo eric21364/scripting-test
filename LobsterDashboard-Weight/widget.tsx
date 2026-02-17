@@ -1,16 +1,15 @@
 import { Widget, Text, Notification } from "scripting";
-import { sshExecuteCommand } from "./utils/ssh";
-import { LobsterStatusData, lobsterStatusCmd } from "./widgets/type";
+import { LobsterStatusData, lobsterStatusUrl } from "./widgets/type";
 
 import { View as SystemSmallView } from "./widgets/systemSmall";
 import { View as SystemMediumView } from "./widgets/systemMedium";
 import { View as SystemLargeView } from "./widgets/systemLarge";
 
 (async () => {
-    const status = await sshExecuteCommand(lobsterStatusCmd);
-    if (status === undefined) throw new Error();
+    const response = await fetch(lobsterStatusUrl);
+    if (!response.ok) throw new Error("無法取得龍蝦狀態");
 
-    const data = JSON.parse(status) as LobsterStatusData;
+    const data = (await response.json()) as LobsterStatusData;
 
     switch (Widget.family) {
         case "systemSmall":

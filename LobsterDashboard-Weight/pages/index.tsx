@@ -13,48 +13,29 @@ import {
     useEffect,
     ProgressView,
 } from "scripting";
-import { SettingView, getProfile, Profile } from "./setting";
-import { sshExecuteCommand } from "../utils/ssh";
-import { LobsterStatusData, lobsterStatusCmd } from "../widgets/type";
+import { LobsterStatusData, lobsterStatusUrl } from "../widgets/type";
 
 export function View() {
     const dismiss = Navigation.useDismiss();
 
     const [data, setData] = useState<LobsterStatusData | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [profile, setProfile] = useState<Profile>(getProfile());
 
     const fetchStatus = async () => {
-        const result = await sshExecuteCommand(lobsterStatusCmd);
-        if (result) {
-            const parsed = JSON.parse(result) as LobsterStatusData;
+        const response = await fetch(lobsterStatusUrl);
+        if (response.ok) {
+            const parsed = (await response.json()) as LobsterStatusData;
             setData(parsed);
         }
     };
 
     useEffect(() => {
-        async function initSetting() {
-            while (true) {
-                const newProfile = getProfile();
-                const { ssh } = newProfile;
-                const { host, username, password } = ssh;
-
-                if (host === "" || username === "" || password === "") {
-                    await Navigation.present(<SettingView />);
-                } else {
-                    break;
-                }
-            }
-        }
-
         const load = async () => {
-            await initSetting();
-            setProfile(getProfile());
             await fetchStatus();
             setIsLoading(false);
         };
         load();
-    }, [profile]);
+    }, []);
 
     return (
         <NavigationStack>
@@ -67,12 +48,6 @@ export function View() {
                                 dismiss();
                             }}>
                             <Image systemName="xmark" />
-                        </Button>,
-                        <Button
-                            action={async () => {
-                                await Navigation.present(<SettingView />);
-                            }}>
-                            <Image systemName="gear" />
                         </Button>,
                     ],
                     topBarTrailing: [

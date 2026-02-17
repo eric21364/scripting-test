@@ -16,4 +16,5 @@ export interface LobsterStatusData {
     };
 }
 
-export const lobsterStatusCmd = `cat /home/ubuntu/.openclaw/workspace/status.json`;
+export const lobsterStatusUrl =
+    "https://raw.githubusercontent.com/eric21364/scripting-test/main/status.json";
