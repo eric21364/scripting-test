@@ -1,67 +1,174 @@
-import { View, Text, VStack, HStack, Spacer, ZStack, Color, Icon } from "scripting";
+import {
+    Text,
+    VStack,
+    HStack,
+    Image,
+    Color,
+    Divider,
+    Spacer,
+    Button,
+} from "scripting";
+import { LobsterStatusData } from "./type";
+import { reloadWidget } from "../app_intents";
+import { formatPrice, getApiStatusIcon, getApiStatusColor } from "../utils/format";
 
-export const View = ({ data }) => {
-  // 定義 API 狀態燈顏色
-  const getStatusColor = (status) => {
-    if (status === "Healthy" || status === "Online") return "#3fb950";
-    if (status === "Blocked") return "#f0883e";
-    return "#f85149"; // Suspended or Offline
-  };
+export function View({ data }: { data: LobsterStatusData }) {
+    const {
+        status,
+        reputation,
+        threadsDay,
+        btcPrice,
+        diskAvail,
+        moltbook,
+        uptime,
+        apiHealth,
+    } = data;
 
-  return (
-    <VStack padding={20} backgroundColor="#000" cornerRadius={24} spacing={15}>
-      {/* 第一行：標題與系統燈號 */}
-      <HStack>
-        <VStack alignment="leading">
-          <Text fontSize={22} fontWeight="bold" color="#FF4500">LOBSTER NEXUS</Text>
-          <Text fontSize={10} color="#8b949e">AGENT EXPERIENCE INTERFACE</Text>
+    const dividerLength = 37;
+
+    return (
+        <VStack padding>
+            <HStack padding={{ leading: true, trailing: true }}>
+                <VStack alignment={"leading"}>
+                    <Text bold font={32}>
+                        🦞 龍蝦哨兵
+                    </Text>
+                    <Text foregroundStyle="secondaryLabel">{status}</Text>
+                </VStack>
+
+                <Spacer />
+
+                <Button buttonStyle={"plain"} intent={reloadWidget(undefined)}>
+                    <Image
+                        font={24}
+                        systemName={"arrow.clockwise"}
+                        foregroundStyle={"accentColor"}
+                    />
+                </Button>
+            </HStack>
+
+            <Divider />
+            <Spacer />
+            <HStack>
+                <ArgView
+                    icon="star.fill"
+                    title="聲望"
+                    body={reputation.toString()}
+                    color="systemOrange"
+                />
+                <Divider frame={{ height: dividerLength }} />
+                <ArgView
+                    icon="text.bubble.fill"
+                    title="連載"
+                    body={`Day ${threadsDay}`}
+                    color="systemPurple"
+                />
+                <Divider frame={{ height: dividerLength }} />
+                <ArgView
+                    icon="bitcoinsign.circle"
+                    title="BTC"
+                    body={formatPrice(btcPrice)}
+                    color="systemYellow"
+                />
+            </HStack>
+            <Spacer />
+            <HStack>
+                <ArgView
+                    icon="internaldrive.fill"
+                    title="磁碟"
+                    body={diskAvail}
+                    color="systemGreen"
+                />
+                <Divider frame={{ height: dividerLength }} />
+                <ArgView
+                    icon="person.crop.circle.badge.xmark"
+                    title="Moltbook"
+                    body={moltbook}
+                    color="systemRed"
+                />
+                <Divider frame={{ height: dividerLength }} />
+                <ArgView
+                    icon="clock.fill"
+                    title="運行"
+                    body={uptime}
+                    color="systemIndigo"
+                />
+            </HStack>
+            <Spacer />
+            <HStack padding={{ bottom: true }}>
+                <ApiStatusView
+                    title="Threads"
+                    status={apiHealth.threads}
+                />
+                <Divider frame={{ height: dividerLength }} />
+                <ApiStatusView
+                    title="ClawTasks"
+                    status={apiHealth.clawtasks}
+                />
+                <Divider frame={{ height: dividerLength }} />
+                <ApiStatusView
+                    title="OpenClaw"
+                    status={apiHealth.openclaw}
+                />
+            </HStack>
         </VStack>
-        <Spacer />
-        <HStack spacing={10}>
-           <VStack spacing={2} alignment="center">
-             <HStack width={6} height={6} backgroundColor={getStatusColor(data.api_health?.threads)} cornerRadius={3} />
-             <Text fontSize={7} color="#FFF">THRD</Text>
-           </VStack>
-           <VStack spacing={2} alignment="center">
-             <HStack width={6} height={6} backgroundColor={getStatusColor(data.api_health?.clawtasks)} cornerRadius={3} />
-             <Text fontSize={7} color="#FFF">TASK</Text>
-           </VStack>
-           <VStack spacing={2} alignment="center">
-             <HStack width={6} height={6} backgroundColor={getStatusColor(data.api_health?.moltbook)} cornerRadius={3} />
-             <Text fontSize={7} color="#FFF">MOLT</Text>
-           </VStack>
-        </HStack>
-      </HStack>
+    );
+}
 
-      {/* 核心區塊：龍蝦正能量與事件回溯 */}
-      <VStack padding={12} backgroundColor="#161b22" cornerRadius={12} alignment="leading" width="100%">
-        <Text fontSize={10} color="#bc8cff">📜 LOBSTER CHRONICLES (最近遭遇)</Text>
-        <Spacer height={8} />
-        {data.events?.slice(0, 3).map((event, i) => (
-          <Text key={i} fontSize={11} color="#EEE" numberOfLines={1}>• {event}</Text>
-        ))}
-      </VStack>
+function ArgView({
+    icon,
+    title,
+    body,
+    color,
+}: {
+    icon: string;
+    title: string;
+    body: string;
+    color: Color;
+}) {
+    return (
+        <VStack>
+            <HStack foregroundStyle={"secondaryLabel"}>
+                <Spacer />
+                <Image systemName={icon} />
+                <Text>{title}</Text>
+                <Spacer />
+            </HStack>
+            <Text
+                bold
+                foregroundStyle={color}
+                padding={{ top: 4 }}
+                lineLimit={1}
+                allowsTightening={true}>
+                {body}
+            </Text>
+        </VStack>
+    );
+}
 
-      {/* 數據矩陣 */}
-      <HStack spacing={10}>
-        <VStack flex={1} padding={10} backgroundColor="#1a1a1a" cornerRadius={10}>
-          <Text fontSize={9} color="#8b949e">REPUTATION</Text>
-          <Text fontSize={18} fontWeight="bold" color="#FFD700">{data.reputation}</Text>
+function ApiStatusView({
+    title,
+    status,
+}: {
+    title: string;
+    status: string;
+}) {
+    return (
+        <VStack>
+            <HStack foregroundStyle={"secondaryLabel"}>
+                <Spacer />
+                <Image systemName={getApiStatusIcon(status)} />
+                <Text>{title}</Text>
+                <Spacer />
+            </HStack>
+            <Text
+                bold
+                foregroundStyle={getApiStatusColor(status) as Color}
+                padding={{ top: 4 }}
+                lineLimit={1}
+                allowsTightening={true}>
+                {status}
+            </Text>
         </VStack>
-        <VStack flex={1} padding={10} backgroundColor="#1a1a1a" cornerRadius={10}>
-          <Text fontSize={9} color="#8b949e">BTC PRICE</Text>
-          <Text fontSize={14} fontWeight="bold" color="#FFF">≈{data.btc}</Text>
-        </VStack>
-      </HStack>
-
-      {/* 底部創意：龍蝦的精神狀態 */}
-      <HStack padding={10} backgroundColor="#23863622" cornerRadius={10} width="100%">
-        <Text fontSize={20}>🦞</Text>
-        <VStack alignment="leading" paddingLeft={10}>
-           <Text fontSize={11} color="#FFF">精神狀態：正能量滿載 (Optimistic)</Text>
-           <Text fontSize={9} color="#3fb950">"禁足是為了下一次更好的飛躍！"</Text>
-        </VStack>
-      </HStack>
-    </VStack>
-  );
-};
+    );
+}

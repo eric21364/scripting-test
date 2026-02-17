@@ -1,9 +1,0 @@
-{
-  "name": "龍蝦哨兵",
-  "version": "1.0.0",
-  "description": "即時監控科技龍蝦的打工進度與系統狀態",
-  "author": "Lobster 🦞",
-  "main": "index.tsx",
-  "icon": "🦞",
-  "category": "utility"
-}

@@ -1,53 +1,109 @@
-import { View, Text, VStack, HStack, Spacer, Icon, ZStack, Color } from "scripting";
+import {
+    Text,
+    VStack,
+    HStack,
+    Image,
+    Color,
+    Divider,
+    Spacer,
+    Button,
+} from "scripting";
+import { LobsterStatusData } from "./type";
+import { reloadWidget } from "../app_intents";
+import { formatPrice } from "../utils/format";
 
-export const View = ({ data }) => {
-  return (
-    <VStack padding={15} backgroundColor="#050505" cornerRadius={16} spacing={10}>
-      {/* 標題與心跳 */}
-      <HStack>
-        <ZStack alignment="center">
-           <Text fontSize={28}>🦞</Text>
-        </ZStack>
-        <VStack alignment="leading" spacing={2}>
-          <Text fontSize={18} fontWeight="bold" color="#FF4500">Lobster Sentinel</Text>
-          <Text fontSize={10} color="#3fb950">● ONLINE / VIBE: POSITIVE</Text>
+export function View({ data }: { data: LobsterStatusData }) {
+    const { status, reputation, threadsDay, btcPrice, diskAvail, moltbook } = data;
+    const dividerLength = 27;
+    return (
+        <VStack padding>
+            <HStack padding={{ leading: true, trailing: true }}>
+                <Text bold>🦞 龍蝦哨兵</Text>
+                <Spacer />
+                <Button buttonStyle={"plain"} intent={reloadWidget(undefined)}>
+                    <Image
+                        systemName={"arrow.clockwise"}
+                        foregroundStyle={"accentColor"}
+                    />
+                </Button>
+                <Text foregroundStyle="secondaryLabel">{status}</Text>
+            </HStack>
+            <Spacer />
+            <HStack>
+                <ArgView
+                    icon="star.fill"
+                    title="聲望"
+                    body={reputation.toString()}
+                    color="systemOrange"
+                />
+                <Divider frame={{ height: dividerLength }} />
+                <ArgView
+                    icon="text.bubble.fill"
+                    title="連載"
+                    body={`Day ${threadsDay}`}
+                    color="systemPurple"
+                />
+                <Divider frame={{ height: dividerLength }} />
+                <ArgView
+                    icon="bitcoinsign.circle"
+                    title="BTC"
+                    body={formatPrice(btcPrice)}
+                    color="systemYellow"
+                />
+            </HStack>
+            <Spacer />
+            <HStack>
+                <ArgView
+                    icon="internaldrive.fill"
+                    title="磁碟"
+                    body={diskAvail}
+                    color="systemGreen"
+                />
+                <Divider frame={{ height: dividerLength }} />
+                <ArgView
+                    icon="person.crop.circle.badge.xmark"
+                    title="Moltbook"
+                    body={moltbook}
+                    color="systemRed"
+                />
+                <Divider frame={{ height: dividerLength }} />
+                <ArgView
+                    icon="shield.checkered"
+                    title="資安"
+                    body="S+"
+                    color="systemBlue"
+                />
+            </HStack>
         </VStack>
-        <Spacer />
-        <VStack alignment="trailing">
-           <Text fontSize={16} fontWeight="bold" color="#FFF">#{data.threads.replace("Day ", "")}</Text>
-           <Text fontSize={9} color="#888">SEQUENCE</Text>
-        </VStack>
-      </HStack>
+    );
+}
 
-      <Spacer />
-
-      {/* 數據看板 */}
-      <HStack spacing={15}>
-        <VStack alignment="leading" flex={1} padding={8} backgroundColor="#161b22" cornerRadius={8}>
-          <Text fontSize={10} color="#8b949e">REPUTATION</Text>
-          <HStack spacing={4}>
-            <Text fontSize={22} fontWeight="bold" color="#f0883e">{data.reputation}</Text>
-            <Text fontSize={10} color="#3fb950">↑</Text>
-          </HStack>
+function ArgView({
+    icon,
+    title,
+    body,
+    color,
+}: {
+    icon: string;
+    title: string;
+    body: string;
+    color: Color;
+}) {
+    return (
+        <VStack>
+            <HStack foregroundStyle={"secondaryLabel"}>
+                <Spacer />
+                <Image systemName={icon} />
+                <Text>{title}</Text>
+                <Spacer />
+            </HStack>
+            <Text
+                bold
+                foregroundStyle={color}
+                lineLimit={1}
+                allowsTightening={true}>
+                {body}
+            </Text>
         </VStack>
-        
-        <VStack alignment="leading" flex={1} padding={8} backgroundColor="#161b22" cornerRadius={8}>
-          <Text fontSize={10} color="#8b949e">BTC (TWD)</Text>
-          <Text fontSize={15} fontWeight="bold" color="#FFF">{data.btc}</Text>
-        </VStack>
-      </HStack>
-
-      {/* 狀態條 */}
-      <VStack alignment="leading" spacing={4}>
-        <HStack>
-          <Text fontSize={10} color="#8b949e">SYSTEM STABILITY</Text>
-          <Spacer />
-          <Text fontSize={10} color="#58a6ff">99.9%</Text>
-        </HStack>
-        <HStack backgroundColor="#30363d" cornerRadius={2} height={4} width="100%">
-          <HStack backgroundColor="#FF4500" cornerRadius={2} height={4} width="90%" />
-        </HStack>
-      </VStack>
-    </VStack>
-  );
-};
+    );
+}
