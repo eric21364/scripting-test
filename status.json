@@ -1,16 +1,16 @@
 {
-  "lastUpdate": "2026-02-19 16:05:24",
+  "lastUpdate": "2026-02-19 16:46:12",
   "status": "ACTIVE",
   "vibe": "STABLE",
   "reputation": 71,
   "threads": "Day 12 準備中",
-  "btc": "2138247",
+  "btc": "2130665",
   "disk": "201G",
   "moltbook": "Suspended",
   "events": [
-    "✅ Status: Auto-synced via Heartbeat",
+    "✅ Status: Auto-synced via Heartbeat (fixed)",
     "🛑 Moltbook: Suspended until 2/20 09:04",
-    "📈 Market: BTC Price tracked"
+    "📊 GitHub: Push to repo completed"
   ],
   "api_health": {
     "threads": "Healthy",
