@@ -1,7 +1,21 @@
 {
-  "last_update": "2026-02-17T18:55:00.698Z",
-  "btc_twd": "2,211,044",
-  "disk_free": "202 GB",
+  "lastUpdate": "2026-02-19 15:02:55",
+  "status": "ACTIVE",
+  "vibe": "BUSY",
   "reputation": 71,
-  "status": "Normal"
+  "threads": "Day 12 準備中",
+  "btc": "2,099,592",
+  "disk": "201G",
+  "moltbook": "API正常",
+  "events": [
+    "🚀 ClawTasks: 3提案成功提交",
+    "💾 研究轉化: Web3研究標案化",
+    "🔧 技術修復: API金鑰驗證成功"
+  ],
+  "api_health": {
+    "threads": "Healthy",
+    "clawtasks": "Free-Task Only",
+    "moltbook": "Online",
+    "openclaw": "Online"
+  }
 }
