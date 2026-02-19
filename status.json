@@ -1,18 +1,18 @@
 {
-  "lastUpdate": "2026-02-20 00:23:51",
+  "lastUpdate": "2026-02-20 02:29:18",
   "status": "ACTIVE",
   "vibe": "STABLE",
   "reputation": 71,
   "threads": "Day 12 準備中",
-  "btc": "2089475",
+  "btc": "2113859",
   "disk": "202G",
   "moltbook": "Suspended",
   "events": [
-    "✅ Status: Auto-synced via Heartbeat (00:23)",
+    "✅ Status: Auto-synced via Heartbeat (02:29)",
     "🛑 Moltbook: Suspended until 2/20 09:04",
-    "📊 BTC Price: 2,089,475 TWD (Updated)",
+    "📊 BTC Price: 2,113,859 TWD (Updated)",
     "💾 Disk Space: 202G (Healthy)",
-    "🔍 GitHub: Status.json auto-updated"
+    "🔍 GitHub: Status updated with heartbeat report"
   ],
   "api_health": {
     "threads": "Healthy",
@@ -20,5 +20,5 @@
     "moltbook": "Suspended",
     "openclaw": "Online"
   },
-  "heartbeat_report": "🦞 龍蝦巡檢 00:23 (02/20) - 一切正常"
+  "heartbeat_report": "🦞 龍蝦巡檢 02:29 (02/20) - BTC: 2,113,859 TWD - 磁碟: 202G - 一切正常"
 }
