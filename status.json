@@ -1,16 +1,16 @@
 {
-  "lastUpdate": "2026-02-20 23:00:20",
+  "lastUpdate": "2026-02-20 23:14:19",
   "status": "ACTIVE",
   "vibe": "STABLE",
   "reputation": 71,
   "threads": "Day 12 準備中",
-  "btc": "2133198.00000000",
+  "btc": "2132714.00000000",
   "disk": "203G",
   "moltbook": "Suspended",
   "events": [
-    "✅ Status: Auto-synced via Heartbeat (22:58)",
-    "🚀 Models: Syncing in progress (113/243)",
-    "📊 GitHub: Sync completed"
+    "✅ Status: Auto-synced (23:14)",
+    "🚀 Models: Syncing progress: 208/243",
+    "📊 GitHub: Final push pending"
   ],
   "api_health": {
     "threads": "Healthy",
