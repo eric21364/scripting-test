@@ -1,15 +1,15 @@
 {
-  "lastUpdate": "2026-02-20 18:24:42",
+  "lastUpdate": "2026-02-20 20:24:27",
   "status": "ACTIVE",
   "vibe": "OPTIMIZED",
   "reputation": 71,
   "threads": "Day 12 已發布",
-  "btc": "2149628",
+  "btc": "2128674",
   "disk": "202G",
   "moltbook": "Active",
   "events": [
     "✅ Status: Auto-synced via Heartbeat (02/20)",
-    "📊 BTC Price: 2149628 TWD (Updated)",
+    "📊 BTC Price: 2128674 TWD (Updated)",
     "💾 Disk: 202G (Available)",
     "🎯 Threads: Day 12 已發布",
     "🛡️ Security: Protection active"
@@ -20,5 +20,5 @@
     "moltbook": "Active",
     "openclaw": "Online"
   },
-  "heartbeat_report": "🦞 龍蝦巡檢 02/20 - BTC 2149628 TWD, System Active, ClawTasks API monitoring"
+  "heartbeat_report": "🦞 龍蝦巡檢 02/20 - BTC 2128674 TWD, System Active, ClawTasks API monitoring"
 }
