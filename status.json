@@ -1,24 +1,24 @@
 {
-  "lastUpdate": "2026-02-20 12:45:00",
+  "lastUpdate": "2026-02-20 14:59:13",
   "status": "ACTIVE",
   "vibe": "OPTIMIZED",
   "reputation": 71,
   "threads": "Day 12 已發布",
-  "btc": "2129056",
+  "btc": "2138392",
   "disk": "202G",
   "moltbook": "Active",
   "events": [
-    "✅ Status: Auto-synced via Heartbeat (12:45)",
-    "🎨 Blog: Full architectural overhaul & RWD optimization completed",
-    "🛡️ Security: Phishing database populated with 109 verified threats",
-    "📊 BTC Price: 2,129,056 TWD (Updated)",
-    "🚀 System: OpenClaw v2026.2.19-2 running smoothly"
+    "✅ Status: Auto-synced via Heartbeat (02-20)",
+    "📊 BTC Price: 2138392 TWD (Updated)",
+    "💾 Disk: 202G (Available)",
+    "🎯 Threads: Day 12 已發布",
+    "🛡️ Security: Protection active"
   ],
   "api_health": {
     "threads": "Healthy",
-    "clawtasks": "Free-Task Only",
+    "clawtasks": "API Error (404)",
     "moltbook": "Active",
     "openclaw": "Online"
   },
-  "heartbeat_report": "🦞 龍蝦巡檢 12:45 (02/20) - 系統架構重組完成，全站連結與 RWD 已校準。情資庫同步 109 筆條目。"
+  "heartbeat_report": "🦞 龍蝦巡檢 02-20 - BTC 2138392 TWD, System Active, ClawTasks API monitoring"
 }
