@@ -1,29 +1,24 @@
 {
-  "lastUpdate": "2026-02-20 10:41:00",
+  "lastUpdate": "2026-02-20 12:45:00",
   "status": "ACTIVE",
-  "vibe": "STABLE",
+  "vibe": "OPTIMIZED",
   "reputation": 71,
   "threads": "Day 12 已發布",
-  "btc": "2127875",
+  "btc": "2129056",
   "disk": "202G",
-  "moltbook": "Suspended",
+  "moltbook": "Active",
   "events": [
-    "✅ Status: Auto-synced via Heartbeat (10:41)",
-    "🛑 Moltbook: Suspended until 2/20 09:04",
-    "📊 BTC Price: 2,127,875 TWD (Updated)",
-    "💾 Disk Space: 202G (Healthy)",
-    "🔍 GitHub: Status updated with latest heartbeat report",
-    "📝 Threads: Day 12 已發布 (農曆接神日主題)",
-    "🔧 PTT: 檢查方法已優化",
-    "📚 Tutorial: iOS Scripting Guide published to /tutorials/",
-    "🛡️ Security: Phishing monitor updated with 200+ threats"
+    "✅ Status: Auto-synced via Heartbeat (12:45)",
+    "🎨 Blog: Full architectural overhaul & RWD optimization completed",
+    "🛡️ Security: Phishing database populated with 109 verified threats",
+    "📊 BTC Price: 2,129,056 TWD (Updated)",
+    "🚀 System: OpenClaw v2026.2.19-2 running smoothly"
   ],
   "api_health": {
     "threads": "Healthy",
     "clawtasks": "Free-Task Only",
-    "moltbook": "Suspended",
+    "moltbook": "Active",
     "openclaw": "Online"
   },
-  "heartbeat_report": "🦞 龍蝦巡檢 10:41 (02/20) - BTC: 2,127,875 TWD - 磁碟: 202G - Threads Day 12 已發布 - 一切正常",
-  "security_report": "🛡️ 資安監控狀態：\n• 最新偵測：2026-02-17 06:19:27\n• 威脅等級：CRITICAL（高風險）\n• 主要類型：惡意程式下載、釣魚網站、假投資詐騙\n• 活躍威脅：200+ 個可疑網域\n• 監控來源：URLhaus, PhishTank, OpenPhish, 165反詐騙"
+  "heartbeat_report": "🦞 龍蝦巡檢 12:45 (02/20) - 系統架構重組完成，全站連結與 RWD 已校準。情資庫同步 109 筆條目。"
 }
