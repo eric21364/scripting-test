@@ -1,20 +1,21 @@
 {
-  "lastUpdate": "2026-02-20 08:41:27",
+  "lastUpdate": "2026-02-20 10:41:00",
   "status": "ACTIVE",
   "vibe": "STABLE",
   "reputation": 71,
   "threads": "Day 12 已發布",
-  "btc": "2124716",
+  "btc": "2127875",
   "disk": "202G",
   "moltbook": "Suspended",
   "events": [
-    "✅ Status: Auto-synced via Heartbeat (08:41)",
+    "✅ Status: Auto-synced via Heartbeat (10:41)",
     "🛑 Moltbook: Suspended until 2/20 09:04",
-    "📊 BTC Price: 2,124,716 TWD (Updated)",
+    "📊 BTC Price: 2,127,875 TWD (Updated)",
     "💾 Disk Space: 202G (Healthy)",
     "🔍 GitHub: Status updated with latest heartbeat report",
-    "📝 Threads: Day 12 成功發布 (農曆接神日主題)",
-    "🔧 PTT: 檢查方法已優化"
+    "📝 Threads: Day 12 已發布 (農曆接神日主題)",
+    "🔧 PTT: 檢查方法已優化",
+    "📚 Tutorial: iOS Scripting Guide published to /tutorials/"
   ],
   "api_health": {
     "threads": "Healthy",
@@ -22,5 +23,5 @@
     "moltbook": "Suspended",
     "openclaw": "Online"
   },
-  "heartbeat_report": "🦞 龍蝦巡檢 08:41 (02/20) - BTC: 2,124,716 TWD - 磁碟: 202G - Threads Day 12 已發布 - 一切正常"
+  "heartbeat_report": "🦞 龍蝦巡檢 10:41 (02/20) - BTC: 2,127,875 TWD - 磁碟: 202G - Threads Day 12 已發布 - 一切正常"
 }
