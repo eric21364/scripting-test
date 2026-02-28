@@ -13,8 +13,7 @@ import {
   ProgressView,
   ZStack,
   UIImage,
-  AVPlayer,
-  AVPlayerView,
+  Web,
 } from "scripting";
 
 interface VideoItem {
@@ -23,72 +22,117 @@ interface VideoItem {
   thumbnail: string;
   duration: string;
   category: string;
-  m3u8?: string;
 }
 
+// 數據來源：專案內的 status.json (已被後端腳本填充)
 const DATA_URL = "https://raw.githubusercontent.com/eric21364/scripting-test/main/status.json";
 
-// 縮圖子組件：嚴格遵循 UIImage.fromURL 異步加載規範
-function ThumbnailImage({ url }: { url: string }) {
-  const [image, setImage] = useState<UIImage | null>(null);
+/**
+ * 縮圖組件：優化 UIImage 異步加載
+ */
+function Thumbnail({ url }: { url: string }) {
+  const [img, setImg] = useState<UIImage | null>(null);
 
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        // 官方 v2 規範：UIImage.fromURL 是 Promise 類型
-        const img = await UIImage.fromURL(url);
-        if (active && img) setImage(img);
+        const loaded = await UIImage.fromURL(url);
+        if (active && loaded) setImg(loaded);
       } catch (e) {
-        console.log("UIImage.fromURL 載入失敗:", e);
+        console.log("UIImage 加載失敗:", url);
       }
     })();
     return () => { active = false; };
   }, [url]);
 
-  if (!image) return <ProgressView progressViewStyle="circular" />;
-  
+  if (!img) {
+    return (
+      <VStack frame={{ maxWidth: "infinity", height: 120 }} alignment="center" background="rgba(255,255,255,0.05)">
+        <ProgressView progressViewStyle="circular" />
+      </VStack>
+    );
+  }
+
   return (
     <Image
-      image={image}
+      image={img}
       resizable
       scaleToFill
-      frame={{ maxWidth: "infinity", height: 160 }}
+      frame={{ maxWidth: "infinity", height: 120 }}
     />
   );
 }
 
+/**
+ * 海報卡片組件
+ */
+function MovieCard({ video, onSelect }: { video: VideoItem; onSelect: (v: VideoItem) => void }) {
+  return (
+    <VStack
+      frame={{ maxWidth: "infinity" }}
+      spacing={8}
+      onTapGesture={() => onSelect(video)}
+    >
+      <ZStack frame={{ maxWidth: "infinity", height: 120 }} cornerRadius={10} background="#111" clipShape="rect">
+        <Thumbnail url={video.thumbnail} />
+        
+        {/* 右下角時長 */}
+        <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="bottomTrailing" padding={6}>
+          <Text font={{ size: 9 }} padding={3} background="rgba(0,0,0,0.7)" cornerRadius={4} foregroundStyle="white">
+            {video.duration}
+          </Text>
+        </VStack>
+      </ZStack>
+      
+      <VStack alignment="leading" spacing={2} frame={{ maxWidth: "infinity" }}>
+        <Text font={{ size: 13, name: "system-bold" }} lineLimit={2} foregroundStyle="white">
+          {video.title}
+        </Text>
+        <Text font="caption2" foregroundStyle="orange">
+          #{video.category}
+        </Text>
+      </VStack>
+    </VStack>
+  );
+}
+
+/**
+ * 主頁面
+ */
 export function View() {
   const dismiss = Navigation.useDismiss();
   const [videos, setVideos] = useState<VideoItem[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
-  
-  // 初始化官方推薦的 AVPlayer 管理對象
-  const [player] = useState(() => new AVPlayer());
 
-  const loadData = async () => {
+  const fetchData = async () => {
     setIsLoading(true);
     try {
       const resp = await fetch(DATA_URL + "?t=" + Date.now());
-      const json = await resp.json();
-      if (json.kanav_list) {
-        setVideos(json.kanav_list);
+      const data = await resp.json();
+      if (data.kanav_list) {
+        setVideos(data.kanav_list);
       }
     } catch (e) {
-      console.error("載入 JSON 失敗:", e);
+      console.log("數據同步失敗:", e);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
-    // 退出畫面時確保播放器停止
-    return () => player.pause();
-  }, [player]);
+    fetchData();
+  }, []);
 
-  // 分組列表為 2 欄位格形式
+  // JS 注入：隱藏 Kanav 站點多餘的 UI，僅呈現播放器
+  const cleanUpPlayerJS = `
+    const style = document.createElement('style');
+    style.innerHTML = 'header, footer, .sidebar, .home-qf, .category-count, .m-footer, #LowerRightAd, .vod-title, .dmrules { display: none !important; } .container { padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; } #player_play { height: 75vw !important; } body { background: black !important; }';
+    document.head.appendChild(style);
+  `;
+
+  // 手動切分 2 欄位格
   const rows = [];
   for (let i = 0; i < videos.length; i += 2) {
     rows.push(videos.slice(i, i + 2));
@@ -97,71 +141,49 @@ export function View() {
   return (
     <NavigationStack>
       <VStack
-        navigationTitle={selectedVideo ? "正在影院放映" : "龍蝦豪華影院 🍿"}
+        navigationTitle={selectedVideo ? "龍蝦影院 · 正在播放" : "龍蝦影院 🍿"}
         background="#000"
         toolbar={{
           topBarLeading: [
             <Button
-              title={selectedVideo ? "返回選片" : "離開"}
+              title={selectedVideo ? "返回" : "離開"}
               systemImage={selectedVideo ? "chevron.left" : "xmark"}
               action={() => {
-                if (selectedVideo) {
-                    player.pause();
-                    setSelectedVideo(null);
-                } else {
-                    dismiss();
-                }
+                if (selectedVideo) setSelectedVideo(null);
+                else dismiss();
               }}
-            />
+            />,
           ],
           topBarTrailing: selectedVideo ? [] : [
             <Button 
-                title="重新整理" 
+                title="重整" 
                 systemImage="arrow.clockwise" 
-                action={loadData} 
+                action={fetchData} 
             />
           ]
         }}
       >
         {selectedVideo ? (
-          /* 真・App內播放器 (AVPlayerView) */
-          <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} background="#000">
-            <VStack frame={{ maxWidth: "infinity", height: 260 }} background="#111">
-                <AVPlayerView
-                  player={player}
-                  frame={{ maxWidth: "infinity", height: 260 }}
-                  onAppear={() => {
-                    if (selectedVideo.m3u8) {
-                        player.setSource(selectedVideo.m3u8);
-                        player.play();
-                    }
-                  }}
-                />
-            </VStack>
-            
-            <VStack padding={20} alignment="leading" spacing={14}>
-              <Text font="headline" foregroundStyle="white" bold>{selectedVideo.title}</Text>
-              <HStack spacing={12}>
-                <Text font="caption" foregroundStyle="orange" bold>#{selectedVideo.category}</Text>
-                <Text font="caption" foregroundStyle="secondaryLabel">{selectedVideo.duration}</Text>
-              </HStack>
-              
-              <Spacer frame={{ height: 20 }} />
-              
-              <Button
-                title={player.isPlaying ? "暫停放映" : "魔力播放"}
-                systemImage={player.isPlaying ? "pause.fill" : "play.fill"}
-                buttonStyle="borderedProminent"
-                action={() => {
-                  if (player.isPlaying) player.pause();
-                  else player.play();
-                }}
-              />
-              
-              <Text font="caption2" foregroundStyle="secondaryLabel" marginTop={10}>
-                龍蝦提示：若畫面載入較慢，可點選上方「魔力播放」按鈕強行重啟。
-              </Text>
-            </VStack>
+          /* 播放模式：使用 Web 組件內置播放 */
+          <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
+            <Web 
+                url={selectedVideo.url} 
+                frame={{ maxWidth: "infinity", height: 300 }}
+                injectedJavaScript={cleanUpPlayerJS}
+            />
+            <ScrollView padding={16}>
+                <VStack alignment="leading" spacing={12}>
+                    <Text font="headline" foregroundStyle="white" bold>{selectedVideo.title}</Text>
+                    <HStack spacing={10}>
+                        <Text font="caption" foregroundStyle="orange">#{selectedVideo.category}</Text>
+                        <Text font="caption" foregroundStyle="secondaryLabel">{selectedVideo.duration}</Text>
+                    </HStack>
+                    <Spacer frame={{ height: 20 }} />
+                    <Text font="body" foregroundStyle="secondaryLabel">
+                        龍蝦提示：已成功在 App 內加載沉浸式播放器。連假期間，請慢用。
+                    </Text>
+                </VStack>
+            </ScrollView>
           </VStack>
         ) : (
           /* 海報牆模式 */
@@ -169,37 +191,14 @@ export function View() {
             {isLoading && videos.length === 0 ? (
                  <VStack alignment="center" padding={40}>
                     <ProgressView />
-                    <Text marginTop={10} foregroundStyle="secondaryLabel">影院同步中...</Text>
+                    <Text marginTop={10} foregroundStyle="secondaryLabel">正在部署海報牆...</Text>
                  </VStack>
             ) : (
-                <VStack spacing={18}>
+                <VStack spacing={20}>
                     {rows.map((row, rowIdx) => (
                         <HStack key={rowIdx} spacing={12} frame={{ maxWidth: "infinity" }}>
                             {row.map((vid, colIdx) => (
-                                <VStack
-                                    key={colIdx}
-                                    spacing={8}
-                                    frame={{ maxWidth: "infinity" }}
-                                    onTapGesture={() => setSelectedVideo(vid)}
-                                >
-                                    <ZStack frame={{ maxWidth: "infinity", height: 160 }} cornerRadius={12} background="rgba(255,255,255,0.05)" clipShape="rect">
-                                        <ThumbnailImage url={vid.thumbnail} />
-                                        
-                                        <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="bottomTrailing" padding={6}>
-                                            <Text font={{ size: 9, name: "system-bold" }} padding={4} background="rgba(0,0,0,0.7)" cornerRadius={4} foregroundStyle="white">
-                                                {vid.duration}
-                                            </Text>
-                                        </VStack>
-                                        <Image systemName="play.circle.fill" font={30} foregroundStyle="rgba(255,255,255,0.6)" />
-                                    </ZStack>
-                                    
-                                    <VStack alignment="leading" spacing={2} frame={{ maxWidth: "infinity" }}>
-                                        <Text font={{ size: 12, name: "system-medium" }} lineLimit={2} foregroundStyle="white">
-                                            {vid.title}
-                                        </Text>
-                                        <Text font={{ size: 10 }} foregroundStyle="orange">#{vid.category}</Text>
-                                    </VStack>
-                                </VStack>
+                                <MovieCard key={colIdx} video={vid} onSelect={setSelectedVideo} />
                             ))}
                             {row.length === 1 && <Spacer frame={{ maxWidth: "infinity" }} />}
                         </HStack>
