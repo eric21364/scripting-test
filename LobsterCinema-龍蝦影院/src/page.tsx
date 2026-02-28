@@ -14,6 +14,7 @@ import {
   ZStack,
   UIImage,
   WebViewController,
+  GeometryReader,
 } from "scripting";
 
 interface Movie {
@@ -50,7 +51,7 @@ function Thumbnail({ url }: { url: string }) {
   );
 }
 
-function MoviePoster({ movie }: { movie: Movie }) {
+function MoviePoster({ movie, itemWidth }: { movie: Movie, itemWidth: number }) {
   const openPlayer = async () => {
     const webView = new WebViewController();
     const css = `
@@ -97,7 +98,7 @@ function MoviePoster({ movie }: { movie: Movie }) {
   };
 
   return (
-    <VStack frame={{ maxWidth: "infinity" }} spacing={4} onTapGesture={openPlayer}>
+    <VStack frame={{ width: itemWidth }} spacing={4} onTapGesture={openPlayer}>
       <ZStack frame={{ maxWidth: "infinity", height: 100 }} cornerRadius={8} background="#111" clipShape="rect">
         <Thumbnail url={movie.thumbnail} />
         <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="bottomTrailing" padding={4}>
@@ -121,22 +122,23 @@ export function View() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
-  // 🥩 物理採集單頁邏輯：完全剝離自 v9.0 王者代碼
+  // 🥩 物理採集核心：完全採用 v9.0 原始成功代碼
   const scrapeJableLivePage = async (pageNum: number) => {
     setLoading(true);
-    const pageVideos: Movie[] = [];
     try {
-      // 構建 v9.0 物理請求 URL
-      const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${(pageNum - 1) * 24}&_=${Date.now()}`;
+      const startFrom = (pageNum - 1) * 24;
+      // v9.0 正式 pageUrl 格式
+      const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${startFrom}&_=${Date.now()}`;
       
       const resp = await fetch(pageUrl, {
         headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
       });
       const html = await resp.text();
 
-      // v9.0 靈魂正則探針：精準抓取影音盒子
+      // v9.0 王者正則探針：修正正則標識符，確保在編譯後依然生效
       const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img(?:[^>]*?data-src="([^"]+)")?[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
       
+      const pageVideos: Movie[] = [];
       let match;
       while ((match = cardRegex.exec(html)) !== null) {
         pageVideos.push({
@@ -158,60 +160,71 @@ export function View() {
     }
   };
 
-  // 監聽頁碼變化，執行「切一頁，打一頁」
   useEffect(() => {
     scrapeJableLivePage(page);
   }, [page]);
 
-  const chunks = [];
-  for (let i = 0; i < list.length; i += 4) {
-    chunks.push(list.slice(i, i + 4));
-  }
-
   return (
     <NavigationStack>
-      <VStack
-        navigationTitle={`龍蝦 v20 (P.${page})`}
-        background="#000"
-        toolbar={{
-          topBarLeading: [
-            <Button title="離開" systemImage="xmark" action={dismiss} />
-          ],
-          topBarTrailing: [
-            <HStack spacing={15}>
-               {page > 1 && (
-                 <Button title="上頁" systemImage="chevron.left" action={() => setPage(p => p - 1)} />
-               )}
-               <Button title="下頁" systemImage="chevron.right" action={() => setPage(p => p + 1)} />
-               <Button title="強行採集" systemImage="antenna.radiowave.left.and.right" action={() => scrapeJableLivePage(page)} />
-            </HStack>
-          ]
+      <GeometryReader>
+        {(proxy) => {
+          // 動態計算海報寬度：每行 4 個 (可根據需求調整，這裡實現響應式)
+          const columns = 4;
+          const spacing = 8;
+          const totalSpacing = spacing * (columns + 1);
+          const itemWidth = (proxy.size.width - totalSpacing) / columns;
+
+          // 將 list 轉為行
+          const chunks = [];
+          for (let i = 0; i < list.length; i += columns) {
+            chunks.push(list.slice(i, i + columns));
+          }
+
+          return (
+            <VStack
+              navigationTitle={`龍蝦 v21 (P.${page})`}
+              background="#000"
+              toolbar={{
+                topBarLeading: [
+                  <Button title="離開" systemImage="xmark" action={dismiss} />
+                ],
+                topBarTrailing: [
+                  <HStack spacing={15}>
+                    {page > 1 && (
+                      <Button title="後退" systemImage="chevron.left" action={() => setPage(page - 1)} />
+                    )}
+                    <Button title="前進" systemImage="chevron.right" action={() => setPage(page + 1)} />
+                  </HStack>
+                ]
+              }}
+            >
+              <ScrollView padding={spacing}>
+                {loading ? (
+                  <VStack alignment="center" padding={60}>
+                    <ProgressView />
+                    <Text marginTop={10} foregroundStyle="secondaryLabel">正在透過 v9 探針入侵官網...</Text>
+                  </VStack>
+                ) : (
+                  <VStack spacing={12}>
+                    {chunks.map((row, idx) => (
+                      <HStack key={idx} spacing={spacing} frame={{ maxWidth: "infinity" }} alignment="top">
+                        {row.map((item, cidx) => (
+                          <MoviePoster key={cidx} movie={item} itemWidth={itemWidth} />
+                        ))}
+                        {/* 補齊 Spacer 確保左對齊 */}
+                        {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
+                          <Spacer key={i} frame={{ width: itemWidth }} />
+                        ))}
+                      </HStack>
+                    ))}
+                    <Spacer frame={{ height: 100 }} />
+                  </VStack>
+                )}
+              </ScrollView>
+            </VStack>
+          );
         }}
-      >
-        <ScrollView padding={4}>
-          {loading ? (
-            <VStack alignment="center" padding={60}>
-              <ProgressView />
-              <Text marginTop={10} foregroundStyle="secondaryLabel">龍蝦正在注入 v9.0 探針，現場掃描第 {page} 頁...</Text>
-            </VStack>
-          ) : (
-            <VStack spacing={12}>
-              {chunks.map((row, idx) => (
-                <HStack key={idx} spacing={8} frame={{ maxWidth: "infinity" }}>
-                  {row.map((item, cidx) => (
-                    <MoviePoster key={cidx} movie={item} />
-                  ))}
-                  {/* 適配 4 欄排版，補齊 Spacer */}
-                  {row.length < 4 && Array.from({ length: 4 - row.length }).map((_, i) => (
-                      <Spacer key={i} frame={{ maxWidth: "infinity" }} />
-                  ))}
-                </HStack>
-              ))}
-              <Spacer frame={{ height: 100 }} />
-            </VStack>
-          )}
-        </ScrollView>
-      </VStack>
+      </GeometryReader>
     </NavigationStack>
   );
 }
