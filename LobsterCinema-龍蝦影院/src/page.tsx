@@ -3,7 +3,6 @@ import {
     Image,
     Text,
     List,
-    Section,
     HStack,
     VStack,
     Navigation,
@@ -13,62 +12,64 @@ import {
     useEffect,
     ProgressView,
     ZStack,
-    Video,
     UIImage,
+    Web,
 } from "scripting";
 
 interface VideoItem {
     title: string;
     url: string;
     thumbnail: string;
-    m3u8?: string;
     duration: string;
     category: string;
 }
 
 const DATA_URL = "https://raw.githubusercontent.com/eric21364/scripting-test/main/status.json";
 
-function VideoCard({ video, onSelect }: { video: VideoItem, onSelect: (v: VideoItem) => void }) {
-    const [thumb, setThumb] = useState<UIImage | null>(null);
+function PosterCard({ video, onPlay }: { video: VideoItem, onPlay: (v: VideoItem) => void }) {
+    const [image, setImage] = useState<UIImage | null>(null);
 
     useEffect(() => {
-        // 核心修復：使用 UIImage.fromURL 異步加載縮圖，解決無法顯示問題
+        // 使用 Weight 核心組件進行異步加載，解決縮圖空白問題
         void UIImage.fromURL(video.thumbnail).then(img => {
-            if (img) setThumb(img);
+            if (img) setImage(img);
         });
     }, [video.thumbnail]);
 
     return (
         <VStack
-            spacing={8}
             frame={{ maxWidth: "infinity" }}
-            onTapGesture={() => onSelect(video)}
-            padding={12}
-            background="rgba(255,255,255,0.05)"
-            cornerRadius={12}
+            onTapGesture={() => onPlay(video)}
+            spacing={6}
+            padding={8}
         >
-            <ZStack frame={{ maxWidth: "infinity", height: 180 }} cornerRadius={8} background="#111">
-                {thumb ? (
+            <ZStack frame={{ maxWidth: "infinity", height: 160 }} cornerRadius={12} background="rgba(255,255,255,0.05)">
+                {image ? (
                     <Image
-                        image={thumb}
+                        image={image}
                         resizable
                         scaleToFill
-                        frame={{ maxWidth: "infinity", height: 180 }}
+                        frame={{ maxWidth: "infinity", height: 160 }}
+                        cornerRadius={12}
                     />
                 ) : (
-                    <ProgressView />
+                    <ProgressView progressViewStyle="circular" />
                 )}
                 
                 <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="bottomTrailing" padding={6}>
-                    <Text font={{ size: 10 }} padding={3} background="rgba(0,0,0,0.7)" cornerRadius={4} foregroundStyle="white">
+                    <Text font={{ size: 9 }} padding={2} background="rgba(0,0,0,0.7)" cornerRadius={4} foregroundStyle="white">
                         {video.duration}
                     </Text>
                 </VStack>
-                <Image systemName="play.circle" font={40} foregroundStyle="rgba(255,255,255,0.5)" />
             </ZStack>
-            <VStack alignment="leading" spacing={2}>
-                <Text font="subheadline" bold lineLimit={2} foregroundStyle="white">{video.title}</Text>
-                <Text font="caption" foregroundStyle="orange">#{video.category}</Text>
+            
+            <VStack alignment="leading" spacing={2} frame={{ maxWidth: "infinity" }}>
+                <Text font={{ size: 12, name: "system-bold" }} lineLimit={2} foregroundStyle="white">
+                    {video.title}
+                </Text>
+                <Text font={{ size: 10 }} foregroundStyle="orange">
+                    #{video.category}
+                </Text>
             </VStack>
         </VStack>
     );
@@ -78,7 +79,7 @@ export function View() {
     const dismiss = Navigation.useDismiss();
     const [videos, setVideos] = useState<VideoItem[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
+    const [currentPlayVideo, setCurrentPlayVideo] = useState<VideoItem | null>(null);
 
     const loadData = async () => {
         setIsLoading(true);
@@ -99,60 +100,74 @@ export function View() {
         loadData();
     }, []);
 
+    // 將資料分成 2 個一組，製作海報牆
+    const chunkArray = (arr: VideoItem[], size: number) => {
+        const rows = [];
+        for (let i = 0; i < arr.length; i += size) {
+            rows.push(arr.slice(i, i + size));
+        }
+        return rows;
+    };
+
+    const rows = chunkArray(videos, 2);
+
     return (
         <NavigationStack>
             <VStack
-                navigationTitle={selectedVideo ? "正在播放" : "龍蝦影院"}
-                background="#000"
+                navigationTitle={currentPlayVideo ? "正在放映" : "龍蝦影院"}
+                background="#000000"
                 toolbar={{
                     topBarLeading: [
-                        <Button action={() => {
-                            if (selectedVideo) setSelectedVideo(null);
-                            else dismiss();
-                        }}>
-                            <Image systemName={selectedVideo ? "chevron.left" : "xmark"} />
-                        </Button>
+                        <Button
+                            title={currentPlayVideo ? "返回" : "關閉"}
+                            systemImage={currentPlayVideo ? "chevron.left" : "xmark"}
+                            action={() => {
+                                if (currentPlayVideo) setCurrentPlayVideo(null);
+                                else dismiss();
+                            }}
+                        />
                     ],
-                    topBarTrailing: selectedVideo ? [] : [
-                        <Button action={loadData}>
-                            <Image systemName="arrow.clockwise" />
-                        </Button>
+                    topBarTrailing: currentPlayVideo ? [] : [
+                        <Button
+                            title="重新整理"
+                            systemImage="arrow.clockwise"
+                            action={loadData}
+                        />
                     ]
                 }}
             >
-                {selectedVideo ? (
-                    <VStack spacing={20} padding={16}>
-                        {selectedVideo.m3u8 ? (
-                            <VStack cornerRadius={12} clipShape="rect" background="#111">
-                                <Video 
-                                    url={selectedVideo.m3u8} 
-                                    autoplay={true} 
-                                    frame={{ maxWidth: "infinity", height: 240 }} 
-                                />
-                            </VStack>
-                        ) : (
-                            <Text foregroundStyle="secondaryLabel">正在提取原始碼...</Text>
-                        )}
-                        
-                        <VStack alignment="leading" spacing={10}>
-                            <Text font="title3" bold foregroundStyle="white">{selectedVideo.title}</Text>
-                            <HStack spacing={10}>
-                                <Text font="caption" foregroundStyle="orange">#{selectedVideo.category}</Text>
-                                <Text font="caption" foregroundStyle="secondaryLabel">{selectedVideo.duration}</Text>
-                            </HStack>
-                            <Spacer frame={{ height: 20 }} />
-                            <Text font="body" foregroundStyle="secondaryLabel">
-                                龍蝦註：如上方播放器無法載入，請確認網路環境。系統已自動抓取最強 M3U8 訊號。
-                            </Text>
-                        </VStack>
+                {currentPlayVideo ? (
+                    // 播放模式：直接在 App 的目前視圖中渲染 Web 組件
+                    <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
+                        <Web 
+                            url={currentPlayVideo.url} 
+                            frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
+                            allowsBackForwardNavigationGestures={true}
+                        />
                     </VStack>
                 ) : (
+                    // 列表模式：神還原海報牆
                     <List refreshable={loadData}>
-                        {isLoading && <ProgressView padding />}
-                        {videos.map((vid, idx) => (
-                            <VideoCard key={idx} video={vid} onSelect={setSelectedVideo} />
+                        {isLoading && videos.length === 0 ? (
+                            <VStack frame={{ maxWidth: "infinity", height: 100 }} alignment="center">
+                                <ProgressView />
+                                <Text marginTop={10} foregroundStyle="secondaryLabel">正在同步海報牆...</Text>
+                            </VStack>
+                        ) : null}
+
+                        {rows.map((row, rowIdx) => (
+                            <HStack key={`row-${rowIdx}`} frame={{ maxWidth: "infinity" }} spacing={8}>
+                                {row.map((vid, colIdx) => (
+                                    <PosterCard 
+                                        key={`poster-${rowIdx}-${colIdx}`} 
+                                        video={vid} 
+                                        onPlay={setCurrentPlayVideo} 
+                                    />
+                                ))}
+                                {row.length === 1 && <Spacer frame={{ maxWidth: "infinity" }} />}
+                            </HStack>
                         ))}
-                        <Spacer frame={{ height: 50 }} />
+                        <Spacer frame={{ height: 60 }} />
                     </List>
                 )}
             </VStack>
