@@ -1,0 +1,10 @@
+{
+  "id": "lobster-cinema",
+  "name": "龍蝦影院",
+  "version": "1.0.0",
+  "description": "潛入 Kanav 採集的龍蝦影音實驗室。",
+  "icon": "play.circle.fill",
+  "author": "Lobster Agent",
+  "type": "media",
+  "category": "Entertainment"
+}
