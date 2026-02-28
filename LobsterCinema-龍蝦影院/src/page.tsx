@@ -13,7 +13,7 @@ import {
     ProgressView,
     ZStack,
     UIImage,
-    Web,
+    Video,
 } from "scripting";
 
 interface VideoItem {
@@ -22,6 +22,7 @@ interface VideoItem {
     thumbnail: string;
     duration: string;
     category: string;
+    m3u8?: string;
 }
 
 const DATA_URL = "https://raw.githubusercontent.com/eric21364/scripting-test/main/status.json";
@@ -30,10 +31,11 @@ function PosterCard({ video, onPlay }: { video: VideoItem, onPlay: (v: VideoItem
     const [image, setImage] = useState<UIImage | null>(null);
 
     useEffect(() => {
-        // 使用 Weight 核心組件進行異步加載，解決縮圖空白問題
+        let active = true;
         void UIImage.fromURL(video.thumbnail).then(img => {
-            if (img) setImage(img);
+            if (active && img) setImage(img);
         });
+        return () => { active = false; };
     }, [video.thumbnail]);
 
     return (
@@ -43,14 +45,13 @@ function PosterCard({ video, onPlay }: { video: VideoItem, onPlay: (v: VideoItem
             spacing={6}
             padding={8}
         >
-            <ZStack frame={{ maxWidth: "infinity", height: 160 }} cornerRadius={12} background="rgba(255,255,255,0.05)">
+            <ZStack frame={{ maxWidth: "infinity", height: 160 }} cornerRadius={12} background="rgba(255,255,255,0.05)" clipShape="rect">
                 {image ? (
                     <Image
                         image={image}
                         resizable
                         scaleToFill
                         frame={{ maxWidth: "infinity", height: 160 }}
-                        cornerRadius={12}
                     />
                 ) : (
                     <ProgressView progressViewStyle="circular" />
@@ -61,6 +62,8 @@ function PosterCard({ video, onPlay }: { video: VideoItem, onPlay: (v: VideoItem
                         {video.duration}
                     </Text>
                 </VStack>
+                
+                <Image systemName="play.fill" font={24} foregroundStyle="rgba(255,255,255,0.5)" />
             </ZStack>
             
             <VStack alignment="leading" spacing={2} frame={{ maxWidth: "infinity" }}>
@@ -100,7 +103,6 @@ export function View() {
         loadData();
     }, []);
 
-    // 將資料分成 2 個一組，製作海報牆
     const chunkArray = (arr: VideoItem[], size: number) => {
         const rows = [];
         for (let i = 0; i < arr.length; i += size) {
@@ -129,7 +131,7 @@ export function View() {
                     ],
                     topBarTrailing: currentPlayVideo ? [] : [
                         <Button
-                            title="重新整理"
+                            title="刷新"
                             systemImage="arrow.clockwise"
                             action={loadData}
                         />
@@ -137,21 +139,34 @@ export function View() {
                 }}
             >
                 {currentPlayVideo ? (
-                    // 播放模式：直接在 App 的目前視圖中渲染 Web 組件
-                    <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
-                        <Web 
-                            url={currentPlayVideo.url} 
-                            frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
-                            allowsBackForwardNavigationGestures={true}
-                        />
+                    <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} background="#000">
+                        {currentPlayVideo.m3u8 ? (
+                            <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
+                                <Video 
+                                    url={currentPlayVideo.m3u8} 
+                                    autoplay={true} 
+                                    frame={{ maxWidth: "infinity", maxHeight: "infinity" }} 
+                                />
+                                <VStack padding={20} alignment="leading" spacing={12}>
+                                    <Text font="headline" foregroundStyle="white">{currentPlayVideo.title}</Text>
+                                    <Text font="caption" foregroundStyle="secondaryLabel">{currentPlayVideo.category} · {currentPlayVideo.duration}</Text>
+                                </VStack>
+                            </VStack>
+                        ) : (
+                            <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="center">
+                                <Spacer />
+                                <ProgressView />
+                                <Text marginTop={10} foregroundStyle="secondaryLabel">正在提取無廣告高清源...</Text>
+                                <Spacer />
+                            </VStack>
+                        )}
                     </VStack>
                 ) : (
-                    // 列表模式：神還原海報牆
                     <List refreshable={loadData}>
                         {isLoading && videos.length === 0 ? (
                             <VStack frame={{ maxWidth: "infinity", height: 100 }} alignment="center">
                                 <ProgressView />
-                                <Text marginTop={10} foregroundStyle="secondaryLabel">正在同步海報牆...</Text>
+                                <Text marginTop={10} foregroundStyle="secondaryLabel">影院佈置中...</Text>
                             </VStack>
                         ) : null}
 
