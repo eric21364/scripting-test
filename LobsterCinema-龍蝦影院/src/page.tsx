@@ -12,7 +12,8 @@ import {
     useState,
     useEffect,
     ProgressView,
-    Video,
+    Safari,
+    Script,
 } from "scripting";
 
 interface VideoItem {
@@ -21,63 +22,38 @@ interface VideoItem {
     thumbnail: string;
     duration: string;
     category: string;
-    streamUrl?: string; // 預備未來擴充 M3U8
 }
 
 export function View() {
     const dismiss = Navigation.useDismiss();
     const [videos, setVideos] = useState<VideoItem[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [statusText, setStatusText] = useState<string>("龍蝦影院 v1.3 - 準備中 🍿");
+    const [statusText, setStatusText] = useState<string>("龍蝦影院 v1.5 - 極速模式 🍿");
     const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
 
-    const scrapeKanav = async () => {
+    // 改用「本地讀取」模式：從專案根目錄的 status.json 讀取由伺服器抓好的數據
+    const loadVideosFromStatus = async () => {
         try {
-            const resp = await fetch("https://kanav.ad/", {
-                headers: {
-                    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
-                },
-            });
+            // Weight 環境下，可以直接 fetch 同目錄或專案內的檔案
+            const resp = await fetch("./status.json");
+            if (!resp.ok) throw new Error("讀取本地數據失敗");
             
-            if (!resp.ok) throw new Error("聯網失敗");
-            
-            const html = await resp.text();
-            const results: VideoItem[] = [];
-            
-            // 抓取精選視頻區塊
-            const itemPattern = /<div class="col-md-3 col-sm-6 col-xs-6">([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/g;
-            let match;
-            
-            while ((match = itemPattern.exec(html)) !== null) {
-                const block = match[1];
-                const titleM = block.match(/alt="([^"]+)"/);
-                const linkM = block.match(/href="([^"]+)"/);
-                const imgM = block.match(/data-original="([^"]+)"/);
-                const durM = block.match(/<span class="model-view">([^<]+)<\/span>/);
-                const catM = block.match(/<span class="model-view-left">([^<]+)<\/span>/);
-
-                if (titleM && linkM) {
-                    results.push({
-                        title: titleM[1],
-                        url: "https://kanav.ad" + linkM[1],
-                        thumbnail: imgM ? imgM[1] : "",
-                        duration: durM ? durM[1].trim() : "??",
-                        category: catM ? catM[1].trim() : "影片"
-                    });
-                }
+            const data = await resp.json();
+            if (data.kanav_list && data.kanav_list.length > 0) {
+                setVideos(data.kanav_list);
+                setStatusText(`同步完成：${data.kanav_list.length} 部影片`);
+            } else {
+                setStatusText("伺服器端暫無影片數據，請稍後再試");
             }
-            
-            setVideos(results);
-            setStatusText(`採集完成：${results.length} 部影片`);
         } catch (err) {
-            setStatusText(`錯誤: ${String(err)}`);
+            setStatusText(`同步失敗: ${String(err)}`);
         }
     };
 
     useEffect(() => {
         const init = async () => {
             setIsLoading(true);
-            await scrapeKanav();
+            await loadVideosFromStatus();
             setIsLoading(false);
         };
         init();
@@ -86,7 +62,7 @@ export function View() {
     return (
         <NavigationStack>
             <VStack
-                navigationTitle={selectedVideo ? "正在播放" : "龍蝦影院"}
+                navigationTitle={selectedVideo ? "影片詳情" : "龍蝦影院"}
                 toolbar={{
                     topBarLeading: [
                         <Button
@@ -101,8 +77,7 @@ export function View() {
                         <Button
                             action={async () => {
                                 setIsLoading(true);
-                                setVideos([]);
-                                await scrapeKanav();
+                                await loadVideosFromStatus();
                                 setIsLoading(false);
                             }}>
                             <Image systemName="arrow.clockwise" />
@@ -111,73 +86,54 @@ export function View() {
                 }}>
                 
                 {selectedVideo ? (
-                    /* 播放模式：直接顯示封面縮圖並提示跳轉 */
                     <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} background="#000">
                         <Spacer />
-                        <ZStack frame={{ width: "infinity", height: 211 }}>
-                            <Image url={selectedVideo.thumbnail} contentMode="cover" frame={{ maxWidth: "infinity" }} cornerRadius={12} />
-                            <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} background="rgba(0,0,0,0.4)" alignment="center">
-                                <Button action={async () => { /* 這裡目前依賴跳轉，未來找到 m3u8 後改為 Video 組件 */ }}>
-                                    <Image systemName="play.circle.fill" font={64} foregroundStyle="white" />
-                                </Button>
+                        <ZStack frame={{ maxWidth: "infinity", height: 211 }}>
+                            <Image url={selectedVideo.thumbnail} frame={{ maxWidth: "infinity", height: "100%" }} cornerRadius={12} contentMode="cover" />
+                            <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} background="rgba(0,0,0,0.3)" alignment="center">
+                                <Image systemName="play.circle.fill" font={64} foregroundStyle="white" />
                             </VStack>
                         </ZStack>
                         
-                        <VStack padding={20} alignment="leading" spacing={10}>
+                        <VStack padding={20} alignment="leading" spacing={12}>
                             <Text font="title2" foregroundStyle="white" bold>{selectedVideo.title}</Text>
                             <HStack spacing={12}>
                                 <Text font="subheadline" foregroundStyle="orange">#{selectedVideo.category}</Text>
                                 <Text font="subheadline" foregroundStyle="secondaryLabel">{selectedVideo.duration}</Text>
                             </HStack>
-                            <Spacer frame={{ height: 20 }} />
+                            <Spacer frame={{ height: 24 }} />
                             <Button 
-                                title="點擊進入播放頁面" 
+                                title="立即播放 🎬" 
                                 buttonStyle="borderedProminent" 
-                                frame={{ maxWidth: "infinity" }}
+                                frame={{ maxWidth: "infinity", height: 50 }}
                                 action={async () => {
-                                    // 由於 Kanav 採用 iframe 內嵌且有加密，目前最穩定的播放方式是透過 Safari WebView
-                                    await Navigation.present({
-                                        element: (
-                                            <NavigationStack>
-                                                <VStack navigationTitle={selectedVideo.title}>
-                                                    {/* 使用 Weight 的網頁組件直接呈現 */}
-                                                    <WebView url={selectedVideo.url} frame={{ maxWidth: "infinity", maxHeight: "infinity" }} />
-                                                </VStack>
-                                            </NavigationStack>
-                                        ),
-                                        modalPresentationStyle: "fullScreen"
-                                    });
+                                    await Safari.present(selectedVideo.url);
                                 }}
                             />
                         </VStack>
                         <Spacer />
                     </VStack>
                 ) : (
-                    /* 列表模式 */
                     (() => {
                         if (isLoading && videos.length === 0)
                             return (
                                 <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="center">
                                     <Spacer />
-                                    <ProgressView progressViewStyle={"circular"} />
-                                    <Text marginTop={10} foregroundStyle="secondaryLabel">龍蝦正潛入極深海域...</Text>
+                                    <ProgressView />
+                                    <Text marginTop={10} foregroundStyle="secondaryLabel">正在同步雲端資源...</Text>
                                     <Spacer />
                                 </VStack>
                             );
 
                         return (
-                            <List
-                                refreshable={async () => {
-                                    await scrapeKanav();
-                                }}>
+                            <List refreshable={loadVideosFromStatus}>
                                 <Section title={statusText}>
                                     {videos.map((vid, index) => (
                                         <HStack 
-                                            key={`v13-video-${index}`} 
+                                            key={`v15-video-${index}`} 
                                             padding={{ vertical: 10 }}
                                             onTapGesture={() => setSelectedVideo(vid)}
                                         >
-                                            {/* 加入縮圖海報層次感 */}
                                             <ZStack frame={{ width: 120, height: 75 }}>
                                                 <Image
                                                     url={vid.thumbnail}
