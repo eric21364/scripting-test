@@ -22,9 +22,8 @@ interface Movie {
   thumbnail: string;
   duration: string;
   category: string;
+  m3u8?: string;
 }
-
-const API_SOURCE = "https://raw.githubusercontent.com/eric21364/scripting-test/main/status.json";
 
 function Thumbnail({ url }: { url: string }) {
   const [image, setImage] = useState<UIImage | null>(null);
@@ -127,53 +126,49 @@ export function View() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
-  // 🥩 龍蝦究極探針：利用 WebViewController 作為「無形採集器」
-  // 這是最穩定的做法，因為它完全模擬瀏覽器解析 DOM，避開 fetch/Regex 失效。
-  const scrapeJableViaBridge = async (pageNum: number) => {
+  // 🥩 龍蝦探針：單頁精準採集 (100% 復刻 v9.0 成功正則)
+  const scrapeJablePage = async (targetPage: number) => {
     setLoading(true);
-    const startFrom = (pageNum - 1) * 24;
-    const url = pageNum === 1 
-        ? `https://jable.tv/hot/`
-        : `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${startFrom}&_=${Date.now()}`;
-
-    const scraper = new WebViewController();
+    // 每次翻頁時，我們先不清空 list 以防全黑閃爍，但這一次為了確保「顯示影片」的成功率，我選擇顯式處理。
     try {
-      await scraper.loadURL(url);
+      console.log(`🌊 正在採集第 ${targetPage} 頁...`);
+      const fromValue = (targetPage - 1) * 24;
+      // 網址參數物理校準
+      const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${fromValue}&_=${Date.now()}`;
       
-      // 執行 DOM 提取腳本
-      const data = await scraper.evaluateJavaScript(`
-        (() => {
-          const items = Array.from(document.querySelectorAll('.video-img-box'));
-          return items.map(el => {
-            const a = el.querySelector('a');
-            const img = el.querySelector('img');
-            const title = el.querySelector('.title a');
-            const dur = el.querySelector('.label');
-            return {
-              url: a ? a.href : '',
-              thumbnail: img ? (img.getAttribute('data-src') || img.src) : '',
-              title: title ? title.innerText.trim() : '',
-              duration: dur ? dur.innerText.trim() : '',
-              category: 'LIVE'
-            };
-          }).filter(v => v.url && v.title);
-        })();
-      `);
+      const resp = await fetch(pageUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
+      });
+      const html = await resp.text();
 
-      if (Array.isArray(data) && data.length > 0) {
-        setList(data);
-      } else {
-        console.log("No data extracted via bridge.");
+      // v9.0 王者正則：它是抓取卡片的物理唯一答案
+      const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img(?:[^>]*?data-src="([^"]+)")?[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
+      
+      const pageVideos: Movie[] = [];
+      let match;
+      while ((match = cardRegex.exec(html)) !== null) {
+        pageVideos.push({
+          url: match[1],
+          thumbnail: match[2] || "",
+          duration: match[3],
+          title: match[4],
+          category: "LIVE"
+        });
+      }
+      
+      // 只有在真的抓到數據時才切換 state，否則維持現狀確保不全黑
+      if (pageVideos.length > 0) {
+        setList(pageVideos);
       }
     } catch (e) {
-      console.log("Bridge Scrape Failed:", e);
+      console.log("Live Scrape Failed:", e);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    scrapeJableViaBridge(page);
+    scrapeJablePage(page);
   }, [page]);
 
   const chunks = [];
@@ -184,27 +179,27 @@ export function View() {
   return (
     <NavigationStack>
       <VStack
-        navigationTitle={`龍蝦影院 v16 (P.${page})`}
+        navigationTitle={`龍蝦 P.${page} (v17)`}
         background="#000"
         toolbar={{
           topBarLeading: [
             <Button title="離開" systemImage="xmark" action={dismiss} />
           ],
           topBarTrailing: [
-            <HStack spacing={12}>
-              {page > 1 && (
-                <Button title="Prev" systemImage="chevron.left" action={() => setPage(page - 1)} />
-              )}
-              <Button title="Next" systemImage="chevron.right" action={() => setPage(page + 1)} />
+            <HStack spacing={15}>
+               {page > 1 && (
+                 <Button title="後退" systemImage="chevron.left" action={() => setPage(page - 1)} />
+               )}
+               <Button title="前進" systemImage="chevron.right" action={() => setPage(page + 1)} />
             </HStack>
           ]
         }}
       >
         <ScrollView padding={4}>
-          {loading ? (
+          {loading && list.length === 0 ? (
             <VStack alignment="center" padding={60}>
               <ProgressView />
-              <Text marginTop={10} foregroundStyle="secondaryLabel">{`龍蝦正在穿透第 ${page} 頁防線...`}</Text>
+              <Text marginTop={10} foregroundStyle="secondaryLabel">正在現場注入 v9.0 探針...</Text>
             </VStack>
           ) : (
             <VStack spacing={12}>
