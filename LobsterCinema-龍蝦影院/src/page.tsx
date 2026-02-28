@@ -22,6 +22,7 @@ interface Movie {
   thumbnail: string;
   duration: string;
   category: string;
+  m3u8?: string;
 }
 
 const API_SOURCE = "https://raw.githubusercontent.com/eric21364/scripting-test/main/status.json";
@@ -49,17 +50,15 @@ function Thumbnail({ url }: { url: string }) {
       image={image}
       resizable
       scaleToFill
-      frame={{ maxWidth: "infinity", height: 100 }} // 縮小高度以適配 4 欄
+      frame={{ maxWidth: "infinity", height: 100 }}
     />
   );
 }
 
 function MoviePoster({ movie }: { movie: Movie }) {
-  // ... (openPlayer 保持不變)
   const openPlayer = async () => {
     try {
       if (movie.m3u8 && movie.m3u8.includes('.m3u8')) {
-          console.log("Using pre-fetched M3U8");
           const player = new WebViewController();
           await player.loadURL(movie.m3u8);
           await player.present({ fullscreen: true, navigationTitle: movie.title });
@@ -160,24 +159,60 @@ export function View() {
   const [list, setList] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const refresh = async () => {
+  // 🥩 龍蝦實時探針：繞過 Raspberry Pi 伺服器，由手機端直接物理採集 Jable Data
+  const scrapeJableLive = async () => {
     setLoading(true);
+    const allVideos: Movie[] = [];
     try {
-      const resp = await fetch(API_SOURCE + "?t=" + Date.now());
-      const res = await resp.json();
-      if (res.kanav_list) setList(res.kanav_list);
+      console.log("🌊 正在由手機端執行物理級橫捲採集...");
+      
+      for (let page = 1; page <= 10; page++) {
+        const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${(page - 1) * 24}&_=${Date.now()}`;
+        const resp = await fetch(pageUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
+        });
+        const html = await resp.text();
+
+        // 現場正則解析：抓取影音盒子特徵
+        const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img(?:[^>]*?data-src="([^"]+)")?[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
+        
+        let match;
+        while ((match = cardRegex.exec(html)) !== null) {
+          allVideos.push({
+            url: match[1],
+            thumbnail: match[2] || "",
+            duration: match[3],
+            title: match[4],
+            category: "LIVE"
+          });
+        }
+      }
+      
+      if (allVideos.length > 0) {
+        setList(allVideos);
+      } else {
+        await refreshFromCache();
+      }
     } catch (e) {
-      console.log("Refresh Error:", e);
+      console.log("Live Scrape Failed:", e);
+      await refreshFromCache();
     } finally {
       setLoading(false);
     }
   };
 
+  const refreshFromCache = async () => {
+    try {
+      const resp = await fetch(API_SOURCE + "?t=" + Date.now());
+      const res = await resp.json();
+      if (res.kanav_list) setList(res.kanav_list);
+    } catch (e) {}
+  };
+
   useEffect(() => {
-    refresh();
+    scrapeJableLive();
   }, []);
 
-  // 調整為一排四個 (每群 4 個)
   const chunks = [];
   for (let i = 0; i < list.length; i += 4) {
     chunks.push(list.slice(i, i + 4));
@@ -186,30 +221,25 @@ export function View() {
   return (
     <NavigationStack>
       <VStack
-        navigationTitle="龍蝦影院 v8.0"
+        navigationTitle="龍蝦影院 v9.0 (LIVE)"
         background="#000"
         toolbar={{
           topBarLeading: [
             <Button title="離開" systemImage="xmark" action={dismiss} />
           ],
           topBarTrailing: [
-            <Button title="同步" systemImage="arrow.clockwise" action={refresh} />
+            <Button title="強行採集" systemImage="antenna.radiowave.left.and.right" action={scrapeJableLive} />
           ]
         }}
       >
-        <ScrollView padding={8}>
+        <ScrollView padding={4}>
           {loading && list.length === 0 ? (
             <VStack alignment="center" padding={60}>
               <ProgressView />
-              <Text marginTop={10} foregroundStyle="secondaryLabel">正在部署超大規模影視通道...</Text>
+              <Text marginTop={10} foregroundStyle="secondaryLabel">龍蝦正在繞過伺服器，現場掃描官網...</Text>
             </VStack>
           ) : (
-            <VStack spacing={12} alignment="leading">
-              <HStack alignment="center" padding={4}>
-                <Text font="caption" foregroundStyle="secondaryLabel">
-                   共 {list.length} 部影片 | JableHot 前 10 頁全面採集
-                </Text>
-              </HStack>
+            <VStack spacing={12}>
               {chunks.map((row, idx) => (
                 <HStack key={idx} spacing={8} frame={{ maxWidth: "infinity" }}>
                   {row.map((item, cidx) => (
