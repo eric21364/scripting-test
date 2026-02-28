@@ -35,7 +35,9 @@ function Thumbnail({ url }: { url: string }) {
       try {
         const loaded = await UIImage.fromURL(url);
         if (active && loaded) setImage(loaded);
-      } catch (e) {}
+      } catch (e) {
+        console.log("UIImage error: " + url);
+      }
     })();
     return () => { active = false; };
   }, [url]);
@@ -127,26 +129,35 @@ export function View() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
-  // 🥩 物理採集單頁邏輯：基於 v9.0 物理探針修改而成
-  const fetchSinglePage = async (pageNum: number) => {
+  // 🥩 物理採集核心：完全採用最原始的 API 請求模式
+  const fetchJablePage = async (pageNum: number) => {
     setLoading(true);
-    setList([]); // 切換頁面時先清空，給予更強的回饋感
+    // 注意：不預先清空 list，避免渲染閃爍，等到有新數據才覆蓋
     try {
-      const startFrom = (pageNum - 1) * 24;
-      const url = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${startFrom}&_=${Date.now()}`;
+      const from = (pageNum - 1) * 24;
+      const url = `https://jable.tv/hot/`;
       
-      const resp = await fetch(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
+      // 改良採集策略：如果是第一頁，先嘗試抓首頁 HTML（成功率最高）
+      // 如果是分頁，則發送 Ajax 請求
+      const fetchUrl = pageNum === 1 
+        ? `https://jable.tv/hot/`
+        : `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${from}&_=${Date.now()}`;
+
+      const resp = await fetch(fetchUrl, {
+        headers: { 
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+          'Referer': 'https://jable.tv/'
+        }
       });
       const html = await resp.text();
 
-      // 完全復刻 v9.0 最成功的正則抓取模式
-      const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img(?:[^>]*?data-src="([^"]+)")?[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
+      // v9.0 物理正則探針修正：兼容單引號與雙引號，以及 data-src
+      const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img(?:[^>]*?(?:data-src|src)="([^"]+)")?[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
       
-      const pageResult: Movie[] = [];
+      const results: Movie[] = [];
       let match;
       while ((match = cardRegex.exec(html)) !== null) {
-        pageResult.push({
+        results.push({
           url: match[1],
           thumbnail: match[2] || "",
           duration: match[3],
@@ -155,18 +166,20 @@ export function View() {
         });
       }
       
-      if (pageResult.length > 0) {
-        setList(pageResult);
+      if (results.length > 0) {
+        setList(results);
+      } else {
+        console.log("Regex found nothing, check HTML structure.");
       }
     } catch (e) {
-      console.log("Single Page Scrape Failed:", e);
+      console.log("Fetch Error:", e);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchSinglePage(page);
+    fetchJablePage(page);
   }, [page]);
 
   const chunks = [];
@@ -177,27 +190,27 @@ export function View() {
   return (
     <NavigationStack>
       <VStack
-        navigationTitle={`龍蝦影院 v14.0 (P.${page})`}
+        navigationTitle={`龍蝦影院 v15 (P.${page})`}
         background="#000"
         toolbar={{
           topBarLeading: [
             <Button title="離開" systemImage="xmark" action={dismiss} />
           ],
           topBarTrailing: [
-            <HStack spacing={15}>
-               {page > 1 && (
-                 <Button title="上一頁" systemImage="chevron.left" action={() => setPage(page - 1)} />
-               )}
-               <Button title="下一頁" systemImage="chevron.right" action={() => setPage(page + 1)} />
+            <HStack spacing={12}>
+              {page > 1 && (
+                <Button title="Prev" systemImage="chevron.left" action={() => setPage(page - 1)} />
+              )}
+              <Button title="Next" systemImage="chevron.right" action={() => setPage(page + 1)} />
             </HStack>
           ]
         }}
       >
         <ScrollView padding={4}>
-          {loading ? (
+          {loading && list.length === 0 ? (
             <VStack alignment="center" padding={60}>
               <ProgressView />
-              <Text marginTop={10} foregroundStyle="secondaryLabel">{`正在現場採集第 ${page} 頁數據...`}</Text>
+              <Text marginTop={10} foregroundStyle="secondaryLabel">龍蝦正在秘密抓取中...</Text>
             </VStack>
           ) : (
             <VStack spacing={12}>
