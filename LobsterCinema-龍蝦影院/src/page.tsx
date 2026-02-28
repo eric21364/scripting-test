@@ -127,25 +127,25 @@ export function View() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
-  // 🥩 龍蝦探針：以 v9.0 的暴力採集邏輯為基礎，實現「分頁載入」
-  const scrapeJablePage = async (pageNumber: number) => {
+  // 🥩 物理採集核心：完全復刻 v9.0 現場強行掃描邏輯
+  const scrapeJableLive = async (targetPage: number) => {
     setLoading(true);
-    const pageVideos: Movie[] = [];
+    const allVideos: Movie[] = [];
     try {
-      // 構建正確的 Ajax 從屬 URL
-      const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${(pageNumber - 1) * 24}&_=${Date.now()}`;
+      // v9.0 的精髓：直接向 Jable 官網發起物理請求
+      const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${(targetPage - 1) * 24}&_=${Date.now()}`;
       
       const resp = await fetch(pageUrl, {
         headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
       });
       const html = await resp.text();
 
-      // 使用 v9.0 已驗證最強的物理正則探針
+      // v9.0 那個「一發入魂」的萬能正則探針
       const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img(?:[^>]*?data-src="([^"]+)")?[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
       
       let match;
       while ((match = cardRegex.exec(html)) !== null) {
-        pageVideos.push({
+        allVideos.push({
           url: match[1],
           thumbnail: match[2] || "",
           duration: match[3],
@@ -154,18 +154,18 @@ export function View() {
         });
       }
       
-      if (pageVideos.length > 0) {
-        setList(pageVideos);
+      if (allVideos.length > 0) {
+        setList(allVideos);
       }
     } catch (e) {
-      console.log("Scrape Error:", e);
+      console.log("Live Scrape Failed:", e);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    scrapeJablePage(page);
+    scrapeJableLive(page);
   }, [page]);
 
   const chunks = [];
@@ -185,18 +185,18 @@ export function View() {
           topBarTrailing: [
             <HStack spacing={15}>
                {page > 1 && (
-                 <Button title="Prev" systemImage="chevron.left" action={() => setPage(page - 1)} />
+                 <Button title="後退" systemImage="chevron.left" action={() => setPage(page - 1)} />
                )}
-               <Button title="Next" systemImage="chevron.right" action={() => setPage(page + 1)} />
+               <Button title="前進" systemImage="chevron.right" action={() => setPage(page + 1)} />
             </HStack>
           ]
         }}
       >
         <ScrollView padding={4}>
-          {loading ? (
+          {loading && list.length === 0 ? (
             <VStack alignment="center" padding={60}>
               <ProgressView />
-              <Text marginTop={10} foregroundStyle="secondaryLabel">{`正在現場採集第 ${page} 頁...`}</Text>
+              <Text marginTop={10} foregroundStyle="secondaryLabel">正在復刻 v9.0 原力採集模式...</Text>
             </VStack>
           ) : (
             <VStack spacing={12}>
