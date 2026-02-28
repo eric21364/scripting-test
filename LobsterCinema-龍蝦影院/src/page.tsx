@@ -37,7 +37,7 @@ function Thumbnail({ url }: { url: string }) {
         const loaded = await UIImage.fromURL(url);
         if (active && loaded) setImage(loaded);
       } catch (e) {
-        console.log("UIImage.fromURL failed");
+        console.log("UIImage.fromURL failed for: " + url);
       }
     })();
     return () => { active = false; };
@@ -57,37 +57,10 @@ function Thumbnail({ url }: { url: string }) {
 
 function MoviePoster({ movie }: { movie: Movie }) {
   const openPlayer = async () => {
-    try {
-      if (movie.m3u8 && movie.m3u8.includes('.m3u8')) {
-          const player = new WebViewController();
-          await player.loadURL(movie.m3u8);
-          await player.present({ fullscreen: true, navigationTitle: movie.title });
-          return;
-      }
-      const resp = await fetch(movie.url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
-      });
-      const html = await resp.text();
-      const match = html.match(/hlsUrl\s*=\s*['"]([^'"]+\.m3u8)['"]/);
-
-      if (match && match[1]) {
-        const m3u8 = match[1];
-        const player = new WebViewController();
-        await player.loadURL(m3u8);
-        await player.present({
-          fullscreen: true,
-          navigationTitle: movie.title
-        });
-        return;
-      }
-    } catch (e) {
-      console.log("M3U8 Fast-Fetch failed:", e);
-    }
-    runFallbackSurgery();
-  };
-
-  const runFallbackSurgery = async () => {
+    // 建立一個真正的 WebViewController 進行播放，這是最穩定的方案
     const webView = new WebViewController();
+
+    // 針對 Jable 的極致 DOM 手術 CSS
     const css = `
       header, footer, nav, .navbar, .sidebar, .m-footer, .header-mobile,
       .video-holder-info, .related-videos, .comments-wrapper, .ad-banner, 
@@ -97,11 +70,13 @@ function MoviePoster({ movie }: { movie: Movie }) {
           height: 0 !important; 
           visibility: hidden !important; 
       }
-      body, .main, .container, .row {
+      body, html, .main, .container, .row {
           margin: 0 !important;
           padding: 0 !important;
           background: black !important;
           overflow: hidden !important;
+          width: 100% !important;
+          height: 100% !important;
       }
       #player, video, #dplayer {
           width: 100vw !important;
@@ -113,16 +88,24 @@ function MoviePoster({ movie }: { movie: Movie }) {
       }
     `;
 
+    // 網路層廣告攔截
     webView.shouldAllowRequest = async (req) => {
         const url = req.url.toLowerCase();
-        return !url.includes("ads") && !url.includes("pop") && !url.includes("click");
+        return !url.includes("ads") && !url.includes("pop") && !url.includes("click") && !url.includes("creative");
     };
 
+    // 加載原始網址
     await webView.loadURL(movie.url);
+    
+    // 注入手術代碼，隱藏所有干擾並強制全螢幕播放
     await webView.evaluateJavaScript(`
         const style = document.createElement('style');
         style.innerHTML = \`${css}\`;
         document.head.appendChild(style);
+        
+        // 嘗試自動播放
+        const v = document.querySelector('video') || document.querySelector('iframe');
+        if (v) v.play();
     `);
     
     await webView.present({
@@ -160,19 +143,26 @@ export function View() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // 🥩 龍蝦探針：單頁精準物理採集
+  // 🥩 龍蝦探針：單頁精準物理採集 (修正 Ajax 請求參數)
   const scrapeJablePage = async (pageNumber: number) => {
     setLoading(true);
     setCurrentPage(pageNumber);
     try {
       console.log(`🌊 正在採集第 ${pageNumber} 頁...`);
-      const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${(pageNumber - 1) * 24}&_=${Date.now()}`;
+      // 使用正確的 Ajax 分頁參數
+      const from = (pageNumber - 1) * 24;
+      const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${from}&_=${Date.now()}`;
       
       const resp = await fetch(pageUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
+        headers: { 
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+          'Referer': 'https://jable.tv/hot/',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
       });
       const html = await resp.text();
 
+      // 精準匹配卡片資訊
       const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img(?:[^>]*?data-src="([^"]+)")?[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
       
       const pageVideos: Movie[] = [];
@@ -189,6 +179,8 @@ export function View() {
       
       if (pageVideos.length > 0) {
         setList(pageVideos);
+      } else {
+        console.log("No videos found on page: " + pageNumber);
       }
     } catch (e) {
       console.log("Live Scrape Failed:", e);
@@ -209,7 +201,7 @@ export function View() {
   return (
     <NavigationStack>
       <VStack
-        navigationTitle={`龍蝦影院 - 第 ${currentPage} 頁`}
+        navigationTitle={`龍蝦影院 - P.${currentPage}`}
         background="#000"
         toolbar={{
           topBarLeading: [
@@ -218,9 +210,9 @@ export function View() {
           topBarTrailing: [
             <HStack spacing={15}>
                {currentPage > 1 && (
-                 <Button title="上一頁" systemImage="chevron.left" action={() => scrapeJablePage(currentPage - 1)} />
+                 <Button title="上一頁" systemImage="arrow.left" action={() => scrapeJablePage(currentPage - 1)} />
                )}
-               <Button title="下一頁" systemImage="chevron.right" action={() => scrapeJablePage(currentPage + 1)} />
+               <Button title="下一頁" systemImage="arrow.right" action={() => scrapeJablePage(currentPage + 1)} />
             </HStack>
           ]
         }}
@@ -229,7 +221,7 @@ export function View() {
           {loading ? (
             <VStack alignment="center" padding={60}>
               <ProgressView />
-              <Text marginTop={10} foregroundStyle="secondaryLabel">{`正在翻閱第 ${currentPage} 頁...`}</Text>
+              <Text marginTop={10} foregroundStyle="secondaryLabel">{`正在連線第 ${currentPage} 頁伺服器...`}</Text>
             </VStack>
           ) : (
             <VStack spacing={12}>
