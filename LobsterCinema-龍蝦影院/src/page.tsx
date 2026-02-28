@@ -15,6 +15,8 @@ import {
   UIImage,
   AVPlayer,
   AVPlayerView,
+  SharedAudioSession,
+  useMemo,
 } from "scripting";
 
 interface VideoItem {
@@ -33,13 +35,11 @@ function VideoCard({ video, onSelect }: { video: VideoItem; onSelect: (v: VideoI
 
   useEffect(() => {
     let active = true;
+    // 正確的官方 API: UIImage.fromURL
     if (video.thumbnail) {
-      // 依據官方文檔 2.4.5 版本 UIImage.from(url) 用法
-      UIImage.from(video.thumbnail)
-        .then((img) => {
-          if (active && img) setThumb(img);
-        })
-        .catch(err => console.log("圖片載入失敗:", err));
+      void UIImage.fromURL(video.thumbnail).then((img) => {
+        if (active && img) setThumb(img);
+      });
     }
     return () => { active = false; };
   }, [video.thumbnail]);
@@ -48,40 +48,42 @@ function VideoCard({ video, onSelect }: { video: VideoItem; onSelect: (v: VideoI
     <VStack
       frame={{ maxWidth: "infinity" }}
       spacing={8}
-      padding={12}
-      background="rgba(255,255,255,0.05)"
-      cornerRadius={12}
-      onTapGesture={() => onSelect(video)} // 這裡修正了之前 onPlay 的錯誤稱呼
+      padding={4}
+      onTapGesture={() => onSelect(video)}
     >
-      <ZStack frame={{ maxWidth: "infinity", height: 180 }} cornerRadius={8} background="#111" clipShape="rect">
+      <ZStack 
+        frame={{ maxWidth: "infinity", height: 160 }} 
+        cornerRadius={12} 
+        background="rgba(255,255,255,0.08)"
+        clipShape="rect"
+      >
         {thumb ? (
           <Image
             image={thumb}
             resizable
             scaleToFill
-            frame={{ maxWidth: "infinity", height: 180 }}
+            frame={{ maxWidth: "infinity", height: 160 }}
           />
         ) : (
           <ProgressView />
         )}
         
         <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="bottomTrailing" padding={6}>
-          <Text 
-            font={{ size: 10, name: "system-bold" }} 
-            padding={{ horizontal: 5, vertical: 2 }}
-            background="rgba(0,0,0,0.7)" 
-            cornerRadius={4}
-            foregroundStyle="white"
-          >
-            {video.duration}
-          </Text>
+            <Text 
+                font={{ size: 9, name: "system-bold" }} 
+                padding={{ horizontal: 5, vertical: 2 }}
+                background="rgba(0,0,0,0.7)" 
+                cornerRadius={4}
+                foregroundStyle="white"
+            >
+                {video.duration}
+            </Text>
         </VStack>
-        
-        <Image systemName="play.circle.fill" font={34} foregroundStyle="rgba(255,255,255,0.5)" />
+        <Image systemName="play.fill" font={20} foregroundStyle="rgba(255,255,255,0.4)" />
       </ZStack>
       
       <VStack alignment="leading" spacing={2} frame={{ maxWidth: "infinity" }}>
-        <Text font={{ size: 13, name: "system-bold" }} lineLimit={2} foregroundStyle="white">
+        <Text font={{ size: 12, name: "system-medium" }} lineLimit={2} foregroundStyle="white">
           {video.title}
         </Text>
         <Text font="caption2" foregroundStyle="orange">
@@ -97,7 +99,14 @@ export function View() {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
-  const [player] = useState(() => new AVPlayer());
+
+  // 依照 2.4.5 文檔，正確初始化 AVPlayer 與音訊會話
+  const player = useMemo(() => {
+    const p = new AVPlayer();
+    SharedAudioSession.setActive(true);
+    SharedAudioSession.setCategory("playback", ["defaultToSpeaker"]);
+    return p;
+  }, []);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -116,12 +125,13 @@ export function View() {
 
   useEffect(() => {
     loadData();
-    return () => player.pause();
-  }, [player]);
+    return () => player.dispose();
+  }, []);
 
-  const rows = [];
+  // 切分兩欄數據
+  const chunkedVideos = [];
   for (let i = 0; i < videos.length; i += 2) {
-    rows.push(videos.slice(i, i + 2));
+    chunkedVideos.push(videos.slice(i, i + 2));
   }
 
   return (
@@ -129,24 +139,28 @@ export function View() {
       <VStack
         navigationTitle={selectedVideo ? "正在放映" : "龍蝦影院"}
         background="#000"
-        toolbar={{
+        toolbar={selectedVideo ? {
           topBarLeading: [
             <Button
-              title={selectedVideo ? "返回" : "關閉"}
-              systemImage={selectedVideo ? "chevron.left" : "xmark"}
+              title="返回"
+              systemImage="chevron.left"
               action={() => {
-                if (selectedVideo) {
-                    player.pause();
-                    setSelectedVideo(null);
-                } else {
-                    dismiss();
-                }
+                player.pause();
+                setSelectedVideo(null);
               }}
             />,
+          ]
+        } : {
+          topBarLeading: [
+            <Button
+              title="關閉"
+              systemImage="xmark"
+              action={dismiss}
+            />,
           ],
-          topBarTrailing: selectedVideo ? [] : [
+          topBarTrailing: [
             <Button 
-                title="重整" 
+                title="重新整理"
                 systemImage="arrow.clockwise" 
                 action={loadData} 
             />
@@ -176,7 +190,7 @@ export function View() {
                   <Spacer frame={{ height: 20 }} />
                   
                   <Button
-                    title={player.isPlaying ? "暫停放映" : "開始播放"}
+                    title={player.isPlaying ? "暫停放映" : "播放影片"}
                     systemImage={player.isPlaying ? "pause.fill" : "play.fill"}
                     buttonStyle="borderedProminent"
                     action={() => {
@@ -193,7 +207,7 @@ export function View() {
                 <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="center">
                     <Spacer />
                     <ProgressView />
-                    <Text marginTop={10} foregroundStyle="secondaryLabel">高清源加載失敗，請重試。</Text>
+                    <Text marginTop={10} foregroundStyle="secondaryLabel">高清串流加載失敗。</Text>
                     <Spacer />
                 </VStack>
             )}
@@ -203,14 +217,14 @@ export function View() {
             {isLoading && videos.length === 0 ? (
                  <VStack alignment="center" padding={40}>
                     <ProgressView />
-                    <Text marginTop={10} foregroundStyle="secondaryLabel">影院同步中...</Text>
+                    <Text marginTop={10} foregroundStyle="secondaryLabel">同步海報中...</Text>
                  </VStack>
             ) : (
                 <VStack spacing={16}>
-                    {rows.map((row, rowIdx) => (
-                        <HStack key={`row-${rowIdx}`} spacing={12} frame={{ maxWidth: "infinity" }}>
+                    {chunkedVideos.map((row, rowIdx) => (
+                        <HStack key={rowIdx} spacing={12} frame={{ maxWidth: "infinity" }}>
                             {row.map((vid, colIdx) => (
-                                <VideoCard key={`col-${colIdx}`} video={vid} onSelect={setSelectedVideo} />
+                                <VideoCard key={colIdx} video={vid} onSelect={setSelectedVideo} />
                             ))}
                             {row.length === 1 && <Spacer frame={{ maxWidth: "infinity" }} />}
                         </HStack>
