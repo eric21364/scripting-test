@@ -33,7 +33,6 @@ function Thumbnail({ url }: { url: string }) {
     let active = true;
     (async () => {
       try {
-        // 遵循官方 Utilities/UIImage 文檔
         const loaded = await UIImage.fromURL(url);
         if (active && loaded) setImage(loaded);
       } catch (e) {
@@ -50,26 +49,31 @@ function Thumbnail({ url }: { url: string }) {
       image={image}
       resizable
       scaleToFill
-      frame={{ maxWidth: "infinity", height: 160 }}
+      frame={{ maxWidth: "infinity", height: 100 }} // 縮小高度以適配 4 欄
     />
   );
 }
 
 function MoviePoster({ movie }: { movie: Movie }) {
+  // ... (openPlayer 保持不變)
   const openPlayer = async () => {
     try {
-      // 嘗試直接透過手機端 fetch 抓取原始碼
+      if (movie.m3u8 && movie.m3u8.includes('.m3u8')) {
+          console.log("Using pre-fetched M3U8");
+          const player = new WebViewController();
+          await player.loadURL(movie.m3u8);
+          await player.present({ fullscreen: true, navigationTitle: movie.title });
+          return;
+      }
       const resp = await fetch(movie.url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
       });
       const html = await resp.text();
-      // 修正後的正則表達式，確保能精準捕捉 m3u8
       const match = html.match(/hlsUrl\s*=\s*['"]([^'"]+\.m3u8)['"]/);
 
       if (match && match[1]) {
         const m3u8 = match[1];
         const player = new WebViewController();
-        // 直接加載 m3u8，iOS 會啟動原生的 AVPlayer 進行播放，這是最乾淨的體驗
         await player.loadURL(m3u8);
         await player.present({
           fullscreen: true,
@@ -80,8 +84,6 @@ function MoviePoster({ movie }: { movie: Movie }) {
     } catch (e) {
       console.log("M3U8 Fast-Fetch failed:", e);
     }
-
-    // 若 API / fetch 失敗，則退回原本的 DOM 手術模式 (帶有廣告攔截功能)
     runFallbackSurgery();
   };
 
@@ -133,23 +135,21 @@ function MoviePoster({ movie }: { movie: Movie }) {
   return (
     <VStack
       frame={{ maxWidth: "infinity" }}
-      spacing={8}
+      spacing={4}
       onTapGesture={openPlayer}
     >
-      <ZStack frame={{ maxWidth: "infinity", height: 160 }} cornerRadius={12} background="#111" clipShape="rect">
+      <ZStack frame={{ maxWidth: "infinity", height: 100 }} cornerRadius={8} background="#111" clipShape="rect">
         <Thumbnail url={movie.thumbnail} />
-        <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="bottomTrailing" padding={6}>
-          <Text font={{ size: 10 }} padding={3} background="rgba(0,0,0,0.7)" cornerRadius={4} foregroundStyle="white">
+        <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="bottomTrailing" padding={4}>
+          <Text font={{ size: 8 }} padding={2} background="rgba(0,0,0,0.7)" cornerRadius={2} foregroundStyle="white">
             {movie.duration}
           </Text>
         </VStack>
-        <Image systemName="play.circle.fill" font={30} foregroundStyle="rgba(255,255,255,0.6)" />
       </ZStack>
-      <VStack alignment="leading" spacing={2}>
-        <Text font={{ size: 12, name: "system-bold" }} lineLimit={2} foregroundStyle="white">
+      <VStack alignment="leading" spacing={1}>
+        <Text font={{ size: 9, name: "system-bold" }} lineLimit={2} foregroundStyle="white">
           {movie.title}
         </Text>
-        <Text font="caption2" foregroundStyle="orange" bold>#JABLE</Text>
       </VStack>
     </VStack>
   );
@@ -177,18 +177,18 @@ export function View() {
     refresh();
   }, []);
 
+  // 調整為一排四個 (每群 4 個)
   const chunks = [];
-  for (let i = 0; i < list.length; i += 2) {
-    chunks.push(list.slice(i, i + 2));
+  for (let i = 0; i < list.length; i += 4) {
+    chunks.push(list.slice(i, i + 4));
   }
 
   return (
     <NavigationStack>
       <VStack
-        navigationTitle="龍蝦影院 v7.0"
+        navigationTitle="龍蝦影院 v8.0"
         background="#000"
         toolbar={{
-          // 修正按鈕組合：頂部 Leading 負責離開，Trailing 負責刷新
           topBarLeading: [
             <Button title="離開" systemImage="xmark" action={dismiss} />
           ],
@@ -197,20 +197,22 @@ export function View() {
           ]
         }}
       >
-        <ScrollView padding={12}>
+        <ScrollView padding={8}>
           {loading && list.length === 0 ? (
             <VStack alignment="center" padding={60}>
               <ProgressView />
-              <Text marginTop={10} foregroundStyle="secondaryLabel">正在部署純淨影視通道...</Text>
+              <Text marginTop={10} foregroundStyle="secondaryLabel">正在部署超大規模影視通道...</Text>
             </VStack>
           ) : (
-            <VStack spacing={20}>
+            <VStack spacing={12}>
               {chunks.map((row, idx) => (
-                <HStack key={idx} spacing={12} frame={{ maxWidth: "infinity" }}>
+                <HStack key={idx} spacing={8} frame={{ maxWidth: "infinity" }}>
                   {row.map((item, cidx) => (
                     <MoviePoster key={cidx} movie={item} />
                   ))}
-                  {row.length === 1 && <Spacer frame={{ maxWidth: "infinity" }} />}
+                  {row.length < 4 && Array.from({ length: 4 - row.length }).map((_, i) => (
+                      <Spacer key={i} frame={{ maxWidth: "infinity" }} />
+                  ))}
                 </HStack>
               ))}
               <Spacer frame={{ height: 100 }} />
