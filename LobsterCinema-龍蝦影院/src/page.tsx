@@ -58,18 +58,18 @@ function Thumbnail({ url }: { url: string }) {
 function MoviePoster({ movie }: { movie: Movie }) {
   const openPlayer = async () => {
     try {
-      // 嘗試直接透過手機端 fetch 抓取原始碼，繞過瀏覽器載入時間與背景播放限制
+      // 嘗試直接透過手機端 fetch 抓取原始碼
       const resp = await fetch(movie.url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
       });
       const html = await resp.text();
-      const match = html.match(/hlsUrl\s*=\s*['\"]([^'\"]+\\.m3u8)['\"]/);
+      // 修正後的正則表達式，確保能精準捕捉 m3u8
+      const match = html.match(/hlsUrl\s*=\s*['"]([^'"]+\.m3u8)['"]/);
 
       if (match && match[1]) {
         const m3u8 = match[1];
-        // iOS WebKit 會偵測到 .m3u8 網址並直接切換至原生 QuickTime / AVPlayer 播放器！
-        // 這達到了 100% 純淨的無廣告體驗。
         const player = new WebViewController();
+        // 直接加載 m3u8，iOS 會啟動原生的 AVPlayer 進行播放，這是最乾淨的體驗
         await player.loadURL(m3u8);
         await player.present({
           fullscreen: true,
@@ -78,10 +78,10 @@ function MoviePoster({ movie }: { movie: Movie }) {
         return;
       }
     } catch (e) {
-      console.log("M3U8 Fast-Fetch failed, falling back to surgery mode:", e);
+      console.log("M3U8 Fast-Fetch failed:", e);
     }
 
-    // 若 API / fetch 失敗（CORS 或其他防線），則退回原本的 DOM 手術模式
+    // 若 API / fetch 失敗，則退回原本的 DOM 手術模式 (帶有廣告攔截功能)
     runFallbackSurgery();
   };
 
