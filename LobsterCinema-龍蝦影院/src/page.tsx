@@ -125,33 +125,35 @@ export function View() {
   const dismiss = Navigation.useDismiss();
   const [list, setList] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
 
-  // 🥩 物理採集核心：完全復刻 v9.0 現場強行掃描邏輯
-  const scrapeJableLive = async (targetPage: number) => {
+  // 🥩 v9.0 王者邏輯：純淨手機端物理強行採集
+  const scrapeJableLive = async () => {
     setLoading(true);
     const allVideos: Movie[] = [];
     try {
-      // v9.0 的精髓：直接向 Jable 官網發起物理請求
-      const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${(targetPage - 1) * 24}&_=${Date.now()}`;
+      console.log("🌊 執行 v9.0 王者邏輯：手機端物理採集...");
       
-      const resp = await fetch(pageUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
-      });
-      const html = await resp.text();
-
-      // v9.0 那個「一發入魂」的萬能正則探針
-      const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img(?:[^>]*?data-src="([^"]+)")?[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
-      
-      let match;
-      while ((match = cardRegex.exec(html)) !== null) {
-        allVideos.push({
-          url: match[1],
-          thumbnail: match[2] || "",
-          duration: match[3],
-          title: match[4],
-          category: "LIVE"
+      // 橫捲前 10 頁 (v9 版標準動作)
+      for (let page = 1; page <= 10; page++) {
+        const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${(page - 1) * 24}&_=${Date.now()}`;
+        const resp = await fetch(pageUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
         });
+        const html = await resp.text();
+
+        // v9.0 正則探針
+        const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img(?:[^>]*?data-src="([^"]+)")?[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
+        
+        let match;
+        while ((match = cardRegex.exec(html)) !== null) {
+          allVideos.push({
+            url: match[1],
+            thumbnail: match[2] || "",
+            duration: match[3],
+            title: match[4],
+            category: "LIVE"
+          });
+        }
       }
       
       if (allVideos.length > 0) {
@@ -165,8 +167,8 @@ export function View() {
   };
 
   useEffect(() => {
-    scrapeJableLive(page);
-  }, [page]);
+    scrapeJableLive();
+  }, []);
 
   const chunks = [];
   for (let i = 0; i < list.length; i += 4) {
@@ -176,19 +178,14 @@ export function View() {
   return (
     <NavigationStack>
       <VStack
-        navigationTitle={`龍蝦影院 P.${page}`}
+        navigationTitle="龍蝦影院 v13.0 (v9 復刻)"
         background="#000"
         toolbar={{
           topBarLeading: [
             <Button title="離開" systemImage="xmark" action={dismiss} />
           ],
           topBarTrailing: [
-            <HStack spacing={15}>
-               {page > 1 && (
-                 <Button title="後退" systemImage="chevron.left" action={() => setPage(page - 1)} />
-               )}
-               <Button title="前進" systemImage="chevron.right" action={() => setPage(page + 1)} />
-            </HStack>
+            <Button title="強行採集" systemImage="antenna.radiowave.left.and.right" action={scrapeJableLive} />
           ]
         }}
       >
@@ -196,7 +193,7 @@ export function View() {
           {loading && list.length === 0 ? (
             <VStack alignment="center" padding={60}>
               <ProgressView />
-              <Text marginTop={10} foregroundStyle="secondaryLabel">正在復刻 v9.0 原力採集模式...</Text>
+              <Text marginTop={10} foregroundStyle="secondaryLabel">正在復刻 v9.0 物理強行採集...</Text>
             </VStack>
           ) : (
             <VStack spacing={12}>
