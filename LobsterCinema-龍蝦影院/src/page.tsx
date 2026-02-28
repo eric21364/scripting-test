@@ -22,7 +22,6 @@ interface Movie {
   thumbnail: string;
   duration: string;
   category: string;
-  m3u8?: string;
 }
 
 const API_SOURCE = "https://raw.githubusercontent.com/eric21364/scripting-test/main/status.json";
@@ -37,7 +36,7 @@ function Thumbnail({ url }: { url: string }) {
         const loaded = await UIImage.fromURL(url);
         if (active && loaded) setImage(loaded);
       } catch (e) {
-        console.log("UIImage.fromURL failed for: " + url);
+        console.log("UIImage.fromURL failed");
       }
     })();
     return () => { active = false; };
@@ -57,10 +56,9 @@ function Thumbnail({ url }: { url: string }) {
 
 function MoviePoster({ movie }: { movie: Movie }) {
   const openPlayer = async () => {
-    // 建立一個真正的 WebViewController 進行播放，這是最穩定的方案
     const webView = new WebViewController();
 
-    // 針對 Jable 的極致 DOM 手術 CSS
+    // 針對 Jable 的極致純淨 DOM 手術
     const css = `
       header, footer, nav, .navbar, .sidebar, .m-footer, .header-mobile,
       .video-holder-info, .related-videos, .comments-wrapper, .ad-banner, 
@@ -88,24 +86,17 @@ function MoviePoster({ movie }: { movie: Movie }) {
       }
     `;
 
-    // 網路層廣告攔截
     webView.shouldAllowRequest = async (req) => {
         const url = req.url.toLowerCase();
-        return !url.includes("ads") && !url.includes("pop") && !url.includes("click") && !url.includes("creative");
+        return !url.includes("ads") && !url.includes("pop") && !url.includes("click");
     };
 
-    // 加載原始網址
     await webView.loadURL(movie.url);
     
-    // 注入手術代碼，隱藏所有干擾並強制全螢幕播放
     await webView.evaluateJavaScript(`
         const style = document.createElement('style');
         style.innerHTML = \`${css}\`;
         document.head.appendChild(style);
-        
-        // 嘗試自動播放
-        const v = document.querySelector('video') || document.querySelector('iframe');
-        if (v) v.play();
     `);
     
     await webView.present({
@@ -141,57 +132,66 @@ export function View() {
   const dismiss = Navigation.useDismiss();
   const [list, setList] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [page, setPage] = useState(1);
 
-  // 🥩 龍蝦探針：單頁精準物理採集 (修正 Ajax 請求參數)
-  const scrapeJablePage = async (pageNumber: number) => {
+  const fetchJablePage = async (pageNum: number) => {
     setLoading(true);
-    setCurrentPage(pageNumber);
+    setList([]); // 清空舊資料
     try {
-      console.log(`🌊 正在採集第 ${pageNumber} 頁...`);
-      // 使用正確的 Ajax 分頁參數
-      const from = (pageNumber - 1) * 24;
-      const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${from}&_=${Date.now()}`;
+      // 模擬 Jable 官網翻頁的 Ajax 請求
+      const from = (pageNum - 1) * 24;
+      const url = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${from}&_=${Date.now()}`;
       
-      const resp = await fetch(pageUrl, {
-        headers: { 
+      const resp = await fetch(url, {
+        headers: {
           'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-          'Referer': 'https://jable.tv/hot/',
           'X-Requested-With': 'XMLHttpRequest'
         }
       });
       const html = await resp.text();
 
-      // 精準匹配卡片資訊
-      const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img(?:[^>]*?data-src="([^"]+)")?[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
+      // 萬能正則：物理採集卡片數據
+      const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[\s\S]*?<img[\s\S]*?src="([^"]+)"[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
       
-      const pageVideos: Movie[] = [];
+      const results: Movie[] = [];
       let match;
       while ((match = cardRegex.exec(html)) !== null) {
-        pageVideos.push({
+        results.push({
           url: match[1],
-          thumbnail: match[2] || "",
+          thumbnail: match[2],
           duration: match[3],
           title: match[4],
           category: "LIVE"
         });
       }
       
-      if (pageVideos.length > 0) {
-        setList(pageVideos);
+      if (results.length > 0) {
+        setList(results);
       } else {
-        console.log("No videos found on page: " + pageNumber);
+        // 若正則失敗，嘗試第二種常見的 data-src 模式
+        const fallbackRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[\s\S]*?<img[\s\S]*?data-src="([^"]+)"[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
+        let fm;
+        while ((fm = fallbackRegex.exec(html)) !== null) {
+          results.push({
+            url: fm[1],
+            thumbnail: fm[2],
+            duration: fm[3],
+            title: fm[4],
+            category: "LIVE"
+          });
+        }
+        setList(results);
       }
     } catch (e) {
-      console.log("Live Scrape Failed:", e);
+      console.log("Fetch Error:", e);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    scrapeJablePage(1);
-  }, []);
+    fetchJablePage(page);
+  }, [page]);
 
   const chunks = [];
   for (let i = 0; i < list.length; i += 4) {
@@ -201,28 +201,33 @@ export function View() {
   return (
     <NavigationStack>
       <VStack
-        navigationTitle={`龍蝦影院 - P.${currentPage}`}
+        navigationTitle={`龍蝦影院 v11.0 (P.${page})`}
         background="#000"
         toolbar={{
           topBarLeading: [
             <Button title="離開" systemImage="xmark" action={dismiss} />
           ],
           topBarTrailing: [
-            <HStack spacing={15}>
-               {currentPage > 1 && (
-                 <Button title="上一頁" systemImage="arrow.left" action={() => scrapeJablePage(currentPage - 1)} />
-               )}
-               <Button title="下一頁" systemImage="arrow.right" action={() => scrapeJablePage(currentPage + 1)} />
+            <HStack spacing={10}>
+              {page > 1 && (
+                <Button title="上一頁" systemImage="chevron.left" action={() => setPage(page - 1)} />
+              )}
+              <Button title="下一頁" systemImage="chevron.right" action={() => setPage(page + 1)} />
             </HStack>
           ]
         }}
       >
-        <ScrollView padding={4}>
+        <ScrollView padding={6}>
           {loading ? (
             <VStack alignment="center" padding={60}>
               <ProgressView />
-              <Text marginTop={10} foregroundStyle="secondaryLabel">{`正在連線第 ${currentPage} 頁伺服器...`}</Text>
+              <Text marginTop={10} foregroundStyle="secondaryLabel">{`正在物理採集第 ${page} 頁數據...`}</Text>
             </VStack>
+          ) : list.length === 0 ? (
+             <VStack alignment="center" padding={60}>
+                <Text foregroundStyle="white">⚠️ 採集失敗，請重試</Text>
+                <Button title="重新採集" action={() => fetchJablePage(page)} />
+             </VStack>
           ) : (
             <VStack spacing={12}>
               {chunks.map((row, idx) => (
