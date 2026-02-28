@@ -13,6 +13,7 @@ import {
     ProgressView,
     Safari,
     ZStack,
+    Link,
 } from "scripting";
 
 interface VideoItem {
@@ -23,7 +24,6 @@ interface VideoItem {
     category: string;
 }
 
-// 數據來源位址
 const DATA_URL = "https://raw.githubusercontent.com/eric21364/scripting-test/main/status.json";
 
 export function View() {
@@ -34,7 +34,7 @@ export function View() {
     const loadData = async () => {
         setIsLoading(true);
         try {
-            const resp = await fetch(DATA_URL);
+            const resp = await fetch(DATA_URL + "?t=" + Date.now());
             const json = await resp.json();
             if (json.kanav_list) {
                 setVideos(json.kanav_list);
@@ -50,22 +50,11 @@ export function View() {
         loadData();
     }, []);
 
-    // 輔助函式：將列表切成每 2 個一組，方便做海報牆
-    const chunkVideos = (arr: VideoItem[], size: number) => {
-        const result = [];
-        for (let i = 0; i < arr.length; i += size) {
-            result.push(arr.slice(i, i + size));
-        }
-        return result;
-    };
-
-    const videoRows = chunkVideos(videos, 2);
-
     return (
         <NavigationStack>
             <VStack
                 navigationTitle="龍蝦豪華影院 🍿"
-                background="#0A0A0A"
+                background="#000000"
                 toolbar={{
                     topBarLeading: [<Button action={dismiss} systemImage="xmark" />],
                     topBarTrailing: [<Button action={loadData} systemImage="arrow.clockwise" />]
@@ -75,70 +64,67 @@ export function View() {
                     <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="center">
                         <Spacer />
                         <ProgressView />
-                        <Text marginTop={12} foregroundStyle="secondaryLabel">正在部署海報牆...</Text>
+                        <Text marginTop={12} foregroundStyle="secondaryLabel">龍蝦正從雲端搬運海報...</Text>
                         <Spacer />
                     </VStack>
                 ) : (
                     <ScrollView padding={12}>
-                        <VStack spacing={16}>
-                            {videoRows.map((row, rowIdx) => (
-                                <HStack key={rowIdx} spacing={12} frame={{ maxWidth: "infinity" }}>
-                                    {row.map((vid, colIdx) => (
-                                        <VStack
-                                            key={colIdx}
-                                            spacing={8}
-                                            frame={{ maxWidth: "infinity" }}
-                                            onTapGesture={async () => {
-                                                // 在 App 內直接以 Safari 模式開啟 (這是最穩定的 In-App 播放方式)
-                                                await Safari.present(vid.url);
-                                            }}
-                                        >
-                                            {/* 海報外框 */}
-                                            <ZStack 
-                                                frame={{ maxWidth: "infinity", height: 220 }} 
-                                                cornerRadius={12} 
-                                                background="#1A1A1A"
+                        <VStack spacing={20}>
+                            {videos.map((vid, idx) => (
+                                <VStack
+                                    key={idx}
+                                    spacing={10}
+                                    frame={{ maxWidth: "infinity" }}
+                                    onTapGesture={async () => {
+                                        // 使用最直接的連結開啟方式
+                                        await Safari.present(vid.url);
+                                    }}
+                                >
+                                    {/* 滿版大縮圖設計 */}
+                                    <ZStack 
+                                        frame={{ maxWidth: "infinity", height: 210 }} 
+                                        cornerRadius={12} 
+                                        background="#1A1A1A"
+                                    >
+                                        <Image 
+                                            url={vid.thumbnail} 
+                                            frame={{ maxWidth: "infinity", height: 210 }} 
+                                            contentMode="cover"
+                                        />
+                                        
+                                        {/* 右下角時長標籤 */}
+                                        <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="bottomTrailing" padding={8}>
+                                            <Text 
+                                                font={{ size: 10, name: "system-bold" }} 
+                                                padding={{ horizontal: 6, vertical: 3 }}
+                                                background="rgba(0,0,0,0.75)" 
+                                                cornerRadius={4}
+                                                foregroundStyle="white"
                                             >
-                                                <Image 
-                                                    url={vid.thumbnail} 
-                                                    frame={{ maxWidth: "infinity", height: "100%" }} 
-                                                    contentMode="cover"
-                                                />
-                                                {/* 底部資訊遮蓋 */}
-                                                <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="bottom">
-                                                     <HStack 
-                                                        frame={{ maxWidth: "infinity" }} 
-                                                        padding={4} 
-                                                        background="linear-gradient(to top, rgba(0,0,0,0.8), transparent)"
-                                                    >
-                                                        <Text font={{ size: 10 }} foregroundStyle="white">{vid.duration}</Text>
-                                                        <Spacer />
-                                                        <Text font={{ size: 10 }} foregroundStyle="orange" bold>HD</Text>
-                                                    </HStack>
-                                                </VStack>
-                                                
-                                                {/* 播放按鈕圖示 */}
-                                                <VStack alignment="center">
-                                                    <Image systemName="play.fill" font={24} foregroundStyle="rgba(255,255,255,0.6)" />
-                                                </VStack>
-                                            </ZStack>
-                                            
-                                            {/* 標題與分類 */}
-                                            <VStack alignment="leading" spacing={2}>
-                                                <Text font={{ size: 13, name: "system-medium" }} lineLimit={2} foregroundStyle="white">
-                                                    {vid.title}
-                                                </Text>
-                                                <Text font="caption2" foregroundStyle="secondaryLabel">
-                                                    #{vid.category}
-                                                </Text>
-                                            </VStack>
+                                                {vid.duration}
+                                            </Text>
+                                        </VStack>
+
+                                        {/* 中央大型播放圖示 */}
+                                        <VStack alignment="center">
+                                            <Image systemName="play.circle.fill" font={50} foregroundStyle="rgba(255,255,255,0.8)" />
+                                        </VStack>
+                                    </ZStack>
+                                    
+                                    {/* 文字資訊區 */}
+                                    <VStack alignment="leading" spacing={4} padding={{ horizontal: 4 }}>
+                                        <Text font={{ size: 15, name: "system-bold" }} lineLimit={2} foregroundStyle="white">
+                                            {vid.title}
+                                        </Text>
+                                        <HStack>
+                                            <Text font="caption" foregroundStyle="orange" bold>#{vid.category}</Text>
+                                            <Spacer />
+                                            <Text font="caption" foregroundStyle="secondaryLabel">點擊海報立即觀看</Text>
                                         </HStack>
-                                    ))}
-                                    {/* 如果最後一行只有一個，補位用的 Spacer */}
-                                    {row.length === 1 && <Spacer frame={{ maxWidth: "infinity" }} />}
-                                </HStack>
+                                    </VStack>
+                                </VStack>
                             ))}
-                            <Spacer frame={{ height: 40 }} />
+                            <Spacer frame={{ height: 50 }} />
                         </VStack>
                     </ScrollView>
                 )}
