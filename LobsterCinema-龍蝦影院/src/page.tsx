@@ -158,59 +158,47 @@ export function View() {
   const dismiss = Navigation.useDismiss();
   const [list, setList] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // 🥩 龍蝦實時探針：繞過 Raspberry Pi 伺服器，由手機端直接物理採集 Jable Data
-  const scrapeJableLive = async () => {
+  // 🥩 龍蝦探針：單頁精準物理採集
+  const scrapeJablePage = async (pageNumber: number) => {
     setLoading(true);
-    const allVideos: Movie[] = [];
+    setCurrentPage(pageNumber);
     try {
-      console.log("🌊 正在由手機端執行物理級橫捲採集...");
+      console.log(`🌊 正在採集第 ${pageNumber} 頁...`);
+      const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${(pageNumber - 1) * 24}&_=${Date.now()}`;
       
-      for (let page = 1; page <= 10; page++) {
-        const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${(page - 1) * 24}&_=${Date.now()}`;
-        const resp = await fetch(pageUrl, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
-        });
-        const html = await resp.text();
+      const resp = await fetch(pageUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
+      });
+      const html = await resp.text();
 
-        // 現場正則解析：抓取影音盒子特徵
-        const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img(?:[^>]*?data-src="([^"]+)")?[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
-        
-        let match;
-        while ((match = cardRegex.exec(html)) !== null) {
-          allVideos.push({
-            url: match[1],
-            thumbnail: match[2] || "",
-            duration: match[3],
-            title: match[4],
-            category: "LIVE"
-          });
-        }
+      const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img(?:[^>]*?data-src="([^"]+)")?[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
+      
+      const pageVideos: Movie[] = [];
+      let match;
+      while ((match = cardRegex.exec(html)) !== null) {
+        pageVideos.push({
+          url: match[1],
+          thumbnail: match[2] || "",
+          duration: match[3],
+          title: match[4],
+          category: "LIVE"
+        });
       }
       
-      if (allVideos.length > 0) {
-        setList(allVideos);
-      } else {
-        await refreshFromCache();
+      if (pageVideos.length > 0) {
+        setList(pageVideos);
       }
     } catch (e) {
       console.log("Live Scrape Failed:", e);
-      await refreshFromCache();
     } finally {
       setLoading(false);
     }
   };
 
-  const refreshFromCache = async () => {
-    try {
-      const resp = await fetch(API_SOURCE + "?t=" + Date.now());
-      const res = await resp.json();
-      if (res.kanav_list) setList(res.kanav_list);
-    } catch (e) {}
-  };
-
   useEffect(() => {
-    scrapeJableLive();
+    scrapeJablePage(1);
   }, []);
 
   const chunks = [];
@@ -221,22 +209,27 @@ export function View() {
   return (
     <NavigationStack>
       <VStack
-        navigationTitle="龍蝦影院 v9.0 (LIVE)"
+        navigationTitle={`龍蝦影院 - 第 ${currentPage} 頁`}
         background="#000"
         toolbar={{
           topBarLeading: [
             <Button title="離開" systemImage="xmark" action={dismiss} />
           ],
           topBarTrailing: [
-            <Button title="強行採集" systemImage="antenna.radiowave.left.and.right" action={scrapeJableLive} />
+            <HStack spacing={15}>
+               {currentPage > 1 && (
+                 <Button title="上一頁" systemImage="chevron.left" action={() => scrapeJablePage(currentPage - 1)} />
+               )}
+               <Button title="下一頁" systemImage="chevron.right" action={() => scrapeJablePage(currentPage + 1)} />
+            </HStack>
           ]
         }}
       >
         <ScrollView padding={4}>
-          {loading && list.length === 0 ? (
+          {loading ? (
             <VStack alignment="center" padding={60}>
               <ProgressView />
-              <Text marginTop={10} foregroundStyle="secondaryLabel">龍蝦正在繞過伺服器，現場掃描官網...</Text>
+              <Text marginTop={10} foregroundStyle="secondaryLabel">{`正在翻閱第 ${currentPage} 頁...`}</Text>
             </VStack>
           ) : (
             <VStack spacing={12}>
