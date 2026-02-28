@@ -22,7 +22,6 @@ interface Movie {
   thumbnail: string;
   duration: string;
   category: string;
-  m3u8?: string;
 }
 
 function Thumbnail({ url }: { url: string }) {
@@ -98,11 +97,7 @@ function MoviePoster({ movie }: { movie: Movie }) {
   };
 
   return (
-    <VStack
-      frame={{ maxWidth: "infinity" }}
-      spacing={4}
-      onTapGesture={openPlayer}
-    >
+    <VStack frame={{ maxWidth: "infinity" }} spacing={4} onTapGesture={openPlayer}>
       <ZStack frame={{ maxWidth: "infinity", height: 100 }} cornerRadius={8} background="#111" clipShape="rect">
         <Thumbnail url={movie.thumbnail} />
         <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="bottomTrailing" padding={4}>
@@ -122,64 +117,70 @@ function MoviePoster({ movie }: { movie: Movie }) {
 
 export function View() {
   const dismiss = Navigation.useDismiss();
-  const [list, setList] = useState<Movie[]>([]);
+  const [allList, setAllList] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const pageSize = 24;
 
-  // 🥩 龍蝦探針：單頁精準採集 (100% 復刻 v9.0 成功正則)
-  const scrapeJablePage = async (targetPage: number) => {
+  // 🥩 v9.0 暴力核心：一進場就全打，抓滿 10 頁數據再用分頁顯示
+  const scrapeAllJableLive = async () => {
     setLoading(true);
-    // 每次翻頁時，我們先不清空 list 以防全黑閃爍，但這一次為了確保「顯示影片」的成功率，我選擇顯式處理。
+    const collected: Movie[] = [];
     try {
-      console.log(`🌊 正在採集第 ${targetPage} 頁...`);
-      const fromValue = (targetPage - 1) * 24;
-      // 網址參數物理校準
-      const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${fromValue}&_=${Date.now()}`;
+      console.log("🌊 正在執行 v9.0 暴力全掃描...");
       
-      const resp = await fetch(pageUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
-      });
-      const html = await resp.text();
+      for (let pOffset = 1; pOffset <= 10; pOffset++) {
+        const from = (pOffset - 1) * 24;
+        const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${from}&_=${Date.now()}`;
+        
+        try {
+          const resp = await fetch(pageUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
+          });
+          const html = await resp.text();
 
-      // v9.0 王者正則：它是抓取卡片的物理唯一答案
-      const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img(?:[^>]*?data-src="([^"]+)")?[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
-      
-      const pageVideos: Movie[] = [];
-      let match;
-      while ((match = cardRegex.exec(html)) !== null) {
-        pageVideos.push({
-          url: match[1],
-          thumbnail: match[2] || "",
-          duration: match[3],
-          title: match[4],
-          category: "LIVE"
-        });
+          const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img(?:[^>]*?data-src="([^"]+)")?[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
+          
+          let match;
+          while ((match = cardRegex.exec(html)) !== null) {
+            collected.push({
+              url: match[1],
+              thumbnail: match[2] || "",
+              duration: match[3],
+              title: match[4],
+              category: "LIVE"
+            });
+          }
+        } catch (e) {}
       }
       
-      // 只有在真的抓到數據時才切換 state，否則維持現狀確保不全黑
-      if (pageVideos.length > 0) {
-        setList(pageVideos);
+      if (collected.length > 0) {
+        setAllList(collected);
       }
-    } catch (e) {
-      console.log("Live Scrape Failed:", e);
+    } catch (err) {
+      console.log("Master Scrape Failed:", err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    scrapeJablePage(page);
-  }, [page]);
+    scrapeAllJableLive();
+  }, []);
+
+  // 根據 page 數字從 allList 中切出目前要顯示的資料
+  const currentPageList = allList.slice((page - 1) * pageSize, page * pageSize);
+  const totalPages = Math.ceil(allList.length / pageSize);
 
   const chunks = [];
-  for (let i = 0; i < list.length; i += 4) {
-    chunks.push(list.slice(i, i + 4));
+  for (let i = 0; i < currentPageList.length; i += 4) {
+    chunks.push(currentPageList.slice(i, i + 4));
   }
 
   return (
     <NavigationStack>
       <VStack
-        navigationTitle={`龍蝦 P.${page} (v17)`}
+        navigationTitle={`龍蝦影院 P.${page} / ${totalPages > 0 ? totalPages : 1}`}
         background="#000"
         toolbar={{
           topBarLeading: [
@@ -188,18 +189,21 @@ export function View() {
           topBarTrailing: [
             <HStack spacing={15}>
                {page > 1 && (
-                 <Button title="後退" systemImage="chevron.left" action={() => setPage(page - 1)} />
+                 <Button title="上一頁" systemImage="chevron.left" action={() => setPage(page - 1)} />
                )}
-               <Button title="前進" systemImage="chevron.right" action={() => setPage(page + 1)} />
+               {page < totalPages && (
+                 <Button title="下一頁" systemImage="chevron.right" action={() => setPage(page + 1)} />
+               )}
+               <Button title="重新掃描" systemImage="antenna.radiowave.left.and.right" action={scrapeAllJableLive} />
             </HStack>
           ]
         }}
       >
         <ScrollView padding={4}>
-          {loading && list.length === 0 ? (
+          {loading && allList.length === 0 ? (
             <VStack alignment="center" padding={60}>
               <ProgressView />
-              <Text marginTop={10} foregroundStyle="secondaryLabel">正在現場注入 v9.0 探針...</Text>
+              <Text marginTop={10} foregroundStyle="secondaryLabel">正在復刻 v9.0 王者探針，全速掃描中...</Text>
             </VStack>
           ) : (
             <VStack spacing={12}>
