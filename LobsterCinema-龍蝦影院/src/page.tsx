@@ -28,13 +28,13 @@ interface VideoItem {
 
 const DATA_URL = "https://raw.githubusercontent.com/eric21364/scripting-test/main/status.json";
 
-function VideoCard({ video, onPlay }: { video: VideoItem; onPlay: (v: VideoItem) => void }) {
+function VideoCard({ video, onSelect }: { video: VideoItem; onSelect: (v: VideoItem) => void }) {
   const [thumb, setThumb] = useState<UIImage | null>(null);
 
   useEffect(() => {
     let active = true;
-    // 重點 1: 確保 URL 有效，並且使用對齊文檔的 UIImage.from 靜態方法
     if (video.thumbnail) {
+      // 依據官方文檔 2.4.5 版本 UIImage.from(url) 用法
       UIImage.from(video.thumbnail)
         .then((img) => {
           if (active && img) setThumb(img);
@@ -51,7 +51,7 @@ function VideoCard({ video, onPlay }: { video: VideoItem; onPlay: (v: VideoItem)
       padding={12}
       background="rgba(255,255,255,0.05)"
       cornerRadius={12}
-      onTapGesture={() => onPlay(video)}
+      onTapGesture={() => onSelect(video)} // 這裡修正了之前 onPlay 的錯誤稱呼
     >
       <ZStack frame={{ maxWidth: "infinity", height: 180 }} cornerRadius={8} background="#111" clipShape="rect">
         {thumb ? (
@@ -97,8 +97,6 @@ export function View() {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
-  
-  // 重點 2: 使用 useState 正確持有 AVPlayer 實例
   const [player] = useState(() => new AVPlayer());
 
   const loadData = async () => {
@@ -121,7 +119,6 @@ export function View() {
     return () => player.pause();
   }, [player]);
 
-  // 切分兩欄設計
   const rows = [];
   for (let i = 0; i < videos.length; i += 2) {
     rows.push(videos.slice(i, i + 2));
@@ -139,17 +136,17 @@ export function View() {
               systemImage={selectedVideo ? "chevron.left" : "xmark"}
               action={() => {
                 if (selectedVideo) {
-                  player.pause();
-                  setSelectedVideo(null);
+                    player.pause();
+                    setSelectedVideo(null);
                 } else {
-                  dismiss();
+                    dismiss();
                 }
               }}
             />,
           ],
           topBarTrailing: selectedVideo ? [] : [
             <Button 
-                title="重新整理" 
+                title="重整" 
                 systemImage="arrow.clockwise" 
                 action={loadData} 
             />
@@ -160,51 +157,43 @@ export function View() {
           <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} background="#000">
             {selectedVideo.m3u8 ? (
               <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
-                {/* 重點 3: 確保 setSource 正確執行並觸發 play */}
                 <AVPlayerView
                   player={player}
                   frame={{ maxWidth: "infinity", height: 260 }}
                   onAppear={() => {
-                    console.log("正在加載 M3U8:", selectedVideo.m3u8);
                     player.setSource(selectedVideo.m3u8!);
                     player.play();
                   }}
                 />
                 <VStack padding={20} alignment="leading" spacing={15}>
-                  <Text font="headline" foregroundStyle="white">{selectedVideo.title}</Text>
+                  <Text font="headline" foregroundStyle="white" bold>{selectedVideo.title}</Text>
                   
                   <HStack spacing={10}>
                     <Text font="caption" foregroundStyle="orange">#{selectedVideo.category}</Text>
                     <Text font="caption" foregroundStyle="secondaryLabel">{selectedVideo.duration}</Text>
                   </HStack>
 
-                  <Spacer frame={{ height: 10 }} />
+                  <Spacer frame={{ height: 20 }} />
                   
-                  {/* 重點 4: 手動播放按鈕加上文字與圖示，確保可以強制觸發 */}
                   <Button
-                    title={player.isPlaying ? "暫停影片" : "點擊開始播放"}
+                    title={player.isPlaying ? "暫停放映" : "開始播放"}
                     systemImage={player.isPlaying ? "pause.fill" : "play.fill"}
                     buttonStyle="borderedProminent"
                     action={() => {
                       if (player.isPlaying) player.pause();
                       else {
-                        // 雙重保險：如果沒 source 則重新設定
                         player.setSource(selectedVideo.m3u8!);
                         player.play();
                       }
                     }}
                   />
-                  
-                  <Text font="caption2" foregroundStyle="secondaryLabel" marginTop={10}>
-                    提示：若畫面未出現，請點選上方「開始播放」按鈕。
-                  </Text>
                 </VStack>
               </VStack>
             ) : (
                 <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="center">
                     <Spacer />
                     <ProgressView />
-                    <Text marginTop={10} foregroundStyle="secondaryLabel">高清源提取失敗，請嘗試按返回重新整理...</Text>
+                    <Text marginTop={10} foregroundStyle="secondaryLabel">高清源加載失敗，請重試。</Text>
                     <Spacer />
                 </VStack>
             )}
@@ -214,7 +203,7 @@ export function View() {
             {isLoading && videos.length === 0 ? (
                  <VStack alignment="center" padding={40}>
                     <ProgressView />
-                    <Text marginTop={10} foregroundStyle="secondaryLabel">海報牆同步中...</Text>
+                    <Text marginTop={10} foregroundStyle="secondaryLabel">影院同步中...</Text>
                  </VStack>
             ) : (
                 <VStack spacing={16}>
