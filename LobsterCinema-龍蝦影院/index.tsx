@@ -1,9 +1,9 @@
 import { Navigation, Script, Dialog } from "scripting";
-import { LobsterCinemaPage } from "./src/page";
+import { View } from "./src/page";
 
 (async () => {
     await Navigation.present({
-        element: <LobsterCinemaPage />,
+        element: <View />,
         modalPresentationStyle: "fullScreen",
     });
 })()

@@ -1,10 +1,10 @@
 {
-  "id": "lobster-cinema",
   "name": "龍蝦影院",
-  "version": "1.1.0",
-  "description": "專業級龍蝦影影實驗室，整合 Kanav 即時採集。",
   "icon": "play.tv.fill",
-  "author": "Lobster Agent",
-  "type": "media",
-  "category": "Entertainment"
+  "color": "rgba(255, 77, 77, 1)",
+  "description": "專業級龍蝦影影實驗室，整合 Kanav 即時採集。",
+  "version": "1.2.0",
+  "runInApp": true,
+  "contributors": [],
+  "author": "Lobster Agent"
 }
