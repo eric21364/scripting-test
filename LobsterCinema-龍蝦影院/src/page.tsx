@@ -57,9 +57,36 @@ function Thumbnail({ url }: { url: string }) {
 
 function MoviePoster({ movie }: { movie: Movie }) {
   const openPlayer = async () => {
-    const webView = new WebViewController();
+    try {
+      // 嘗試直接透過手機端 fetch 抓取原始碼，繞過瀏覽器載入時間與背景播放限制
+      const resp = await fetch(movie.url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
+      });
+      const html = await resp.text();
+      const match = html.match(/hlsUrl\s*=\s*['\"]([^'\"]+\\.m3u8)['\"]/);
 
-    // 注入強力 CSS：徹底隱藏 Jable 官網廣告與導賞 UI
+      if (match && match[1]) {
+        const m3u8 = match[1];
+        // iOS WebKit 會偵測到 .m3u8 網址並直接切換至原生 QuickTime / AVPlayer 播放器！
+        // 這達到了 100% 純淨的無廣告體驗。
+        const player = new WebViewController();
+        await player.loadURL(m3u8);
+        await player.present({
+          fullscreen: true,
+          navigationTitle: movie.title
+        });
+        return;
+      }
+    } catch (e) {
+      console.log("M3U8 Fast-Fetch failed, falling back to surgery mode:", e);
+    }
+
+    // 若 API / fetch 失敗（CORS 或其他防線），則退回原本的 DOM 手術模式
+    runFallbackSurgery();
+  };
+
+  const runFallbackSurgery = async () => {
+    const webView = new WebViewController();
     const css = `
       header, footer, nav, .navbar, .sidebar, .m-footer, .header-mobile,
       .video-holder-info, .related-videos, .comments-wrapper, .ad-banner, 
@@ -77,7 +104,7 @@ function MoviePoster({ movie }: { movie: Movie }) {
       }
       #player, video, #dplayer {
           width: 100vw !important;
-          height: 56.25vw !important; /* 16:9 比例 */
+          height: 56.25vw !important;
           position: fixed !important;
           top: 0 !important;
           left: 0 !important;
@@ -91,15 +118,12 @@ function MoviePoster({ movie }: { movie: Movie }) {
     };
 
     await webView.loadURL(movie.url);
-    
-    // 加載完後注入 CSS
     await webView.evaluateJavaScript(`
         const style = document.createElement('style');
         style.innerHTML = \`${css}\`;
         document.head.appendChild(style);
     `);
     
-    // 以全螢幕模態展示 WebViewController
     await webView.present({
         fullscreen: true,
         navigationTitle: movie.title
