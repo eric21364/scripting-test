@@ -204,7 +204,12 @@ export function View() {
               <Text marginTop={10} foregroundStyle="secondaryLabel">正在部署超大規模影視通道...</Text>
             </VStack>
           ) : (
-            <VStack spacing={12}>
+            <VStack spacing={12} alignment="leading">
+              <HStack alignment="center" padding={4}>
+                <Text font="caption" foregroundStyle="secondaryLabel">
+                   共 {list.length} 部影片 | JableHot 前 10 頁全面採集
+                </Text>
+              </HStack>
               {chunks.map((row, idx) => (
                 <HStack key={idx} spacing={8} frame={{ maxWidth: "infinity" }}>
                   {row.map((item, cidx) => (
