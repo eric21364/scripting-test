@@ -24,8 +24,6 @@ interface Movie {
   category: string;
 }
 
-const API_SOURCE = "https://raw.githubusercontent.com/eric21364/scripting-test/main/status.json";
-
 function Thumbnail({ url }: { url: string }) {
   const [image, setImage] = useState<UIImage | null>(null);
 
@@ -119,76 +117,61 @@ function MoviePoster({ movie }: { movie: Movie }) {
 
 export function View() {
   const dismiss = Navigation.useDismiss();
-  // list 用來存放目前「分頁」顯示的資料
   const [list, setList] = useState<Movie[]>([]);
-  // allCache 用來存放「全攻堅」抓回來的原始數據
-  const [allCache, setAllCache] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const pageSize = 24;
 
-  // 🥩 v9.0 物理全打核心
-  const scrapeEverything = async () => {
+  // 🥩 物理採集單頁邏輯：完全剝離自 v9.0 王者代碼
+  const scrapeJableLivePage = async (pageNum: number) => {
     setLoading(true);
-    let collected: Movie[] = [];
+    const pageVideos: Movie[] = [];
     try {
-      console.log("🌊 正在執行 v9.0 物理全掃描 (1-10 頁)...");
+      // 構建 v9.0 物理請求 URL
+      const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${(pageNum - 1) * 24}&_=${Date.now()}`;
       
-      for (let p = 1; p <= 10; p++) {
-        const from = (p - 1) * 24;
-        const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${from}&_=${Date.now()}`;
-        
-        try {
-          const resp = await fetch(pageUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
-          });
-          const html = await resp.text();
-          // v9.0 的靈魂正則
-          const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img(?:[^>]*?data-src="([^"]+)")?[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
-          
-          let m;
-          while ((m = cardRegex.exec(html)) !== null) {
-            collected.push({ url: m[1], thumbnail: m[2] || "", duration: m[3], title: m[4], category: "LIVE" });
-          }
-        } catch (e) {}
+      const resp = await fetch(pageUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
+      });
+      const html = await resp.text();
+
+      // v9.0 靈魂正則探針：精準抓取影音盒子
+      const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img(?:[^>]*?data-src="([^"]+)")?[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
+      
+      let match;
+      while ((match = cardRegex.exec(html)) !== null) {
+        pageVideos.push({
+          url: match[1],
+          thumbnail: match[2] || "",
+          duration: match[3],
+          title: match[4],
+          category: "LIVE"
+        });
       }
       
-      if (collected.length > 0) {
-        setAllCache(collected);
-        // 初始載入第一頁
-        setList(collected.slice(0, pageSize));
+      if (pageVideos.length > 0) {
+        setList(pageVideos);
       }
-    } catch (err) {
-      console.log("Mass Scrape Failed:", err);
+    } catch (e) {
+      console.log("Live Scrape Failed:", e);
     } finally {
       setLoading(false);
     }
   };
 
-  // 當頁碼改變時，從 allCache 切割數據到 list（物理同步顯示）
+  // 監聽頁碼變化，執行「切一頁，打一頁」
   useEffect(() => {
-    const start = (page - 1) * pageSize;
-    const end = page * pageSize;
-    if (allCache.length > 0) {
-      setList(allCache.slice(start, end));
-    }
-  }, [page, allCache]);
-
-  useEffect(() => {
-    scrapeEverything();
-  }, []);
+    scrapeJableLivePage(page);
+  }, [page]);
 
   const chunks = [];
   for (let i = 0; i < list.length; i += 4) {
     chunks.push(list.slice(i, i + 4));
   }
 
-  const totalPages = Math.ceil(allCache.length / pageSize) || 1;
-
   return (
     <NavigationStack>
       <VStack
-        navigationTitle={`龍蝦 v19 (P.${page}/${totalPages})`}
+        navigationTitle={`龍蝦 v20 (P.${page})`}
         background="#000"
         toolbar={{
           topBarLeading: [
@@ -199,19 +182,17 @@ export function View() {
                {page > 1 && (
                  <Button title="上頁" systemImage="chevron.left" action={() => setPage(p => p - 1)} />
                )}
-               {page < totalPages && (
-                 <Button title="下頁" systemImage="chevron.right" action={() => setPage(p => p + 1)} />
-               )}
-               <Button title="重刷" systemImage="antenna.radiowave.left.and.right" action={scrapeEverything} />
+               <Button title="下頁" systemImage="chevron.right" action={() => setPage(p => p + 1)} />
+               <Button title="強行採集" systemImage="antenna.radiowave.left.and.right" action={() => scrapeJableLivePage(page)} />
             </HStack>
           ]
         }}
       >
         <ScrollView padding={4}>
-          {loading && allCache.length === 0 ? (
+          {loading ? (
             <VStack alignment="center" padding={60}>
               <ProgressView />
-              <Text marginTop={10} foregroundStyle="secondaryLabel">正在復刻 v9.0 王者探針中...</Text>
+              <Text marginTop={10} foregroundStyle="secondaryLabel">龍蝦正在注入 v9.0 探針，現場掃描第 {page} 頁...</Text>
             </VStack>
           ) : (
             <VStack spacing={12}>
@@ -220,6 +201,7 @@ export function View() {
                   {row.map((item, cidx) => (
                     <MoviePoster key={cidx} movie={item} />
                   ))}
+                  {/* 適配 4 欄排版，補齊 Spacer */}
                   {row.length < 4 && Array.from({ length: 4 - row.length }).map((_, i) => (
                       <Spacer key={i} frame={{ maxWidth: "infinity" }} />
                   ))}
