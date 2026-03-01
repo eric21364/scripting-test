@@ -25,8 +25,8 @@ interface Movie {
   category: string;
 }
 
-// 🛡️ 全域播放鎖定
-let LOBSTER_READY_LOCK = false;
+// 🛡️ 龍蝦單例播放鎖
+let GLOBAL_PLAYER_LOCK = false;
 
 function Thumbnail({ url }: { url: string }) {
   const [image, setImage] = useState<UIImage | null>(null);
@@ -47,10 +47,10 @@ function Thumbnail({ url }: { url: string }) {
 function MoviePoster({ movie, itemWidth, currentLoadingId, setcurrentLoadingId }: any) {
   const isOpening = currentLoadingId === movie.url;
   const openPlayer = async () => {
-    if (LOBSTER_READY_LOCK) return;
-    LOBSTER_READY_LOCK = true;
+    if (GLOBAL_PLAYER_LOCK) return;
+    GLOBAL_PLAYER_LOCK = true;
     setcurrentLoadingId(movie.url);
-    const timer = setTimeout(() => { LOBSTER_READY_LOCK = false; setcurrentLoadingId(null); }, 15000);
+    const safeRelease = setTimeout(() => { GLOBAL_PLAYER_LOCK = false; setcurrentLoadingId(null); }, 15000);
 
     try {
       const resp = await fetch(movie.url, { headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1' } });
@@ -67,8 +67,8 @@ function MoviePoster({ movie, itemWidth, currentLoadingId, setcurrentLoadingId }
       }
     } catch (e) {
     } finally {
-      clearTimeout(timer);
-      LOBSTER_READY_LOCK = false;
+      clearTimeout(safeRelease);
+      GLOBAL_PLAYER_LOCK = false;
       setcurrentLoadingId(null);
     }
   };
@@ -82,7 +82,7 @@ function MoviePoster({ movie, itemWidth, currentLoadingId, setcurrentLoadingId }
           <Text font={{ size: 10, name: "system-bold" }} padding={3} background="rgba(0,0,0,0.8)" cornerRadius={4} foregroundStyle="white">{movie.duration}</Text>
         </VStack>
       </ZStack>
-      <Text font={{ size: 12, name: "system-bold" }} lineLimit={2} opacity={(LOBSTER_READY_LOCK && !isOpening) ? 0.3 : 1}>{movie.title}</Text>
+      <Text font={{ size: 12, name: "system-bold" }} lineLimit={2}>{movie.title}</Text>
     </VStack>
   );
 }
@@ -94,7 +94,7 @@ export function View() {
   const [page, setPage] = useState(1);
   const [currentLoadingId, setcurrentLoadingId] = useState<string | null>(null);
 
-  const scrape = async (p: number) => {
+  const fetchData = async (p: number) => {
     setLoading(true);
     setList([]);
     try {
@@ -112,41 +112,16 @@ export function View() {
     } catch (e) {} finally { setLoading(false); }
   };
 
-  useEffect(() => { scrape(page); LOBSTER_READY_LOCK = false; }, [page]);
+  useEffect(() => { fetchData(page); GLOBAL_PLAYER_LOCK = false; }, [page]);
 
-  const pNext = () => setPage(p => p + 1);
-  const pPrev = () => setPage(p => Math.max(1, p - 1));
+  const nextP = () => setPage(p => p + 1);
+  const prevP = () => setPage(p => Math.max(1, p - 1));
 
   return (
     <ZStack alignment="top">
+      {/* 1. 主要內容滾動區 */}
       <VStack background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
-          
-          {/* 🏔️ 物理極致 Header (手寫導航列) - 增加 top padding 避免被瀏海遮擋 */}
-          <HStack padding={{ leading: 16, trailing: 16, top: 60, bottom: 12 }} alignment="center" background="systemBackground">
-              {/* ❌ 點擊按鈕組 */}
-              <HStack spacing={0} onTapGesture={() => dismiss()}>
-                <Image systemImage="xmark.circle.fill" font={28} foregroundStyle="secondaryLabel" />
-              </HStack>
-              
-              <Spacer />
-              
-              <VStack alignment="center">
-                  <Text font={{ size: 17, name: "system-bold" }}>龍蝦影院 v9</Text>
-                  <Text font={{ size: 11 }} foregroundStyle="secondaryLabel">第 {page} 頁</Text>
-              </VStack>
-              
-              <Spacer />
-              
-              <HStack spacing={20}>
-                  <HStack onTapGesture={pPrev}>
-                    <Image systemImage="chevron.left.circle" font={24} foregroundStyle={page === 1 ? "tertiaryLabel" : "label"} />
-                  </HStack>
-                  <HStack onTapGesture={pNext}>
-                    <Image systemImage="chevron.right.circle" font={24} foregroundStyle="label" />
-                  </HStack>
-              </HStack>
-          </HStack>
-
+          <Spacer frame={{ height: 100 }} /> {/* 為頂部導航留出空間 */}
           <GeometryReader>
             {(proxy) => {
               const columns = proxy.size.width > 600 ? 4 : 2;
@@ -160,10 +135,9 @@ export function View() {
                   simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded((event) => {
                       const dx = event.translation.width;
                       const dy = event.translation.height;
-                      // 🖐️ 手勢判定門檻 100
                       if (Math.abs(dx) > 100 && Math.abs(dx) > Math.abs(dy)) {
-                          if (dx < 0) pNext();
-                          else pPrev();
+                          if (dx < 0) nextP();
+                          else prevP();
                       }
                   })}
                 >
@@ -173,16 +147,16 @@ export function View() {
                     ) : (
                       <VStack spacing={18}>
                         {groups.map((row, idx) => (
-                          <HStack key={`p${page}r${idx}`} spacing={12} frame={{ maxWidth: "infinity" }} alignment="top">
+                          <HStack key={`pg${page}r${idx}`} spacing={12} frame={{ maxWidth: "infinity" }} alignment="top">
                             {row.map((item) => (
                               <MoviePoster key={item.url} movie={item} itemWidth={itemWidth} currentLoadingId={currentLoadingId} setcurrentLoadingId={setcurrentLoadingId} />
                             ))}
                             {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
-                              <Spacer key={`p${page}s${i}`} frame={{ width: itemWidth }} />
+                              <Spacer key={`pg${page}s${i}`} frame={{ width: itemWidth }} />
                             ))}
                           </HStack>
                         ))}
-                        <Spacer frame={{ height: 120 }} />
+                        <Spacer frame={{ height: 150 }} />
                       </VStack>
                     )}
                   </ScrollView>
@@ -190,6 +164,30 @@ export function View() {
               );
             }}
           </GeometryReader>
+      </VStack>
+
+      {/* 2. 物理級 Header 覆蓋層 (確實在上方且背景不透明) */}
+      <VStack spacing={0} frame={{ maxWidth: "infinity" }} background="systemBackground">
+          <HStack padding={{ leading: 16, trailing: 16, top: 60, bottom: 8 }} alignment="center">
+              <HStack padding={10} onTapGesture={() => dismiss()}>
+                  <Image systemImage="xmark.circle.fill" font={28} foregroundStyle="secondaryLabel" />
+              </HStack>
+              <Spacer />
+              <VStack alignment="center">
+                  <Text font={{ size: 17, name: "system-bold" }}>龍蝦影院 v9</Text>
+                  <Text font={{ size: 10 }} foregroundStyle="secondaryLabel">Page {page}</Text>
+              </VStack>
+              <Spacer />
+              <HStack spacing={18}>
+                  <HStack padding={5} onTapGesture={prevP}>
+                    <Image systemImage="chevron.left.circle" font={24} foregroundStyle={page === 1 ? "tertiaryLabel" : "label"} />
+                  </HStack>
+                  <HStack padding={5} onTapGesture={nextP}>
+                    <Image systemImage="chevron.right.circle" font={24} foregroundStyle="label" />
+                  </HStack>
+              </HStack>
+          </HStack>
+          <VStack frame={{ height: 0.5, maxWidth: "infinity" }} background="separator" />
       </VStack>
     </ZStack>
   );
