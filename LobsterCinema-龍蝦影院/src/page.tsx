@@ -227,22 +227,24 @@ export function View() {
           return (
             <VStack
               navigationTitle={`龍蝦 v9・智慧分頁 (P.${page})`}
-              // 🖐️ 手勢感應核心：向左滑翻下一頁，向右滑翻上一頁
-              onSwipeGesture={(direction) => {
-                  if (direction === "left") handleNext();
-                  if (direction === "right") handlePrev();
-              }}
               toolbar={{
-                topBarLeading: [<Button systemImage="xmark" action={dismiss} />],
+                topBarLeading: [<Button key="close-btn" systemImage="xmark" action={dismiss} />],
                 topBarTrailing: [
                   <HStack spacing={15}>
-                    <Button systemImage="chevron.left" action={handlePrev} />
-                    <Button systemImage="chevron.right" action={handleNext} />
+                    <Button key="prev-btn" systemImage="chevron.left" action={handlePrev} />
+                    <Button key="next-btn" systemImage="chevron.right" action={handleNext} />
                   </HStack>
                 ]
               }}
             >
-              <ScrollView padding={spacing}>
+              {/* 🛡️ 將手勢區域限縮在內容區，不影響工具列 */}
+              <ScrollView 
+                padding={spacing}
+                onSwipeGesture={(direction) => {
+                    if (direction === "left") handleNext();
+                    if (direction === "right") handlePrev();
+                }}
+              >
                 {loading && list.length === 0 ? (
                   <VStack alignment="center" padding={60}>
                     <ProgressView />
