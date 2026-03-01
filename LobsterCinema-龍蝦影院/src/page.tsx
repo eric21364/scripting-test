@@ -180,7 +180,7 @@ export function View() {
             <CircleIconButton icon="xmark" action={dismiss} />
             <Spacer />
             <VStack alignment="center">
-              <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v10.9</Text>
+              <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v11.0</Text>
               <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">當前波段：{source === 'jable' ? "Jable" : "XVideos"}</Text>
             </VStack>
             <Spacer />
@@ -191,18 +191,42 @@ export function View() {
           </HStack>
 
           <HStack spacing={10} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
-            <HStack spacing={0} background="secondarySystemBackground" cornerRadius={10} padding={2}>
+            
+            {/* 🔌 實體頻道切換器 - 物理高度鎖定 36 */}
+            <HStack spacing={0} background="secondarySystemBackground" cornerRadius={10} padding={2} frame={{ height: 36 }}>
                <Button action={() => switchSource('jable')} buttonStyle="plain">
-                  <Text font={{ size: 11, name: "system-bold" }} padding={{ horizontal: 10, vertical: 5 }} background={source === 'jable' ? "systemBackground" : "transparent"} cornerRadius={8} shadow={source === 'jable' ? { color: "rgba(0,0,0,0.1)", radius: 2 } : undefined} foregroundStyle={source === 'jable' ? "systemGreen" : "secondaryLabel"}>Jable</Text>
+                  <Text 
+                    font={{ size: 11, name: "system-bold" }} 
+                    padding={{ horizontal: 12 }} 
+                    frame={{ maxHeight: "infinity" }}
+                    background={source === 'jable' ? "systemBackground" : "transparent"} 
+                    cornerRadius={8} 
+                    shadow={source === 'jable' ? { color: "rgba(0,0,0,0.1)", radius: 2 } : undefined}
+                    foregroundStyle={source === 'jable' ? "systemGreen" : "secondaryLabel"}
+                  >Jable</Text>
                </Button>
                <Button action={() => switchSource('xvideos')} buttonStyle="plain">
-                  <Text font={{ size: 11, name: "system-bold" }} padding={{ horizontal: 10, vertical: 5 }} background={source === 'xvideos' ? "systemBackground" : "transparent"} cornerRadius={8} shadow={source === 'xvideos' ? { color: "rgba(0,0,0,0.1)", radius: 2 } : undefined} foregroundStyle={source === 'xvideos' ? "systemBlue" : "secondaryLabel"}>XV</Text>
+                  <Text 
+                    font={{ size: 11, name: "system-bold" }} 
+                    padding={{ horizontal: 12 }} 
+                    frame={{ maxHeight: "infinity" }}
+                    background={source === 'xvideos' ? "systemBackground" : "transparent"} 
+                    cornerRadius={8} 
+                    shadow={source === 'xvideos' ? { color: "rgba(0,0,0,0.1)", radius: 2 } : undefined}
+                    foregroundStyle={source === 'xvideos' ? "systemBlue" : "secondaryLabel"}
+                  >XV</Text>
                </Button>
             </HStack>
-            <HStack frame={{ maxWidth: "infinity" }} padding={{ horizontal: 10, vertical: 7 }} background="secondarySystemBackground" cornerRadius={10}>
+
+            {/* 🔍 搜尋列 - 物理高度鎖定 36 */}
+            <HStack frame={{ maxWidth: "infinity", height: 36 }} padding={{ horizontal: 10 }} background="secondarySystemBackground" cornerRadius={10} alignment="center">
               <Image systemName="magnifyingglass" font={12} foregroundStyle="secondaryLabel" />
               <TextField title="" prompt="探查..." value={keyword} onChanged={setKeyword} onSubmit={triggerSearch} frame={{ maxWidth: "infinity" }} textFieldStyle="plain" />
-              {keyword.length > 0 && (<Button action={clearSearch} buttonStyle="plain"><Image systemName="xmark.circle.fill" font={12} foregroundStyle="tertiaryLabel" /></Button>)}
+              {keyword.length > 0 && (
+                <Button action={clearSearch} buttonStyle="plain">
+                  <Image systemName="xmark.circle.fill" font={12} foregroundStyle="tertiaryLabel" />
+                </Button>
+              )}
             </HStack>
           </HStack>
           <VStack frame={{ height: 0.5, maxWidth: "infinity" }} background="separator" />
