@@ -25,8 +25,7 @@ interface Movie {
   category: string;
 }
 
-// 🛡️ 龍蝦單例播放鎖
-let GLOBAL_PLAYER_LOCK = false;
+let LOBSTER_READY_LOCK = false;
 
 function Thumbnail({ url }: { url: string }) {
   const [image, setImage] = useState<UIImage | null>(null);
@@ -47,11 +46,10 @@ function Thumbnail({ url }: { url: string }) {
 function MoviePoster({ movie, itemWidth, currentLoadingId, setcurrentLoadingId }: any) {
   const isOpening = currentLoadingId === movie.url;
   const openPlayer = async () => {
-    if (GLOBAL_PLAYER_LOCK) return;
-    GLOBAL_PLAYER_LOCK = true;
+    if (LOBSTER_READY_LOCK) return;
+    LOBSTER_READY_LOCK = true;
     setcurrentLoadingId(movie.url);
-    const safeRelease = setTimeout(() => { GLOBAL_PLAYER_LOCK = false; setcurrentLoadingId(null); }, 15000);
-
+    const safeRelease = setTimeout(() => { LOBSTER_READY_LOCK = false; setcurrentLoadingId(null); }, 15000);
     try {
       const resp = await fetch(movie.url, { headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1' } });
       const html = await resp.text();
@@ -65,14 +63,8 @@ function MoviePoster({ movie, itemWidth, currentLoadingId, setcurrentLoadingId }
         await webView.loadURL(movie.url);
         await webView.present({ fullscreen: true, navigationTitle: movie.title });
       }
-    } catch (e) {
-    } finally {
-      clearTimeout(safeRelease);
-      GLOBAL_PLAYER_LOCK = false;
-      setcurrentLoadingId(null);
-    }
+    } catch (e) {} finally { clearTimeout(safeRelease); LOBSTER_READY_LOCK = false; setcurrentLoadingId(null); }
   };
-
   return (
     <VStack frame={{ width: itemWidth }} spacing={6} onTapGesture={openPlayer}>
       <ZStack frame={{ width: itemWidth, height: itemWidth * 0.5625 }} cornerRadius={10} background="secondarySystemBackground" clipShape="rect">
@@ -98,97 +90,76 @@ export function View() {
     setLoading(true);
     setList([]);
     try {
-      const resp = await fetch(`https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${(p - 1) * 24}&_=${Date.now()}`, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-      });
+      const resp = await fetch(`https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${(p - 1) * 24}&_=${Date.now()}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
       const html = await resp.text();
       const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img[^>]*?data-src="([^"]+)"[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<(?:div|h6) class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
       const res: Movie[] = [];
       let m;
-      while ((m = cardRegex.exec(html)) !== null) {
-        if (m[2] && !m[2].includes('placeholder')) res.push({ url: m[1], thumbnail: m[2], duration: m[3], title: m[4], category: "LIVE" });
-      }
+      while ((m = cardRegex.exec(html)) !== null) if (m[2] && !m[2].includes('placeholder')) res.push({ url: m[1], thumbnail: m[2], duration: m[3], title: m[4], category: "LIVE" });
       setList(res);
     } catch (e) {} finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchData(page); GLOBAL_PLAYER_LOCK = false; }, [page]);
-
-  const nextP = () => setPage(p => p + 1);
-  const prevP = () => setPage(p => Math.max(1, p - 1));
+  useEffect(() => { fetchData(page); LOBSTER_READY_LOCK = false; }, [page]);
 
   return (
-    <ZStack alignment="top">
-      {/* 1. 主要內容滾動區 */}
-      <VStack background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
-          <Spacer frame={{ height: 100 }} /> {/* 為頂部導航留出空間 */}
-          <GeometryReader>
-            {(proxy) => {
-              const columns = proxy.size.width > 600 ? 4 : 2;
-              const itemWidth = (proxy.size.width - 12 * (columns + 1)) / columns;
-              const groups = [];
-              for (let i = 0; i < list.length; i += columns) groups.push(list.slice(i, i + columns));
+    <VStack background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }} spacing={0}>
+        
+        {/* 🏔️ 物理極致 Header (手寫導航列) - 改用 Button(systemImage) 原生樣式 */}
+        <HStack padding={{ leading: 16, trailing: 16, top: 64, bottom: 8 }} alignment="center" background="systemBackground">
+            <Button systemImage="xmark.circle.fill" font={28} foregroundStyle="secondaryLabel" action={() => dismiss()} />
+            <Spacer />
+            <VStack alignment="center">
+                <Text font={{ size: 17, name: "system-bold" }}>龍蝦影院 P.{page}</Text>
+            </VStack>
+            <Spacer />
+            <HStack spacing={12}>
+                <Button systemImage="chevron.left.circle" font={24} action={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} />
+                <Button systemImage="chevron.right.circle" font={24} action={() => setPage(p => p + 1)} />
+            </HStack>
+        </HStack>
+        <VStack frame={{ height: 1, maxWidth: "infinity" }} background="separator" />
 
-              return (
-                <ZStack
-                  frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
-                  simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded((event) => {
-                      const dx = event.translation.width;
-                      const dy = event.translation.height;
-                      if (Math.abs(dx) > 100 && Math.abs(dx) > Math.abs(dy)) {
-                          if (dx < 0) nextP();
-                          else prevP();
-                      }
-                  })}
-                >
-                  <ScrollView padding={12}>
-                    {loading && list.length === 0 ? (
-                      <VStack alignment="center" padding={60}><ProgressView /></VStack>
-                    ) : (
-                      <VStack spacing={18}>
-                        {groups.map((row, idx) => (
-                          <HStack key={`pg${page}r${idx}`} spacing={12} frame={{ maxWidth: "infinity" }} alignment="top">
-                            {row.map((item) => (
-                              <MoviePoster key={item.url} movie={item} itemWidth={itemWidth} currentLoadingId={currentLoadingId} setcurrentLoadingId={setcurrentLoadingId} />
-                            ))}
-                            {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
-                              <Spacer key={`pg${page}s${i}`} frame={{ width: itemWidth }} />
-                            ))}
-                          </HStack>
-                        ))}
-                        <Spacer frame={{ height: 150 }} />
-                      </VStack>
-                    )}
-                  </ScrollView>
-                </ZStack>
-              );
-            }}
-          </GeometryReader>
-      </VStack>
+        <GeometryReader>
+          {(proxy) => {
+            const columns = proxy.size.width > 600 ? 4 : 2;
+            const itemWidth = (proxy.size.width - 12 * (columns + 1)) / columns;
+            const groups = [];
+            for (let i = 0; i < list.length; i += columns) groups.push(list.slice(i, i + columns));
 
-      {/* 2. 物理級 Header 覆蓋層 (確實在上方且背景不透明) */}
-      <VStack spacing={0} frame={{ maxWidth: "infinity" }} background="systemBackground">
-          <HStack padding={{ leading: 16, trailing: 16, top: 60, bottom: 8 }} alignment="center">
-              <HStack padding={10} onTapGesture={() => dismiss()}>
-                  <Image systemImage="xmark.circle.fill" font={28} foregroundStyle="secondaryLabel" />
-              </HStack>
-              <Spacer />
-              <VStack alignment="center">
-                  <Text font={{ size: 17, name: "system-bold" }}>龍蝦影院 v9</Text>
-                  <Text font={{ size: 10 }} foregroundStyle="secondaryLabel">Page {page}</Text>
-              </VStack>
-              <Spacer />
-              <HStack spacing={18}>
-                  <HStack padding={5} onTapGesture={prevP}>
-                    <Image systemImage="chevron.left.circle" font={24} foregroundStyle={page === 1 ? "tertiaryLabel" : "label"} />
-                  </HStack>
-                  <HStack padding={5} onTapGesture={nextP}>
-                    <Image systemImage="chevron.right.circle" font={24} foregroundStyle="label" />
-                  </HStack>
-              </HStack>
-          </HStack>
-          <VStack frame={{ height: 0.5, maxWidth: "infinity" }} background="separator" />
-      </VStack>
-    </ZStack>
+            return (
+              <ZStack
+                frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
+                simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded((event) => {
+                    if (Math.abs(event.translation.width) > 100 && Math.abs(event.translation.width) > Math.abs(event.translation.height)) {
+                        if (event.translation.width < 0) setPage(p => p + 1);
+                        else setPage(p => Math.max(1, p - 1));
+                    }
+                })}
+              >
+                <ScrollView padding={12}>
+                  {loading && list.length === 0 ? (
+                    <VStack alignment="center" padding={60}><ProgressView /></VStack>
+                  ) : (
+                    <VStack spacing={18}>
+                      {groups.map((row, idx) => (
+                        <HStack key={`p${page}r${idx}`} spacing={12} frame={{ maxWidth: "infinity" }} alignment="top">
+                          {row.map((item) => (
+                            <MoviePoster key={item.url} movie={item} itemWidth={itemWidth} currentLoadingId={currentLoadingId} setcurrentLoadingId={setcurrentLoadingId} />
+                          ))}
+                          {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
+                            <Spacer key={`p${page}s${i}`} frame={{ width: itemWidth }} />
+                          ))}
+                        </HStack>
+                      ))}
+                      <Spacer frame={{ height: 120 }} />
+                    </VStack>
+                  )}
+                </ScrollView>
+              </ZStack>
+            );
+          }}
+        </GeometryReader>
+    </VStack>
   );
 }
