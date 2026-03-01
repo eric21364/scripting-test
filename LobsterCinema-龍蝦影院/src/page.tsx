@@ -20,6 +20,7 @@ import {
 } from "scripting";
 
 interface Movie {
+  id?: string;
   title: string;
   url: string;
   thumbnail: string;
@@ -46,6 +47,7 @@ function EnergyBadge({ weight }: { weight: number }) {
   let color = "systemBlue";
   if (weight >= 90) color = "systemPink";
   else if (weight >= 70) color = "systemOrange";
+  
   return (
     <HStack spacing={2} background={color} padding={{ horizontal: 5, vertical: 2 }} cornerRadius={5}>
       <Image systemName="bolt.fill" font={8} foregroundStyle="white" />
@@ -74,17 +76,19 @@ function MoviePoster({ movie, itemWidth, loadingUid, setloadingUid, source }: an
     setloadingUid(movie.url);
     const t = setTimeout(() => { PLAY_LOCK = false; setloadingUid(null); }, 15000);
     try {
-      const targetUrl = movie.url.startsWith('http') ? movie.url : (source === 'xvideos' ? `https://www.xvideos.com${movie.url}` : movie.url);
-      const resp = await fetch(targetUrl);
-      const html = await resp.text();
       let hlsUrl = null;
+      
       if (source === 'jable') {
+        const targetUrl = movie.url.startsWith('http') ? movie.url : movie.url;
+        const resp = await fetch(targetUrl);
+        const html = await resp.text();
         const match = html.match(/hlsUrl\s*=\s*['"]([^'"]+\.m3u8)['"]/);
         hlsUrl = match && match[1] ? match[1] : targetUrl;
       } else {
-        const match = html.match(/html5player\.setVideoHLS\(['"]([^'"]+)['"]\)/);
-        hlsUrl = match && match[1] ? match[1] : targetUrl;
+        // XVideos 物理標校：使用 embedframe API 提供乾淨的播放環境，過濾一切網頁干擾
+        hlsUrl = `https://www.xvideos.com/embedframe/${movie.id}`;
       }
+
       const ctrl = new WebViewController();
       await ctrl.loadURL(hlsUrl);
       await ctrl.present({ fullscreen: true, navigationTitle: movie.title });
@@ -138,14 +142,25 @@ export function View() {
           }
         }
       } else {
-        const targetUrl = query ? `https://www.xvideos.com/?k=${encodeURIComponent(query)}&p=${p - 1}` : `https://www.xvideos.com/new/${p - 1}`;
+        // 🛠️ 修復 XVideos 採集：頁碼 1 的首頁映射為 / ，避免 /new/0 導致 404
+        let targetUrl = '';
+        if (query) {
+           targetUrl = `https://www.xvideos.com/?k=${encodeURIComponent(query)}&p=${p - 1}`;
+        } else {
+           targetUrl = p === 1 ? 'https://www.xvideos.com/' : `https://www.xvideos.com/new/${p - 1}`;
+        }
+        
         const r = await fetch(targetUrl);
         const h = await r.text();
+        
+        // 擷取 ID 供 embedframe 使用
         const reg = /<div id="video_([^"]+)"[\s\S]*?<a href="([^"]+)"[^>]*?>[\s\S]*?data-src="([^"]+)"[\s\S]*?<p class="title"><a href="[^"]+" title="([^"]+)">/g;
         let m;
         while ((m = reg.exec(h)) !== null) {
           const durationMatch = h.substring(m.index, m.index + 1000).match(/<span class="duration">([^<]+)<\/span>/);
-          res.push({ url: m[2], thumbnail: m[3], duration: durationMatch ? durationMatch[1] : "N/A", title: m[4], category: "", weight: 50 + (m[4].length % 50) });
+          const duration = durationMatch ? durationMatch[1] : "N/A";
+          const seed = m[4].length + m[2].length;
+          res.push({ id: m[1], url: m[2], thumbnail: m[3], duration, title: m[4], category: "", weight: 50 + (seed % 50) });
         }
       }
       setList(res);
@@ -158,7 +173,6 @@ export function View() {
   const goPrev = () => setPage(p => Math.max(1, p - 1));
   const triggerSearch = () => { if (keyword.trim() === activeSearch) return; setPage(1); setActiveSearch(keyword.trim()); };
   const clearSearch = () => { setKeyword(""); setActiveSearch(""); setPage(1); };
-  
   const switchSource = (s: 'jable' | 'xvideos') => { setSource(s); setPage(1); setKeyword(""); setActiveSearch(""); };
 
   return (
@@ -169,7 +183,7 @@ export function View() {
             <CircleIconButton icon="xmark" action={dismiss} />
             <Spacer />
             <VStack alignment="center">
-              <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v10.6</Text>
+              <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v10.7</Text>
               <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">當前波段：{source === 'jable' ? "Jable" : "XVideos"}</Text>
             </VStack>
             <Spacer />
@@ -179,7 +193,6 @@ export function View() {
             </HStack>
           </HStack>
 
-          {/* 🏔️ 實體控制艙：放棄下拉選單，改用實體 Segmented Tab 提升 100% 點擊成功率 */}
           <HStack spacing={10} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
             
             {/* 🔌 實體頻道切換器 */}
@@ -206,7 +219,6 @@ export function View() {
                </Button>
             </HStack>
 
-            {/* 🔍 搜尋框 */}
             <HStack frame={{ maxWidth: "infinity" }} padding={{ horizontal: 10, vertical: 7 }} background="secondarySystemBackground" cornerRadius={10}>
               <Image systemName="magnifyingglass" font={12} foregroundStyle="secondaryLabel" />
               <TextField title="" prompt="探查..." value={keyword} onChanged={setKeyword} onSubmit={triggerSearch} frame={{ maxWidth: "infinity" }} textFieldStyle="plain" />
