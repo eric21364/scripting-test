@@ -1,5 +1,4 @@
 import {
-  NavigationStack,
   Image,
   Text,
   ScrollView,
@@ -26,8 +25,8 @@ interface Movie {
   category: string;
 }
 
-// 🛡️ 全域單例鎖
-let LOBSTER_GLOBAL_LOCK = false;
+// 🛡️ 龍蝦單例鎖：防止視窗重複開啟
+let GLOBAL_PLAYER_OPENING = false;
 
 function Thumbnail({ url }: { url: string }) {
   const [image, setImage] = useState<UIImage | null>(null);
@@ -45,12 +44,14 @@ function Thumbnail({ url }: { url: string }) {
   return <Image image={image} resizable scaleToFill frame={{ maxWidth: "infinity", height: "infinity" }} />;
 }
 
-function MoviePoster({ movie, itemWidth, loadingId, setLoadingId }: any) {
+function MoviePoster({ movie, itemWidth, currentLoadingId, setcurrentLoadingId }: any) {
+  const isOpening = currentLoadingId === movie.url;
   const openPlayer = async () => {
-    if (LOBSTER_GLOBAL_LOCK) return;
-    LOBSTER_GLOBAL_LOCK = true;
-    setLoadingId(movie.url);
-    const timer = setTimeout(() => { LOBSTER_GLOBAL_LOCK = false; setLoadingId(null); }, 10000);
+    if (GLOBAL_PLAYER_OPENING) return;
+    GLOBAL_PLAYER_OPENING = true;
+    setcurrentLoadingId(movie.url);
+    const stopWatch = setTimeout(() => { GLOBAL_PLAYER_OPENING = false; setcurrentLoadingId(null); }, 15000);
+
     try {
       const resp = await fetch(movie.url, { headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1' } });
       const html = await resp.text();
@@ -64,35 +65,41 @@ function MoviePoster({ movie, itemWidth, loadingId, setLoadingId }: any) {
       const webView = new WebViewController();
       await webView.loadURL(movie.url);
       await webView.present({ fullscreen: true, navigationTitle: movie.title });
-    } catch (e) {} finally { clearTimeout(timer); LOBSTER_GLOBAL_LOCK = false; setLoadingId(null); }
+    } catch (e) {
+    } finally {
+      clearTimeout(stopWatch);
+      GLOBAL_PLAYER_OPENING = false;
+      setcurrentLoadingId(null);
+    }
   };
 
   return (
     <VStack frame={{ width: itemWidth }} spacing={6} onTapGesture={openPlayer}>
       <ZStack frame={{ width: itemWidth, height: itemWidth * 0.5625 }} cornerRadius={10} background="secondarySystemBackground" clipShape="rect">
         <Thumbnail url={movie.thumbnail} />
-        {loadingId === movie.url && <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="center" background="rgba(0,0,0,0.4)"><ProgressView /></VStack>}
+        {isOpening && <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="center" background="rgba(0,0,0,0.4)"><ProgressView /></VStack>}
         <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="bottomTrailing" padding={6}>
-            <Text font={{ size: 10, name: "system-bold" }} padding={3} background="rgba(0,0,0,0.7)" cornerRadius={4} foregroundStyle="white">{movie.duration}</Text>
+          <Text font={{ size: 10, name: "system-bold" }} padding={3} background="rgba(0,0,0,0.75)" cornerRadius={4} foregroundStyle="white">{movie.duration}</Text>
         </VStack>
       </ZStack>
-      <Text font={{ size: 12, name: "system-bold" }} lineLimit={2}>{movie.title}</Text>
+      <Text font={{ size: 12, name: "system-bold" }} lineLimit={2} opacity={(GLOBAL_PLAYER_OPENING && !isOpening) ? 0.3 : 1}>{movie.title}</Text>
     </VStack>
   );
 }
 
 export function View() {
-  const dismiss = Navigation.useDismiss();
   const [list, setList] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [currentLoadingId, setcurrentLoadingId] = useState<string | null>(null);
 
   const scrape = async (p: number) => {
     setLoading(true);
     setList([]);
     try {
-      const resp = await fetch(`https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${(p - 1) * 24}&_=${Date.now()}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      const resp = await fetch(`https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${(p - 1) * 24}&_=${Date.now()}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
       const html = await resp.text();
       const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img[^>]*?data-src="([^"]+)"[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<(?:div|h6) class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
       const res: Movie[] = [];
@@ -104,30 +111,34 @@ export function View() {
     } catch (e) {} finally { setLoading(false); }
   };
 
-  useEffect(() => { scrape(page); LOBSTER_GLOBAL_LOCK = false; }, [page]);
+  useEffect(() => { 
+    scrape(page); 
+    GLOBAL_PLAYER_OPENING = false;
+  }, [page]);
 
-  const pNext = () => setPage(p => p + 1);
-  const pPrev = () => setPage(p => Math.max(1, p - 1));
+  const handleNext = () => setPage(p => p + 1);
+  const handlePrev = () => setPage(p => Math.max(1, p - 1));
 
   return (
     <VStack background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
         
-        {/* 🏔️ 物理級隔離標桿 Header (位於最上層空間，確保不受 ZStack 攔截) */}
-        <HStack padding={{ leading: 16, trailing: 16, top: 44, bottom: 8 }} alignment="center" background="systemBackground">
+        {/* 🏔️ 物理極致 Header：正式去嵌套化，100% 按鈕響應 */}
+        <HStack padding={{ leading: 16, trailing: 16, top: 48, bottom: 12 }} alignment="center" background="systemBackground">
             <Button 
                 systemImage="xmark.circle.fill" 
                 font={24} 
-                foregroundStyle="secondaryLabel" 
-                action={() => dismiss()} 
+                foregroundStyle="gray" 
+                action={() => Navigation.dismiss()} 
             />
             <Spacer />
             <VStack alignment="center">
                 <Text font={{ size: 17, name: "system-bold" }}>龍蝦影院 P.{page}</Text>
+                {loading && <Text font={{ size: 10 }} foregroundStyle="systemBlue">同步中...</Text>}
             </VStack>
             <Spacer />
-            <HStack spacing={12}>
-                <Button systemImage="chevron.left.circle" font={24} action={pPrev} disabled={page === 1} />
-                <Button systemImage="chevron.right.circle" font={24} action={pNext} />
+            <HStack spacing={16}>
+                <Button systemImage="chevron.left.circle" font={22} action={handlePrev} disabled={page === 1} />
+                <Button systemImage="chevron.right.circle" font={22} action={handleNext} />
             </HStack>
         </HStack>
 
@@ -143,9 +154,11 @@ export function View() {
                 frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
                 simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded((event) => {
                     const dx = event.translation.width;
-                    if (Math.abs(dx) > 100) {
-                        if (dx < 0) pNext();
-                        else pPrev();
+                    const dy = event.translation.height;
+                    // 🖐️ 特別適配您的「側邊中上滑」：dx > 100 且 dy < 20 (表示向上或微小下墜)
+                    if (Math.abs(dx) > 100 && dy < 20) {
+                        if (dx < 0) handleNext();
+                        else handlePrev();
                     }
                 })}
               >
@@ -157,7 +170,7 @@ export function View() {
                       {groups.map((row, idx) => (
                         <HStack key={`p${page}r${idx}`} spacing={12} frame={{ maxWidth: "infinity" }} alignment="top">
                           {row.map((item) => (
-                            <MoviePoster key={item.url} movie={item} itemWidth={itemWidth} loadingId={loadingId} setLoadingId={setLoadingId} />
+                            <MoviePoster key={item.url} movie={item} itemWidth={itemWidth} currentLoadingId={currentLoadingId} setcurrentLoadingId={setcurrentLoadingId} />
                           ))}
                           {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
                             <Spacer key={`p${page}s${i}`} frame={{ width: itemWidth }} />
