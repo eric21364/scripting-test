@@ -10,6 +10,7 @@ import {
   Button,
   useState,
   useEffect,
+  useRef,
   ProgressView,
   ZStack,
   UIImage,
@@ -64,7 +65,6 @@ function MoviePoster({ movie, itemWidth, globalLoadingId, setGlobalLoadingId }: 
   const isThisOpening = globalLoadingId === movieId;
 
   const openPlayer = async () => {
-    // ⚔️ 龍蝦物理防衛：如果全域鎖定中且不是當前影片，直接攔截
     if (LOBSTER_GLOBAL_PLAYER_LOCK) {
         console.log("🛡️ 物理鎖定生效：阻擋多重視窗開啟請求");
         return;
@@ -74,7 +74,7 @@ function MoviePoster({ movie, itemWidth, globalLoadingId, setGlobalLoadingId }: 
     setGlobalLoadingId(movieId);
 
     try {
-      // 🚀 執行 HLS 直接採集
+      // 🚀 HLS 直達採集
       const resp = await fetch(movie.url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1' }
       });
@@ -86,14 +86,13 @@ function MoviePoster({ movie, itemWidth, globalLoadingId, setGlobalLoadingId }: 
         const player = new WebViewController();
         await player.loadURL(m3u8);
         await player.present({ fullscreen: true, navigationTitle: movie.title });
-        // 🔓 視窗彈出後解除全域重疊鎖
         LOBSTER_GLOBAL_PLAYER_LOCK = false;
         setGlobalLoadingId(null);
         return;
       }
     } catch (e) {}
 
-    // 🏥 降級至手術模式
+    // 🏥 手術模式
     const webView = new WebViewController();
     const css = `
       header, footer, nav, .navbar, .sidebar, .m-footer, .header-mobile,
@@ -137,7 +136,6 @@ function MoviePoster({ movie, itemWidth, globalLoadingId, setGlobalLoadingId }: 
         navigationTitle: movie.title
     });
     
-    // 🔓 解除全域鎖
     LOBSTER_GLOBAL_PLAYER_LOCK = false;
     setGlobalLoadingId(null);
   };
@@ -177,6 +175,9 @@ export function View() {
 
   const scrapeJableLivePage = async (pageNum: number) => {
     setLoading(true);
+    // 💡 翻頁時先清空當前列表，避免用戶誤以為沒翻過去
+    setList([]);
+
     try {
       const startFrom = (pageNum - 1) * 24;
       const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${startFrom}&_=${Date.now()}`;
@@ -196,15 +197,17 @@ export function View() {
             pageVideos.push({ url: match[1], thumbnail: match[2], duration: match[3], title: match[4], category: "LIVE" });
         }
       }
-      if (pageVideos.length > 0) setList(pageVideos);
-    } catch (e) {} finally {
+      // 不管有沒有抓到，都要讓這次結果反應出來
+      setList(pageVideos);
+    } catch (e) {
+      console.log("Page Scrape Error:", e);
+    } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
     scrapeJableLivePage(page);
-    // 重置鎖定狀態，防止翻頁後鎖死
     LOBSTER_GLOBAL_PLAYER_LOCK = false;
     setGlobalLoadingId(null);
   }, [page]);
@@ -226,22 +229,23 @@ export function View() {
 
           return (
             <VStack
-              navigationTitle={`龍蝦 v9・物理防重 (P.${page})`}
+              navigationTitle={`龍蝦 v9・王者復刻 (P.${page})`}
               toolbar={{
                 topBarLeading: [<Button title="離開" systemImage="xmark" action={dismiss} />],
                 topBarTrailing: [
                   <HStack spacing={20}>
-                    <Button systemImage="chevron.left" action={() => { if (!loading && !LOBSTER_GLOBAL_PLAYER_LOCK) setPage(Math.max(1, page - 1)) }} />
-                    <Button systemImage="chevron.right" action={() => { if (!loading && !LOBSTER_GLOBAL_PLAYER_LOCK) setPage(page + 1) }} />
+                    {/* 🛡️ 放寬按鈕限制：僅在「影片開啟鎖定」時禁止翻頁，載入期間允許重新翻頁 */}
+                    <Button systemImage="chevron.left" action={() => { if (!LOBSTER_GLOBAL_PLAYER_LOCK) setPage(Math.max(1, page - 1)) }} />
+                    <Button systemImage="chevron.right" action={() => { if (!LOBSTER_GLOBAL_PLAYER_LOCK) setPage(page + 1) }} />
                   </HStack>
                 ]
               }}
             >
               <ScrollView padding={spacing}>
-                {loading ? (
+                {loading && list.length === 0 ? (
                   <VStack alignment="center" padding={60}>
                     <ProgressView />
-                    <Text marginTop={10} foregroundStyle="secondaryLabel">正在透過直達傳輸採集...</Text>
+                    <Text marginTop={10} foregroundStyle="secondaryLabel">正在採集第 {page} 頁內容...</Text>
                   </VStack>
                 ) : (
                   <VStack spacing={18}>
@@ -249,7 +253,7 @@ export function View() {
                       <HStack key={'row_' + idx} spacing={spacing} frame={{ maxWidth: "infinity" }} alignment="top">
                         {row.map((item, cidx) => (
                           <MoviePoster 
-                            key={'item_' + idx + '_' + cidx} 
+                            key={'item_p' + page + '_' + idx + '_' + cidx} 
                             movie={item} 
                             itemWidth={itemWidth} 
                             globalLoadingId={globalLoadingId}
@@ -261,6 +265,11 @@ export function View() {
                         ))}
                       </HStack>
                     ))}
+                    {list.length > 0 && (
+                      <HStack alignment="center" padding={20} frame={{ maxWidth: "infinity" }}>
+                           <Text foregroundStyle="secondaryLabel">--- 第 {page} 頁加載完畢 ---</Text>
+                      </HStack>
+                    )}
                     <Spacer frame={{ height: 120 }} />
                   </VStack>
                 )}
