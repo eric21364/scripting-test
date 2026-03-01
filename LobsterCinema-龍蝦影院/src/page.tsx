@@ -10,6 +10,7 @@ import {
   Button,
   useState,
   useEffect,
+  useRef,
   ProgressView,
   ZStack,
   UIImage,
@@ -51,14 +52,21 @@ function Thumbnail({ url }: { url: string }) {
   );
 }
 
-function MoviePoster({ movie, itemWidth }: { movie: Movie, itemWidth: number }) {
-  const [opening, setOpening] = useState(false);
+function MoviePoster({ movie, itemWidth, globalLock }: { movie: Movie, itemWidth: number, globalLock: any }) {
+  const [isThisOpening, setIsThisOpening] = useState(false);
 
   const openPlayer = async () => {
-    if (opening) return;
-    setOpening(true);
+    // 🛡️ 物理級全域鎖定：如果已經有影片在開啟中，強行攔截所有點擊
+    if (globalLock.current) {
+        console.log("🛑 全域鎖定中，拒絕開啟新視窗");
+        return;
+    }
+    
+    globalLock.current = true;
+    setIsThisOpening(true);
 
     try {
+      // 🚀 嘗試 HLS 直達
       const resp = await fetch(movie.url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1' }
       });
@@ -70,13 +78,15 @@ function MoviePoster({ movie, itemWidth }: { movie: Movie, itemWidth: number }) 
         const player = new WebViewController();
         await player.loadURL(m3u8);
         await player.present({ fullscreen: true, navigationTitle: movie.title });
-        setOpening(false);
+        // 🔓 視窗彈出後立刻解除鎖定
+        globalLock.current = false;
+        setIsThisOpening(false);
         return;
       }
     } catch (e) {}
 
+    // 🏥 手術模式降級
     const webView = new WebViewController();
-    // ... CSS 保持不變 ...
     const css = `
       header, footer, nav, .navbar, .sidebar, .m-footer, .header-mobile,
       .video-holder-info, .related-videos, .comments-wrapper, .ad-banner, 
@@ -118,18 +128,21 @@ function MoviePoster({ movie, itemWidth }: { movie: Movie, itemWidth: number }) 
         fullscreen: true,
         navigationTitle: movie.title
     });
-    setOpening(false);
+    
+    // 🔓 視窗彈出後解除全域鎖定
+    globalLock.current = false;
+    setIsThisOpening(false);
   };
 
   const imageHeight = itemWidth * 0.5625;
 
   return (
-    <VStack frame={{ width: itemWidth }} spacing={6} onTapGesture={openPlayer} opacity={opening ? 0.5 : 1}>
+    <VStack frame={{ width: itemWidth }} spacing={6} onTapGesture={openPlayer}>
       <ZStack frame={{ width: itemWidth, height: imageHeight }} cornerRadius={10} background="secondarySystemBackground" clipShape="rect">
         <Thumbnail url={movie.thumbnail} />
-        {opening && (
-          <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="center" background="rgba(0,0,0,0.3)">
-            <ProgressView foregroundStyle="white" />
+        {isThisOpening && (
+          <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="center" background="rgba(0,0,0,0.4)">
+            <ProgressView />
           </VStack>
         )}
         <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="bottomTrailing" padding={6}>
@@ -152,13 +165,15 @@ export function View() {
   const [list, setList] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  
+  // 🛡️ 實施全域視窗鎖：利用 useRef 確保在重新渲染時狀態依然留存
+  const globalLock = useRef(false);
 
   const scrapeJableLivePage = async (pageNum: number) => {
     setLoading(true);
     try {
       const startFrom = (pageNum - 1) * 24;
       const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${startFrom}&_=${Date.now()}`;
-      
       const resp = await fetch(pageUrl, {
         headers: { 
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
@@ -167,7 +182,6 @@ export function View() {
         }
       });
       const html = await resp.text();
-
       const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img[^>]*?data-src="([^"]+)"[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<(?:div|h6) class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
       
       const pageVideos: Movie[] = [];
@@ -183,10 +197,7 @@ export function View() {
             });
         }
       }
-      
-      if (pageVideos.length > 0) {
-        setList(pageVideos);
-      }
+      if (pageVideos.length > 0) setList(pageVideos);
     } catch (e) {} finally {
       setLoading(false);
     }
@@ -213,17 +224,15 @@ export function View() {
 
           return (
             <VStack
-              navigationTitle={`龍蝦 v9・智能排版 (P.${page})`}
+              navigationTitle={`龍蝦 v9・王者復刻 (P.${page})`}
               toolbar={{
                 topBarLeading: [
                     <Button title="離開" systemImage="xmark" action={dismiss} />
                 ],
                 topBarTrailing: [
                   <HStack spacing={20}>
-                    {page > 1 && (
-                      <Button title="後退" systemImage="chevron.left" action={() => setPage(page - 1)} />
-                    )}
-                    <Button title="前進" systemImage="chevron.right" action={() => setPage(page + 1)} />
+                    <Button systemImage="chevron.left" action={() => { if (!loading) setPage(Math.max(1, page - 1)) }} />
+                    <Button systemImage="chevron.right" action={() => { if (!loading) setPage(page + 1) }} />
                   </HStack>
                 ]
               }}
@@ -239,7 +248,7 @@ export function View() {
                     {chunks.map((row, idx) => (
                       <HStack key={'row_' + idx} spacing={spacing} frame={{ maxWidth: "infinity" }} alignment="top">
                         {row.map((item, cidx) => (
-                          <MoviePoster key={'item_' + idx + '_' + cidx} movie={item} itemWidth={itemWidth} />
+                          <MoviePoster key={'item_' + idx + '_' + cidx} movie={item} itemWidth={itemWidth} globalLock={globalLock} />
                         ))}
                         {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
                           <Spacer key={'spacer_' + i} frame={{ width: itemWidth }} />
