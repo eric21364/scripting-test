@@ -26,7 +26,8 @@ interface Movie {
   category: string;
 }
 
-let LOBSTER_LOCK = false;
+// 🛡️ 全域單例鎖
+let LOBSTER_GLOBAL_LOCK = false;
 
 function Thumbnail({ url }: { url: string }) {
   const [image, setImage] = useState<UIImage | null>(null);
@@ -46,10 +47,10 @@ function Thumbnail({ url }: { url: string }) {
 
 function MoviePoster({ movie, itemWidth, loadingId, setLoadingId }: any) {
   const openPlayer = async () => {
-    if (LOBSTER_LOCK) return;
-    LOBSTER_LOCK = true;
+    if (LOBSTER_GLOBAL_LOCK) return;
+    LOBSTER_GLOBAL_LOCK = true;
     setLoadingId(movie.url);
-    const timer = setTimeout(() => { LOBSTER_LOCK = false; setLoadingId(null); }, 10000);
+    const timer = setTimeout(() => { LOBSTER_GLOBAL_LOCK = false; setLoadingId(null); }, 10000);
     try {
       const resp = await fetch(movie.url, { headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1' } });
       const html = await resp.text();
@@ -63,7 +64,7 @@ function MoviePoster({ movie, itemWidth, loadingId, setLoadingId }: any) {
       const webView = new WebViewController();
       await webView.loadURL(movie.url);
       await webView.present({ fullscreen: true, navigationTitle: movie.title });
-    } catch (e) {} finally { clearTimeout(timer); LOBSTER_LOCK = false; setLoadingId(null); }
+    } catch (e) {} finally { clearTimeout(timer); LOBSTER_GLOBAL_LOCK = false; setLoadingId(null); }
   };
 
   return (
@@ -81,6 +82,7 @@ function MoviePoster({ movie, itemWidth, loadingId, setLoadingId }: any) {
 }
 
 export function View() {
+  const dismiss = Navigation.useDismiss();
   const [list, setList] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -102,34 +104,30 @@ export function View() {
     } catch (e) {} finally { setLoading(false); }
   };
 
-  useEffect(() => { scrape(page); LOBSTER_LOCK = false; }, [page]);
+  useEffect(() => { scrape(page); LOBSTER_GLOBAL_LOCK = false; }, [page]);
 
-  const next = () => setPage(p => p + 1);
-  const prev = () => setPage(p => Math.max(1, p - 1));
+  const pNext = () => setPage(p => p + 1);
+  const pPrev = () => setPage(p => Math.max(1, p - 1));
 
   return (
     <VStack background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
         
-        {/* 🏔️ 物理隔離 Header：完全獨立於 ZStack 之外 */}
-        <HStack padding={{ leading: 16, trailing: 16, top: 40, bottom: 12 }} alignment="center" background="systemBackground">
+        {/* 🏔️ 物理級隔離標桿 Header (位於最上層空間，確保不受 ZStack 攔截) */}
+        <HStack padding={{ leading: 16, trailing: 16, top: 44, bottom: 8 }} alignment="center" background="systemBackground">
             <Button 
-                systemImage="xmark" 
-                font={{ size: 16, name: "system-bold" }} 
-                foregroundStyle="label" 
-                background="secondarySystemBackground" 
-                padding={10} 
-                cornerRadius={20} 
-                action={() => Navigation.dismiss()} 
+                systemImage="xmark.circle.fill" 
+                font={24} 
+                foregroundStyle="secondaryLabel" 
+                action={() => dismiss()} 
             />
             <Spacer />
             <VStack alignment="center">
-                <Text font={{ size: 17, name: "system-bold" }}>龍蝦影院 v9</Text>
-                <Text font={{ size: 11 }} foregroundStyle="secondaryLabel">第 {page} 頁</Text>
+                <Text font={{ size: 17, name: "system-bold" }}>龍蝦影院 P.{page}</Text>
             </VStack>
             <Spacer />
             <HStack spacing={12}>
-                <Button systemImage="chevron.left.circle.fill" font={28} foregroundStyle="secondaryLabel" action={prev} disabled={page === 1} />
-                <Button systemImage="chevron.right.circle.fill" font={28} foregroundStyle="secondaryLabel" action={next} />
+                <Button systemImage="chevron.left.circle" font={24} action={pPrev} disabled={page === 1} />
+                <Button systemImage="chevron.right.circle" font={24} action={pNext} />
             </HStack>
         </HStack>
 
@@ -143,30 +141,30 @@ export function View() {
             return (
               <ZStack
                 frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
-                simultaneousGesture={DragGesture({ minDistance: 40 }).onEnded((event) => {
+                simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded((event) => {
                     const dx = event.translation.width;
                     if (Math.abs(dx) > 100) {
-                        if (dx < 0) next();
-                        else prev();
+                        if (dx < 0) pNext();
+                        else pPrev();
                     }
                 })}
               >
                 <ScrollView padding={12}>
                   {loading && list.length === 0 ? (
-                    <VStack alignment="center" padding={60}><ProgressView /><Text marginTop={10}>龍蝦正在加速...</Text></VStack>
+                    <VStack alignment="center" padding={60}><ProgressView /></VStack>
                   ) : (
                     <VStack spacing={18}>
                       {groups.map((row, idx) => (
-                        <HStack key={`r${idx}`} spacing={12} frame={{ maxWidth: "infinity" }} alignment="top">
+                        <HStack key={`p${page}r${idx}`} spacing={12} frame={{ maxWidth: "infinity" }} alignment="top">
                           {row.map((item) => (
                             <MoviePoster key={item.url} movie={item} itemWidth={itemWidth} loadingId={loadingId} setLoadingId={setLoadingId} />
                           ))}
                           {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
-                            <Spacer key={`s${i}`} frame={{ width: itemWidth }} />
+                            <Spacer key={`p${page}s${i}`} frame={{ width: itemWidth }} />
                           ))}
                         </HStack>
                       ))}
-                      <Spacer frame={{ height: 100 }} />
+                      <Spacer frame={{ height: 120 }} />
                     </VStack>
                   )}
                 </ScrollView>
