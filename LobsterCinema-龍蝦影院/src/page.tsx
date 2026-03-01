@@ -54,7 +54,6 @@ function Thumbnail({ url }: { url: string }) {
 function MoviePoster({ movie, itemWidth }: { movie: Movie, itemWidth: number }) {
   const openPlayer = async () => {
     try {
-      // 🚀 執行物理加速：嘗試直接抓取 HLS (M3U8) 路徑
       const resp = await fetch(movie.url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1' }
       });
@@ -64,16 +63,12 @@ function MoviePoster({ movie, itemWidth }: { movie: Movie, itemWidth: number }) 
       if (match && match[1]) {
         const m3u8 = match[1];
         const player = new WebViewController();
-        console.log("🎯 成功獲取直達路徑:", m3u8);
         await player.loadURL(m3u8);
         await player.present({ fullscreen: true, navigationTitle: movie.title });
         return;
       }
-    } catch (e) {
-      console.log("M3U8 Fast-Fetch failed, falling back to surgery mode.");
-    }
+    } catch (e) {}
 
-    // 🏥 降級與手術模式 (Fallback Surgery Mode)
     const webView = new WebViewController();
     const css = `
       header, footer, nav, .navbar, .sidebar, .m-footer, .header-mobile,
@@ -160,7 +155,6 @@ export function View() {
       });
       const html = await resp.text();
 
-      // v22.0 「王者校準探針」
       const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img[^>]*?data-src="([^"]+)"[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<(?:div|h6) class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
       
       const pageVideos: Movie[] = [];
@@ -180,9 +174,7 @@ export function View() {
       if (pageVideos.length > 0) {
         setList(pageVideos);
       }
-    } catch (e) {
-      console.log("Live Scrape Failed:", e);
-    } finally {
+    } catch (e) {} finally {
       setLoading(false);
     }
   };
@@ -192,10 +184,26 @@ export function View() {
   }, [page]);
 
   return (
-    <NavigationStack>
+    <VStack background="#000" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
+      {/* 自定義上方工具列：確保文字顏色與背景分離 */}
+      <HStack padding={16} background="#111" frame={{ maxWidth: "infinity" }} alignment="center">
+        <Button systemImage="xmark" foregroundStyle="white" action={dismiss} />
+        <Spacer />
+        <VStack alignment="center" spacing={2}>
+          <Text foregroundStyle="white" font={{ size: 17, name: "system-bold" }}>龍蝦影院 v9・王者復刻</Text>
+          <Text foregroundStyle="#aaa" font={{ size: 12 }}>當前第 {page} 頁</Text>
+        </VStack>
+        <Spacer />
+        <HStack spacing={20}>
+          {page > 1 && (
+            <Button systemImage="chevron.left" foregroundStyle="white" action={() => setPage(page - 1)} />
+          )}
+          <Button systemImage="chevron.right" foregroundStyle="white" action={() => setPage(page + 1)} />
+        </HStack>
+      </HStack>
+
       <GeometryReader>
         {(proxy) => {
-          // 🧠 智能響應式佈局：根據寬度動態計算「最優欄數」
           const minItemWidth = 160;
           const spacing = 12;
           const columns = Math.max(2, Math.floor((proxy.size.width - spacing) / (minItemWidth + spacing)));
@@ -208,49 +216,31 @@ export function View() {
           }
 
           return (
-            <VStack
-              navigationTitle={`龍蝦 v9・王者復刻 (P.${page})`}
-              background="#000"
-              toolbar={{
-                topBarLeading: [
-                  <Button title="離開" systemImage="xmark" action={dismiss} />
-                ],
-                topBarTrailing: [
-                  <HStack spacing={20}>
-                    {page > 1 && (
-                      <Button title="後退" systemImage="chevron.left" action={() => setPage(page - 1)} />
-                    )}
-                    <Button title="前進" systemImage="chevron.right" action={() => setPage(page + 1)} />
-                  </HStack>
-                ]
-              }}
-            >
-              <ScrollView padding={spacing}>
-                {loading ? (
-                  <VStack alignment="center" padding={60}>
-                    <ProgressView />
-                    <Text marginTop={10} foregroundStyle="secondaryLabel">正在透過直達傳輸採集...</Text>
-                  </VStack>
-                ) : (
-                  <VStack spacing={18}>
-                    {chunks.map((row, idx) => (
-                      <HStack key={idx} spacing={spacing} frame={{ maxWidth: "infinity" }} alignment="top">
-                        {row.map((item, cidx) => (
-                          <MoviePoster key={idx + '_' + cidx} movie={item} itemWidth={itemWidth} />
-                        ))}
-                        {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
-                          <Spacer key={i} frame={{ width: itemWidth }} />
-                        ))}
-                      </HStack>
-                    ))}
-                    <Spacer frame={{ height: 120 }} />
-                  </VStack>
-                )}
-              </ScrollView>
-            </VStack>
+            <ScrollView padding={spacing}>
+              {loading ? (
+                <VStack alignment="center" padding={60}>
+                  <ProgressView foregroundStyle="white" />
+                  <Text marginTop={10} foregroundStyle="#aaa">正在透過直達傳輸採集...</Text>
+                </VStack>
+              ) : (
+                <VStack spacing={18}>
+                  {chunks.map((row, idx) => (
+                    <HStack key={'row_' + idx} spacing={spacing} frame={{ maxWidth: "infinity" }} alignment="top">
+                      {row.map((item, cidx) => (
+                        <MoviePoster key={'item_' + idx + '_' + cidx} movie={item} itemWidth={itemWidth} />
+                      ))}
+                      {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
+                        <Spacer key={'spacer_' + i} frame={{ width: itemWidth }} />
+                      ))}
+                    </HStack>
+                  ))}
+                  <Spacer frame={{ height: 120 }} />
+                </VStack>
+              )}
+            </ScrollView>
           );
         }}
       </GeometryReader>
-    </NavigationStack>
+    </VStack>
   );
 }
