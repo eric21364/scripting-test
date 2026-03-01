@@ -25,7 +25,7 @@ interface Movie {
   category: string;
 }
 
-// 🛡️ 龍蝦單例鎖：防止視窗重複開啟
+// 🛡️ 全域單例鎖
 let GLOBAL_PLAYER_OPENING = false;
 
 function Thumbnail({ url }: { url: string }) {
@@ -88,6 +88,7 @@ function MoviePoster({ movie, itemWidth, currentLoadingId, setcurrentLoadingId }
 }
 
 export function View() {
+  const dismiss = Navigation.useDismiss();
   const [list, setList] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -120,71 +121,79 @@ export function View() {
   const handlePrev = () => setPage(p => Math.max(1, p - 1));
 
   return (
-    <VStack background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
-        
-        {/* 🏔️ 物理極致 Header：正式去嵌套化，100% 按鈕響應 */}
-        <HStack padding={{ leading: 16, trailing: 16, top: 48, bottom: 12 }} alignment="center" background="systemBackground">
-            <Button 
-                systemImage="xmark.circle.fill" 
-                font={24} 
-                foregroundStyle="gray" 
-                action={() => Navigation.dismiss()} 
-            />
-            <Spacer />
-            <VStack alignment="center">
-                <Text font={{ size: 17, name: "system-bold" }}>龍蝦影院 P.{page}</Text>
-                {loading && <Text font={{ size: 10 }} foregroundStyle="systemBlue">同步中...</Text>}
-            </VStack>
-            <Spacer />
-            <HStack spacing={16}>
-                <Button systemImage="chevron.left.circle" font={22} action={handlePrev} disabled={page === 1} />
-                <Button systemImage="chevron.right.circle" font={22} action={handleNext} />
-            </HStack>
-        </HStack>
+    <ZStack alignment="top">
+      <VStack background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
+          
+          {/* 🏔️ 物理極致 Header：確保按鈕絕對出現在頂層 */}
+          <HStack padding={{ leading: 16, trailing: 16, top: 54, bottom: 8 }} alignment="center" background="systemBackground">
+              {/* ❌ 獨立關閉按鈕：增加觸控熱區與層級 */}
+              <Button action={() => dismiss()} padding={10}>
+                  <Image systemImage="xmark.circle.fill" font={28} foregroundStyle="secondaryLabel" />
+              </Button>
+              
+              <Spacer />
+              
+              <VStack alignment="center">
+                  <Text font={{ size: 17, name: "system-bold" }}>龍蝦影院</Text>
+                  <Text font={{ size: 12 }} foregroundStyle="secondaryLabel">第 {page} 頁</Text>
+              </VStack>
+              
+              <Spacer />
+              
+              <HStack spacing={16}>
+                  <Button action={handlePrev} disabled={page === 1} padding={10}>
+                      <Image systemImage="chevron.left.circle" font={24} foregroundStyle="label" />
+                  </Button>
+                  <Button action={handleNext} padding={10}>
+                      <Image systemImage="chevron.right.circle" font={24} foregroundStyle="label" />
+                  </Button>
+              </HStack>
+          </HStack>
 
-        <GeometryReader>
-          {(proxy) => {
-            const columns = proxy.size.width > 600 ? 4 : 2;
-            const itemWidth = (proxy.size.width - 12 * (columns + 1)) / columns;
-            const groups = [];
-            for (let i = 0; i < list.length; i += columns) groups.push(list.slice(i, i + columns));
+          <GeometryReader>
+            {(proxy) => {
+              const columns = proxy.size.width > 600 ? 4 : 2;
+              const itemWidth = (proxy.size.width - 12 * (columns + 1)) / columns;
+              const groups = [];
+              for (let i = 0; i < list.length; i += columns) groups.push(list.slice(i, i + columns));
 
-            return (
-              <ZStack
-                frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
-                simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded((event) => {
-                    const dx = event.translation.width;
-                    const dy = event.translation.height;
-                    // 🖐️ 特別適配您的「側邊中上滑」：dx > 100 且 dy < 20 (表示向上或微小下墜)
-                    if (Math.abs(dx) > 100 && dy < 20) {
-                        if (dx < 0) handleNext();
-                        else handlePrev();
-                    }
-                })}
-              >
-                <ScrollView padding={12}>
-                  {loading && list.length === 0 ? (
-                    <VStack alignment="center" padding={60}><ProgressView /></VStack>
-                  ) : (
-                    <VStack spacing={18}>
-                      {groups.map((row, idx) => (
-                        <HStack key={`p${page}r${idx}`} spacing={12} frame={{ maxWidth: "infinity" }} alignment="top">
-                          {row.map((item) => (
-                            <MoviePoster key={item.url} movie={item} itemWidth={itemWidth} currentLoadingId={currentLoadingId} setcurrentLoadingId={setcurrentLoadingId} />
-                          ))}
-                          {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
-                            <Spacer key={`p${page}s${i}`} frame={{ width: itemWidth }} />
-                          ))}
-                        </HStack>
-                      ))}
-                      <Spacer frame={{ height: 120 }} />
-                    </VStack>
-                  )}
-                </ScrollView>
-              </ZStack>
-            );
-          }}
-        </GeometryReader>
-    </VStack>
+              return (
+                <ZStack
+                  frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
+                  simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded((event) => {
+                      const dx = event.translation.width;
+                      const dy = event.translation.height;
+                      // 🖐️ 手勢判定門檻維持 100
+                      if (Math.abs(dx) > 100 && Math.abs(dx) > Math.abs(dy)) {
+                          if (dx < 0) handleNext();
+                          else handlePrev();
+                      }
+                  })}
+                >
+                  <ScrollView padding={12}>
+                    {loading && list.length === 0 ? (
+                      <VStack alignment="center" padding={60}><ProgressView /></VStack>
+                    ) : (
+                      <VStack spacing={18}>
+                        {groups.map((row, idx) => (
+                          <HStack key={`pg${page}r${idx}`} spacing={12} frame={{ maxWidth: "infinity" }} alignment="top">
+                            {row.map((item) => (
+                              <MoviePoster key={item.url} movie={item} itemWidth={itemWidth} currentLoadingId={currentLoadingId} setcurrentLoadingId={setcurrentLoadingId} />
+                            ))}
+                            {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
+                              <Spacer key={`pg${page}s${i}`} frame={{ width: itemWidth }} />
+                            ))}
+                          </HStack>
+                        ))}
+                        <Spacer frame={{ height: 120 }} />
+                      </VStack>
+                    )}
+                  </ScrollView>
+                </ZStack>
+              );
+            }}
+          </GeometryReader>
+      </VStack>
+    </ZStack>
   );
 }
