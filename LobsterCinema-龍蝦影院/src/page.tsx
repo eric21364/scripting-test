@@ -52,7 +52,12 @@ function Thumbnail({ url }: { url: string }) {
 }
 
 function MoviePoster({ movie, itemWidth }: { movie: Movie, itemWidth: number }) {
+  const [opening, setOpening] = useState(false);
+
   const openPlayer = async () => {
+    if (opening) return;
+    setOpening(true);
+
     try {
       const resp = await fetch(movie.url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1' }
@@ -65,11 +70,13 @@ function MoviePoster({ movie, itemWidth }: { movie: Movie, itemWidth: number }) 
         const player = new WebViewController();
         await player.loadURL(m3u8);
         await player.present({ fullscreen: true, navigationTitle: movie.title });
+        setOpening(false);
         return;
       }
     } catch (e) {}
 
     const webView = new WebViewController();
+    // ... CSS 保持不變 ...
     const css = `
       header, footer, nav, .navbar, .sidebar, .m-footer, .header-mobile,
       .video-holder-info, .related-videos, .comments-wrapper, .ad-banner, 
@@ -111,14 +118,20 @@ function MoviePoster({ movie, itemWidth }: { movie: Movie, itemWidth: number }) 
         fullscreen: true,
         navigationTitle: movie.title
     });
+    setOpening(false);
   };
 
   const imageHeight = itemWidth * 0.5625;
 
   return (
-    <VStack frame={{ width: itemWidth }} spacing={6} onTapGesture={openPlayer}>
+    <VStack frame={{ width: itemWidth }} spacing={6} onTapGesture={openPlayer} opacity={opening ? 0.5 : 1}>
       <ZStack frame={{ width: itemWidth, height: imageHeight }} cornerRadius={10} background="secondarySystemBackground" clipShape="rect">
         <Thumbnail url={movie.thumbnail} />
+        {opening && (
+          <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="center" background="rgba(0,0,0,0.3)">
+            <ProgressView foregroundStyle="white" />
+          </VStack>
+        )}
         <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="bottomTrailing" padding={6}>
           <Text font={{ size: 10, name: "system-bold" }} padding={3} background="rgba(0,0,0,0.75)" cornerRadius={4} foregroundStyle="white">
             {movie.duration}
