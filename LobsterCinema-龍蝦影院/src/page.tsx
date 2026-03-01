@@ -44,7 +44,6 @@ function Movies({ movie, itemWidth, currentId, setcurrentId }: any) {
       await ctrl.present({ fullscreen: true });
     } catch (e) {} finally { clearTimeout(t); GLOBAL_PLAYER_LOCK = false; setcurrentId(null); }
   };
-
   return (
     <VStack frame={{ width: itemWidth }} spacing={6} onTapGesture={tap}>
       <ZStack frame={{ width: itemWidth, height: itemWidth * 0.56 }} cornerRadius={8} background="secondarySystemBackground" clipShape="rect">
@@ -89,60 +88,68 @@ export function View() {
   useEffect(() => { fetcher(page); }, [page]);
 
   return (
-    <VStack spacing={0} background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
-        {/* 🏔️ Debug Header: 強制顯色、大量 Padding、文字按鈕 */}
-        <HStack padding={{ top: 70, leading: 20, trailing: 20, bottom: 15 }} background="systemBackground" alignment="center">
-            <Button action={() => dismiss()}>
-                <HStack padding={8} background="systemRed" cornerRadius={8}>
-                    <Text foregroundStyle="white" font={{size: 16, name: "system-bold"}}>關閉 (X)</Text>
+    <ZStack alignment="center">
+        {/* 1. 主內容區 */}
+        <VStack spacing={0} background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
+            {/* 頂部導航組 */}
+            <HStack padding={{ top: 100, leading: 20, trailing: 20, bottom: 20 }} background="systemBackground" alignment="center">
+                <Button action={() => dismiss()}>
+                    <Text foregroundStyle="systemRed" font={{size: 20, name: "system-bold"}}>「關閉」</Text>
+                </Button>
+                <Spacer />
+                <Text font={18}>P.{page}</Text>
+                <Spacer />
+                <HStack spacing={20}>
+                    <Button action={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+                        <Text font={24}>⬅️</Text>
+                    </Button>
+                    <Button action={() => setPage(p => p + 1)}>
+                        <Text font={24}>➡️</Text>
+                    </Button>
                 </HStack>
-            </Button>
-            <Spacer />
-            <Text font={18}>龍蝦影院 P.{page}</Text>
-            <Spacer />
-            <HStack spacing={15}>
-                <Button action={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
-                    <Text font={24}>⬅️</Text>
-                </Button>
-                <Button action={() => setPage(p => p + 1)}>
-                    <Text font={24}>➡️</Text>
-                </Button>
             </HStack>
-        </HStack>
-        <VStack frame={{ height: 1, maxWidth: "infinity" }} background="separator" />
 
-        <GeometryReader>
-          {(proxy) => {
-            const columns = proxy.size.width > 600 ? 4 : 2;
-            const itemWidth = (proxy.size.width - 12 * (columns + 1)) / columns;
-            const chunks = [];
-            for (let i = 0; i < list.length; i += columns) chunks.push(list.slice(i, i + columns));
-            return (
-              <ZStack
-                frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
-                simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded(e => {
-                  if (Math.abs(e.translation.width) > 100) {
-                    if (e.translation.width < 0) setPage(p => p + 1);
-                    else setPage(p => Math.max(1, p - 1));
-                  }
-                })}
-              >
-                <ScrollView padding={12}>
-                  {loading && list.length === 0 ? <ProgressView /> : (
-                    <VStack spacing={18}>
-                      {chunks.map((row, i) => (
-                        <HStack key={i} spacing={12} alignment="top">
-                          {row.map(m => <Movies key={m.url} movie={m} itemWidth={itemWidth} currentId={currentId} setcurrentId={setcurrentId} />)}
-                        </HStack>
-                      ))}
-                      <Spacer frame={{ height: 100 }} />
-                    </VStack>
-                  )}
-                </ScrollView>
-              </ZStack>
-            );
-          }}
-        </GeometryReader>
-    </VStack>
+            <GeometryReader>
+            {(proxy) => {
+                const columns = proxy.size.width > 600 ? 4 : 2;
+                const itemWidth = (proxy.size.width - 12 * (columns + 1)) / columns;
+                const chunks = [];
+                for (let i = 0; i < list.length; i += columns) chunks.push(list.slice(i, i + columns));
+                return (
+                <ZStack
+                    frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
+                    simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded(e => {
+                    if (Math.abs(e.translation.width) > 100) {
+                        if (e.translation.width < 0) setPage(p => p + 1);
+                        else setPage(p => Math.max(1, p - 1));
+                    }
+                    })}
+                >
+                    <ScrollView padding={12}>
+                    {loading && list.length === 0 ? <ProgressView /> : (
+                        <VStack spacing={18}>
+                        {chunks.map((row, i) => (
+                            <HStack key={i} spacing={12} alignment="top">
+                            {row.map(m => <Movies key={m.url} movie={m} itemWidth={itemWidth} currentId={currentId} setcurrentId={setcurrentId} />)}
+                            </HStack>
+                        ))}
+                        <Spacer frame={{ height: 100 }} />
+                        </VStack>
+                    )}
+                    </ScrollView>
+                </ZStack>
+                );
+            }}
+            </GeometryReader>
+        </VStack>
+
+        {/* 2. 緊急除錯：螢幕中央出現一個巨大的「龍蝦測試關閉」按鈕 */}
+        <Button action={() => dismiss()}>
+            <VStack padding={20} background="systemBlue" cornerRadius={15}>
+                <Text foregroundStyle="white" font={{size: 14, name: "system-bold"}}>中控關閉按鈕測試</Text>
+                <Text foregroundStyle="white" font={10}>如果看到這顆，代表上方被擋住了</Text>
+            </VStack>
+        </Button>
+    </ZStack>
   );
 }
