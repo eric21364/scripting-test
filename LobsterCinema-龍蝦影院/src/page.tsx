@@ -17,7 +17,7 @@ import {
   DragGesture,
   Circle,
   TextField,
-  Menu
+  ActionSheet
 } from "scripting";
 
 interface Movie {
@@ -64,7 +64,7 @@ function Thumbnail({ url }: { url: string }) {
     UIImage.fromURL(cleanUrl).then(i => { if (i && active) setImg(i); }).catch(() => {});
     return () => { active = false; };
   }, [url]);
-  if (!img) return <ProgressView progressViewStyle="circular" />;
+  if (!img) return <ProgressView progressViewStyle="circular" padding={10} />;
   return <Image image={img} resizable scaleToFill frame={{ maxWidth: "infinity", height: "infinity" }} />;
 }
 
@@ -134,8 +134,10 @@ export function View() {
         const reg = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img[^>]*?data-src="([^"]+)"[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<(?:div|h6) class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
         let m;
         while ((m = reg.exec(h)) !== null) {
-          const seed = m[4].length + m[1].length;
-          res.push({ url: m[1], thumbnail: m[2], duration: m[3], title: m[4], category: "", weight: 50 + (seed % 50) });
+          if (!m[2].includes('placeholder')) {
+            const seed = m[4].length + m[1].length;
+            res.push({ url: m[1], thumbnail: m[2], duration: m[3], title: m[4], category: "", weight: 50 + (seed % 50) });
+          }
         }
       } else {
         const targetUrl = query ? `https://www.xvideos.com/?k=${encodeURIComponent(query)}&p=${p - 1}` : `https://www.xvideos.com/new/${p - 1}`;
@@ -158,7 +160,20 @@ export function View() {
   const goPrev = () => setPage(p => Math.max(1, p - 1));
   const triggerSearch = () => { if (keyword.trim() === activeSearch) return; setPage(1); setActiveSearch(keyword.trim()); };
   const clearSearch = () => { setKeyword(""); setActiveSearch(""); setPage(1); };
-  const switchSource = (s: 'jable' | 'xvideos') => { setSource(s); setPage(1); setKeyword(""); setActiveSearch(""); };
+  
+  const showSourcePicker = async () => {
+    const res = await ActionSheet.show({
+      title: "選擇情報來源",
+      message: "請物理切換採集波段",
+      buttons: [
+        { title: "Jable.tv 頻道", style: "default" },
+        { title: "XVideos 頻道", style: "default" },
+        { title: "取消", style: "cancel" }
+      ]
+    });
+    if (res === 0) { setSource('jable'); setPage(1); setKeyword(""); setActiveSearch(""); }
+    else if (res === 1) { setSource('xvideos'); setPage(1); setKeyword(""); setActiveSearch(""); }
+  };
 
   return (
     <VStack spacing={0} background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
@@ -169,8 +184,8 @@ export function View() {
             <CircleIconButton icon="xmark" action={dismiss} />
             <Spacer />
             <VStack alignment="center">
-              <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v10.4</Text>
-              <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">當前波段：{source === 'jable' ? 'Jable' : 'XV'}</Text>
+              <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v10.5</Text>
+              <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">Page {page}</Text>
             </VStack>
             <Spacer />
             <HStack spacing={12}>
@@ -179,24 +194,18 @@ export function View() {
             </HStack>
           </HStack>
 
-          {/* 🏔️ 整合控制列：縮減搜尋寬度，確保下拉選單 100% 顯現 */}
+          {/* 🏔️ 控制列：強行棄用 Menu，改用 ActionSheet 提升 100% 相容性 */}
           <HStack spacing={8} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
             
-            {/* 🔌 來源切換 (下拉固定寬度) */}
-            <Menu>
-              <Button buttonStyle="plain">
+            <Button action={showSourcePicker} buttonStyle="plain">
                 <HStack spacing={4} padding={{ horizontal: 8, vertical: 8 }} background="secondarySystemBackground" cornerRadius={10} frame={{ width: 85 }}>
                   <Image systemName={source === 'jable' ? "leaf.fill" : "globe.americas.fill"} font={12} foregroundStyle={source === 'jable' ? "systemGreen" : "systemBlue"} />
-                  <Text font={{ size: 12, name: "system-bold" }}>{source === 'jable' ? "Jable" : "XV"}</Text>
+                  <Text font={{ size: 11, name: "system-bold" }}>{source === 'jable' ? "Jable" : "XV"}</Text>
                   <Spacer />
-                  <Image systemName="chevron.down" font={8} foregroundStyle="tertiaryLabel" />
+                  <Image systemName="chevron.up.chevron.down" font={8} foregroundStyle="tertiaryLabel" />
                 </HStack>
-              </Button>
-              <Button title="Jable.tv 頻道" action={() => switchSource('jable')} />
-              <Button title="XVideos 頻道" action={() => switchSource('xvideos')} />
-            </Menu>
+            </Button>
 
-            {/* 🔍 搜尋框（自適應剩餘空間） */}
             <HStack frame={{ maxWidth: "infinity" }} padding={{ horizontal: 10, vertical: 8 }} background="secondarySystemBackground" cornerRadius={10}>
               <Image systemName="magnifyingglass" font={12} foregroundStyle="secondaryLabel" />
               <TextField title="" prompt="探查..." value={keyword} onChanged={setKeyword} onSubmit={triggerSearch} frame={{ maxWidth: "infinity" }} textFieldStyle="plain" />
