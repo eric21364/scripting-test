@@ -26,8 +26,7 @@ interface Movie {
   category: string;
 }
 
-// 🛡️ 龍蝦物理單例鎖
-let GLOBAL_PLAYER_LOCK = false;
+let LOBSTER_LOCK = false;
 
 function Thumbnail({ url }: { url: string }) {
   const [image, setImage] = useState<UIImage | null>(null);
@@ -46,13 +45,11 @@ function Thumbnail({ url }: { url: string }) {
 }
 
 function MoviePoster({ movie, itemWidth, loadingId, setLoadingId }: any) {
-  const isThisLoading = loadingId === movie.url;
   const openPlayer = async () => {
-    if (GLOBAL_PLAYER_LOCK) return;
-    GLOBAL_PLAYER_LOCK = true;
+    if (LOBSTER_LOCK) return;
+    LOBSTER_LOCK = true;
     setLoadingId(movie.url);
-    const safeRelease = setTimeout(() => { GLOBAL_PLAYER_LOCK = false; setLoadingId(null); }, 12000);
-
+    const timer = setTimeout(() => { LOBSTER_LOCK = false; setLoadingId(null); }, 10000);
     try {
       const resp = await fetch(movie.url, { headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1' } });
       const html = await resp.text();
@@ -66,36 +63,30 @@ function MoviePoster({ movie, itemWidth, loadingId, setLoadingId }: any) {
       const webView = new WebViewController();
       await webView.loadURL(movie.url);
       await webView.present({ fullscreen: true, navigationTitle: movie.title });
-    } catch (e) {
-    } finally {
-      clearTimeout(safeRelease);
-      GLOBAL_PLAYER_LOCK = false;
-      setLoadingId(null);
-    }
+    } catch (e) {} finally { clearTimeout(timer); LOBSTER_LOCK = false; setLoadingId(null); }
   };
 
   return (
     <VStack frame={{ width: itemWidth }} spacing={6} onTapGesture={openPlayer}>
       <ZStack frame={{ width: itemWidth, height: itemWidth * 0.5625 }} cornerRadius={10} background="secondarySystemBackground" clipShape="rect">
         <Thumbnail url={movie.thumbnail} />
-        {isThisLoading && <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="center" background="rgba(0,0,0,0.5)"><ProgressView /></VStack>}
+        {loadingId === movie.url && <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="center" background="rgba(0,0,0,0.4)"><ProgressView /></VStack>}
         <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="bottomTrailing" padding={6}>
-          <Text font={{ size: 10, name: "system-bold" }} padding={3} background="rgba(0,0,0,0.7)" cornerRadius={4} foregroundStyle="white">{movie.duration}</Text>
+            <Text font={{ size: 10, name: "system-bold" }} padding={3} background="rgba(0,0,0,0.7)" cornerRadius={4} foregroundStyle="white">{movie.duration}</Text>
         </VStack>
       </ZStack>
-      <Text font={{ size: 12, name: "system-bold" }} lineLimit={2} opacity={(GLOBAL_PLAYER_LOCK && !isThisLoading) ? 0.3 : 1}>{movie.title}</Text>
+      <Text font={{ size: 12, name: "system-bold" }} lineLimit={2}>{movie.title}</Text>
     </VStack>
   );
 }
 
 export function View() {
-  const dismiss = Navigation.useDismiss();
   const [list, setList] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
-  const fetchData = async (p: number) => {
+  const scrape = async (p: number) => {
     setLoading(true);
     setList([]);
     try {
@@ -111,57 +102,62 @@ export function View() {
     } catch (e) {} finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchData(page); LOBSTER_PLAYER_LOCK = false; }, [page]);
+  useEffect(() => { scrape(page); LOBSTER_LOCK = false; }, [page]);
 
-  const goNext = () => setPage(p => p + 1);
-  const goPrev = () => setPage(p => Math.max(1, p - 1));
+  const next = () => setPage(p => p + 1);
+  const prev = () => setPage(p => Math.max(1, p - 1));
 
   return (
-    <NavigationStack>
-      <VStack
-        background="systemBackground"
-        frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
-        navigationTitle={`龍蝦影院 P.${page}`}
-        navigationBarTitleDisplayMode="inline"
-        toolbar={{
-          topBarLeading: [
-            <Button key="close_btn" systemImage="xmark" action={() => dismiss()} />
-          ],
-          topBarTrailing: [
-            <HStack key="page_nav" spacing={15}>
-              <Button systemImage="chevron.left" action={goPrev} disabled={page === 1} />
-              <Button systemImage="chevron.right" action={goNext} />
+    <VStack background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
+        
+        {/* 🏔️ 物理隔離 Header：完全獨立於 ZStack 之外 */}
+        <HStack padding={{ leading: 16, trailing: 16, top: 40, bottom: 12 }} alignment="center" background="systemBackground">
+            <Button 
+                systemImage="xmark" 
+                font={{ size: 16, name: "system-bold" }} 
+                foregroundStyle="label" 
+                background="secondarySystemBackground" 
+                padding={10} 
+                cornerRadius={20} 
+                action={() => Navigation.dismiss()} 
+            />
+            <Spacer />
+            <VStack alignment="center">
+                <Text font={{ size: 17, name: "system-bold" }}>龍蝦影院 v9</Text>
+                <Text font={{ size: 11 }} foregroundStyle="secondaryLabel">第 {page} 頁</Text>
+            </VStack>
+            <Spacer />
+            <HStack spacing={12}>
+                <Button systemImage="chevron.left.circle.fill" font={28} foregroundStyle="secondaryLabel" action={prev} disabled={page === 1} />
+                <Button systemImage="chevron.right.circle.fill" font={28} foregroundStyle="secondaryLabel" action={next} />
             </HStack>
-          ]
-        }}
-      >
+        </HStack>
+
         <GeometryReader>
           {(proxy) => {
             const columns = proxy.size.width > 600 ? 4 : 2;
             const itemWidth = (proxy.size.width - 12 * (columns + 1)) / columns;
-            const chunks = [];
-            for (let i = 0; i < list.length; i += columns) chunks.push(list.slice(i, i + columns));
+            const groups = [];
+            for (let i = 0; i < list.length; i += columns) groups.push(list.slice(i, i + columns));
 
             return (
               <ZStack
                 frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
                 simultaneousGesture={DragGesture({ minDistance: 40 }).onEnded((event) => {
                     const dx = event.translation.width;
-                    const dy = event.translation.height;
-                    // 🖐️ 手勢判定標校：回到上一版經典 100 像素門檻
-                    if (Math.abs(dx) > 100 && Math.abs(dx) > Math.abs(dy)) {
-                        if (dx < 0) goNext();
-                        else goPrev();
+                    if (Math.abs(dx) > 100) {
+                        if (dx < 0) next();
+                        else prev();
                     }
                 })}
               >
                 <ScrollView padding={12}>
                   {loading && list.length === 0 ? (
-                    <VStack alignment="center" padding={60}><ProgressView /><Text marginTop={10}>龍蝦正在加載...</Text></VStack>
+                    <VStack alignment="center" padding={60}><ProgressView /><Text marginTop={10}>龍蝦正在加速...</Text></VStack>
                   ) : (
                     <VStack spacing={18}>
-                      {chunks.map((row, idx) => (
-                        <HStack key={`r${page}_${idx}`} spacing={12} frame={{ maxWidth: "infinity" }} alignment="top">
+                      {groups.map((row, idx) => (
+                        <HStack key={`r${idx}`} spacing={12} frame={{ maxWidth: "infinity" }} alignment="top">
                           {row.map((item) => (
                             <MoviePoster key={item.url} movie={item} itemWidth={itemWidth} loadingId={loadingId} setLoadingId={setLoadingId} />
                           ))}
@@ -170,7 +166,7 @@ export function View() {
                           ))}
                         </HStack>
                       ))}
-                      <Spacer frame={{ height: 120 }} />
+                      <Spacer frame={{ height: 100 }} />
                     </VStack>
                   )}
                 </ScrollView>
@@ -178,7 +174,6 @@ export function View() {
             );
           }}
         </GeometryReader>
-      </VStack>
-    </NavigationStack>
+    </VStack>
   );
 }
