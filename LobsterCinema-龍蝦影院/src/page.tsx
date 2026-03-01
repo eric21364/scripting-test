@@ -29,7 +29,6 @@ interface Movie {
   weight: number;
 }
 
-// 🛡️ 播放鎖定單例
 let PLAY_LOCK = false;
 
 function CircleIconButton({ icon, action, size = 32, iconSize = 16, fill = "rgba(0,0,0,0.06)", foregroundStyle = "label", disabled = false }: any) {
@@ -47,7 +46,6 @@ function EnergyBadge({ weight }: { weight: number }) {
   let color = "systemBlue";
   if (weight >= 90) color = "systemPink";
   else if (weight >= 70) color = "systemOrange";
-  
   return (
     <HStack spacing={2} background={color} padding={{ horizontal: 5, vertical: 2 }} cornerRadius={5}>
       <Image systemName="bolt.fill" font={8} foregroundStyle="white" />
@@ -76,21 +74,19 @@ function MoviePoster({ movie, itemWidth, loadingUid, setloadingUid, source }: an
     setloadingUid(movie.url);
     const t = setTimeout(() => { PLAY_LOCK = false; setloadingUid(null); }, 15000);
     try {
-      let hlsUrl = null;
-      
+      let playerUrl = null;
       if (source === 'jable') {
-        const targetUrl = movie.url.startsWith('http') ? movie.url : movie.url;
-        const resp = await fetch(targetUrl);
+        const resp = await fetch(movie.url);
         const html = await resp.text();
         const match = html.match(/hlsUrl\s*=\s*['"]([^'"]+\.m3u8)['"]/);
-        hlsUrl = match && match[1] ? match[1] : targetUrl;
+        playerUrl = match && match[1] ? match[1] : movie.url;
       } else {
-        // XVideos 物理標校：使用 embedframe API 提供乾淨的播放環境，過濾一切網頁干擾
-        hlsUrl = `https://www.xvideos.com/embedframe/${movie.id}`;
+        // 🛠️ XVideos 物理標校：使用 embed 模式確保 100% 播放
+        playerUrl = `https://www.xvideos.com/embedframe/${movie.id}`;
       }
-
       const ctrl = new WebViewController();
-      await ctrl.loadURL(hlsUrl);
+      // 🛡️ 龍蝦物理規範：針對 embed 網址使用純淨 WebView 呈現
+      await ctrl.loadURL(playerUrl);
       await ctrl.present({ fullscreen: true, navigationTitle: movie.title });
     } catch (e) {} finally { clearTimeout(t); PLAY_LOCK = false; setloadingUid(null); }
   };
@@ -142,25 +138,26 @@ export function View() {
           }
         }
       } else {
-        // 🛠️ 修復 XVideos 採集：頁碼 1 的首頁映射為 / ，避免 /new/0 導致 404
-        let targetUrl = '';
-        if (query) {
-           targetUrl = `https://www.xvideos.com/?k=${encodeURIComponent(query)}&p=${p - 1}`;
-        } else {
-           targetUrl = p === 1 ? 'https://www.xvideos.com/' : `https://www.xvideos.com/new/${p - 1}`;
-        }
-        
-        const r = await fetch(targetUrl);
+        // 🛰️ XVideos 標校採集協議 v2
+        const targetUrl = query ? `https://www.xvideos.com/?k=${encodeURIComponent(query)}&p=${p - 1}` : (p === 1 ? 'https://www.xvideos.com/' : `https://www.xvideos.com/new/${p - 1}`);
+        const r = await fetch(targetUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1' } });
         const h = await r.text();
         
-        // 擷取 ID 供 embedframe 使用
-        const reg = /<div id="video_([^"]+)"[\s\S]*?<a href="([^"]+)"[^>]*?>[\s\S]*?data-src="([^"]+)"[\s\S]*?<p class="title"><a href="[^"]+" title="([^"]+)">/g;
+        // 🔬 高容錯正則：物理適配不同佈局
+        const reg = /<div id="video_([^"]+)"[\s\S]*?<a href="([^"]+)"[\s\S]*?data-src="([^"]+)"[\s\S]*?<p class="title"><a[^>]*title="([^"]+)"/g;
         let m;
         while ((m = reg.exec(h)) !== null) {
-          const durationMatch = h.substring(m.index, m.index + 1000).match(/<span class="duration">([^<]+)<\/span>/);
-          const duration = durationMatch ? durationMatch[1] : "N/A";
-          const seed = m[4].length + m[2].length;
-          res.push({ id: m[1], url: m[2], thumbnail: m[3], duration, title: m[4], category: "", weight: 50 + (seed % 50) });
+          const sub = h.substring(m.index, m.index + 1500);
+          const durMatch = sub.match(/class="duration">([^<]+)</);
+          res.push({
+            id: m[1],
+            url: `https://www.xvideos.com${m[2]}`,
+            thumbnail: m[3],
+            duration: durMatch ? durMatch[1].trim() : "N/A",
+            title: m[4].trim(),
+            category: "",
+            weight: 50 + (m[4].length % 50)
+          });
         }
       }
       setList(res);
@@ -183,7 +180,7 @@ export function View() {
             <CircleIconButton icon="xmark" action={dismiss} />
             <Spacer />
             <VStack alignment="center">
-              <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v10.7</Text>
+              <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v10.9</Text>
               <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">當前波段：{source === 'jable' ? "Jable" : "XVideos"}</Text>
             </VStack>
             <Spacer />
@@ -194,39 +191,18 @@ export function View() {
           </HStack>
 
           <HStack spacing={10} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
-            
-            {/* 🔌 實體頻道切換器 */}
             <HStack spacing={0} background="secondarySystemBackground" cornerRadius={10} padding={2}>
                <Button action={() => switchSource('jable')} buttonStyle="plain">
-                  <Text 
-                    font={{ size: 11, name: "system-bold" }} 
-                    padding={{ horizontal: 10, vertical: 5 }} 
-                    background={source === 'jable' ? "systemBackground" : "transparent"} 
-                    cornerRadius={8} 
-                    shadow={source === 'jable' ? { color: "rgba(0,0,0,0.1)", radius: 2 } : undefined}
-                    foregroundStyle={source === 'jable' ? "systemGreen" : "secondaryLabel"}
-                  >Jable</Text>
+                  <Text font={{ size: 11, name: "system-bold" }} padding={{ horizontal: 10, vertical: 5 }} background={source === 'jable' ? "systemBackground" : "transparent"} cornerRadius={8} shadow={source === 'jable' ? { color: "rgba(0,0,0,0.1)", radius: 2 } : undefined} foregroundStyle={source === 'jable' ? "systemGreen" : "secondaryLabel"}>Jable</Text>
                </Button>
                <Button action={() => switchSource('xvideos')} buttonStyle="plain">
-                  <Text 
-                    font={{ size: 11, name: "system-bold" }} 
-                    padding={{ horizontal: 10, vertical: 5 }} 
-                    background={source === 'xvideos' ? "systemBackground" : "transparent"} 
-                    cornerRadius={8} 
-                    shadow={source === 'xvideos' ? { color: "rgba(0,0,0,0.1)", radius: 2 } : undefined}
-                    foregroundStyle={source === 'xvideos' ? "systemBlue" : "secondaryLabel"}
-                  >XV</Text>
+                  <Text font={{ size: 11, name: "system-bold" }} padding={{ horizontal: 10, vertical: 5 }} background={source === 'xvideos' ? "systemBackground" : "transparent"} cornerRadius={8} shadow={source === 'xvideos' ? { color: "rgba(0,0,0,0.1)", radius: 2 } : undefined} foregroundStyle={source === 'xvideos' ? "systemBlue" : "secondaryLabel"}>XV</Text>
                </Button>
             </HStack>
-
             <HStack frame={{ maxWidth: "infinity" }} padding={{ horizontal: 10, vertical: 7 }} background="secondarySystemBackground" cornerRadius={10}>
               <Image systemName="magnifyingglass" font={12} foregroundStyle="secondaryLabel" />
               <TextField title="" prompt="探查..." value={keyword} onChanged={setKeyword} onSubmit={triggerSearch} frame={{ maxWidth: "infinity" }} textFieldStyle="plain" />
-              {keyword.length > 0 && (
-                <Button action={clearSearch} buttonStyle="plain">
-                  <Image systemName="xmark.circle.fill" font={12} foregroundStyle="tertiaryLabel" />
-                </Button>
-              )}
+              {keyword.length > 0 && (<Button action={clearSearch} buttonStyle="plain"><Image systemName="xmark.circle.fill" font={12} foregroundStyle="tertiaryLabel" /></Button>)}
             </HStack>
           </HStack>
           <VStack frame={{ height: 0.5, maxWidth: "infinity" }} background="separator" />
