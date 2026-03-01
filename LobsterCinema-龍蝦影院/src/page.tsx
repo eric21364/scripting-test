@@ -16,8 +16,7 @@ import {
   GeometryReader,
   DragGesture,
   Circle,
-  TextField,
-  ActionSheet
+  TextField
 } from "scripting";
 
 interface Movie {
@@ -47,7 +46,6 @@ function EnergyBadge({ weight }: { weight: number }) {
   let color = "systemBlue";
   if (weight >= 90) color = "systemPink";
   else if (weight >= 70) color = "systemOrange";
-  
   return (
     <HStack spacing={2} background={color} padding={{ horizontal: 5, vertical: 2 }} cornerRadius={5}>
       <Image systemName="bolt.fill" font={8} foregroundStyle="white" />
@@ -161,31 +159,18 @@ export function View() {
   const triggerSearch = () => { if (keyword.trim() === activeSearch) return; setPage(1); setActiveSearch(keyword.trim()); };
   const clearSearch = () => { setKeyword(""); setActiveSearch(""); setPage(1); };
   
-  const showSourcePicker = async () => {
-    const res = await ActionSheet.show({
-      title: "選擇情報來源",
-      message: "請物理切換採集波段",
-      buttons: [
-        { title: "Jable.tv 頻道", style: "default" },
-        { title: "XVideos 頻道", style: "default" },
-        { title: "取消", style: "cancel" }
-      ]
-    });
-    if (res === 0) { setSource('jable'); setPage(1); setKeyword(""); setActiveSearch(""); }
-    else if (res === 1) { setSource('xvideos'); setPage(1); setKeyword(""); setActiveSearch(""); }
-  };
+  const switchSource = (s: 'jable' | 'xvideos') => { setSource(s); setPage(1); setKeyword(""); setActiveSearch(""); };
 
   return (
     <VStack spacing={0} background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
         
-        {/* 🏔️ Header */}
         <VStack spacing={0} background="systemBackground" zIndex={100}>
           <HStack padding={{ top: 8, leading: 16, trailing: 16, bottom: 4 }} alignment="center">
             <CircleIconButton icon="xmark" action={dismiss} />
             <Spacer />
             <VStack alignment="center">
-              <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v10.5</Text>
-              <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">Page {page}</Text>
+              <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v10.6</Text>
+              <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">當前波段：{source === 'jable' ? "Jable" : "XVideos"}</Text>
             </VStack>
             <Spacer />
             <HStack spacing={12}>
@@ -194,19 +179,35 @@ export function View() {
             </HStack>
           </HStack>
 
-          {/* 🏔️ 控制列：強行棄用 Menu，改用 ActionSheet 提升 100% 相容性 */}
-          <HStack spacing={8} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
+          {/* 🏔️ 實體控制艙：放棄下拉選單，改用實體 Segmented Tab 提升 100% 點擊成功率 */}
+          <HStack spacing={10} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
             
-            <Button action={showSourcePicker} buttonStyle="plain">
-                <HStack spacing={4} padding={{ horizontal: 8, vertical: 8 }} background="secondarySystemBackground" cornerRadius={10} frame={{ width: 85 }}>
-                  <Image systemName={source === 'jable' ? "leaf.fill" : "globe.americas.fill"} font={12} foregroundStyle={source === 'jable' ? "systemGreen" : "systemBlue"} />
-                  <Text font={{ size: 11, name: "system-bold" }}>{source === 'jable' ? "Jable" : "XV"}</Text>
-                  <Spacer />
-                  <Image systemName="chevron.up.chevron.down" font={8} foregroundStyle="tertiaryLabel" />
-                </HStack>
-            </Button>
+            {/* 🔌 實體頻道切換器 */}
+            <HStack spacing={0} background="secondarySystemBackground" cornerRadius={10} padding={2}>
+               <Button action={() => switchSource('jable')} buttonStyle="plain">
+                  <Text 
+                    font={{ size: 11, name: "system-bold" }} 
+                    padding={{ horizontal: 10, vertical: 5 }} 
+                    background={source === 'jable' ? "systemBackground" : "transparent"} 
+                    cornerRadius={8} 
+                    shadow={source === 'jable' ? { color: "rgba(0,0,0,0.1)", radius: 2 } : undefined}
+                    foregroundStyle={source === 'jable' ? "systemGreen" : "secondaryLabel"}
+                  >Jable</Text>
+               </Button>
+               <Button action={() => switchSource('xvideos')} buttonStyle="plain">
+                  <Text 
+                    font={{ size: 11, name: "system-bold" }} 
+                    padding={{ horizontal: 10, vertical: 5 }} 
+                    background={source === 'xvideos' ? "systemBackground" : "transparent"} 
+                    cornerRadius={8} 
+                    shadow={source === 'xvideos' ? { color: "rgba(0,0,0,0.1)", radius: 2 } : undefined}
+                    foregroundStyle={source === 'xvideos' ? "systemBlue" : "secondaryLabel"}
+                  >XV</Text>
+               </Button>
+            </HStack>
 
-            <HStack frame={{ maxWidth: "infinity" }} padding={{ horizontal: 10, vertical: 8 }} background="secondarySystemBackground" cornerRadius={10}>
+            {/* 🔍 搜尋框 */}
+            <HStack frame={{ maxWidth: "infinity" }} padding={{ horizontal: 10, vertical: 7 }} background="secondarySystemBackground" cornerRadius={10}>
               <Image systemName="magnifyingglass" font={12} foregroundStyle="secondaryLabel" />
               <TextField title="" prompt="探查..." value={keyword} onChanged={setKeyword} onSubmit={triggerSearch} frame={{ maxWidth: "infinity" }} textFieldStyle="plain" />
               {keyword.length > 0 && (
@@ -228,31 +229,31 @@ export function View() {
             for (let i = 0; i < list.length; i += columns) chunks.push(list.slice(i, i + columns));
 
             return (
-              <ZStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
-                <ScrollView padding={space}>
-                  {loading && list.length === 0 ? (
-                    <VStack alignment="center" padding={60}><ProgressView /></VStack>
-                  ) : (
-                    <VStack spacing={18} simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded(e => {
-                        if (Math.abs(e.translation.width) > 100 && Math.abs(e.translation.width) > Math.abs(e.translation.height)) {
-                          if (e.translation.width < 0) goNext(); else goPrev();
-                        }
-                      })}>
-                      {chunks.map((row, i) => (
-                        <HStack key={`s${source}p${page}r${i}`} spacing={space} alignment="top">
-                          {row.map(m => (
-                            <MoviePoster key={`${source}-${m.url}`} movie={m} itemWidth={itemWidth} loadingUid={loadingUid} setloadingUid={setloadingUid} source={source} />
-                          ))}
-                          {row.length < columns && Array.from({ length: columns - row.length }).map((_, si) => (
-                            <Spacer key={si} frame={{ width: itemWidth }} />
-                          ))}
-                        </HStack>
-                      ))}
-                      <Spacer frame={{ height: 40 }} />
-                    </VStack>
-                  )}
-                </ScrollView>
-              </ZStack>
+              <ScrollView padding={space}>
+                {loading && list.length === 0 ? (
+                  <VStack alignment="center" padding={60}><ProgressView /></VStack>
+                ) : list.length === 0 ? (
+                  <VStack alignment="center" padding={60} spacing={10}><Image systemName="bolt.slash" font={40} foregroundStyle="quaternaryLabel" /><Text foregroundStyle="secondaryLabel">當前波段無訊號</Text></VStack>
+                ) : (
+                  <VStack spacing={18} simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded(e => {
+                      if (Math.abs(e.translation.width) > 100 && Math.abs(e.translation.width) > Math.abs(e.translation.height)) {
+                        if (e.translation.width < 0) goNext(); else goPrev();
+                      }
+                    })}>
+                    {chunks.map((row, i) => (
+                      <HStack key={`s${source}p${page}r${i}`} spacing={space} alignment="top">
+                        {row.map(m => (
+                          <MoviePoster key={`${source}-${m.url}`} movie={m} itemWidth={itemWidth} loadingUid={loadingUid} setloadingUid={setloadingUid} source={source} />
+                        ))}
+                        {row.length < columns && Array.from({ length: columns - row.length }).map((_, si) => (
+                          <Spacer key={si} frame={{ width: itemWidth }} />
+                        ))}
+                      </HStack>
+                    ))}
+                    <Spacer frame={{ height: 40 }} />
+                  </VStack>
+                )}
+              </ScrollView>
             );
           }}
         </GeometryReader>
