@@ -43,7 +43,6 @@ function CircleIconButton({ icon, action, size = 32, iconSize = 16, fill = "rgba
   )
 }
 
-// 🎇 龍蝦能量核徽章
 function EnergyBadge({ weight }: { weight: number }) {
   let color = "systemBlue";
   if (weight >= 90) color = "systemPink";
@@ -80,7 +79,6 @@ function MoviePoster({ movie, itemWidth, loadingUid, setloadingUid, source }: an
       const targetUrl = movie.url.startsWith('http') ? movie.url : (source === 'xvideos' ? `https://www.xvideos.com${movie.url}` : movie.url);
       const resp = await fetch(targetUrl);
       const html = await resp.text();
-      
       let hlsUrl = null;
       if (source === 'jable') {
         const match = html.match(/hlsUrl\s*=\s*['"]([^'"]+\.m3u8)['"]/);
@@ -89,7 +87,6 @@ function MoviePoster({ movie, itemWidth, loadingUid, setloadingUid, source }: an
         const match = html.match(/html5player\.setVideoHLS\(['"]([^'"]+)['"]\)/);
         hlsUrl = match && match[1] ? match[1] : targetUrl;
       }
-
       const ctrl = new WebViewController();
       await ctrl.loadURL(hlsUrl);
       await ctrl.present({ fullscreen: true, navigationTitle: movie.title });
@@ -121,7 +118,6 @@ export function View() {
   const [loadingUid, setloadingUid] = useState<string | null>(null);
   const [keyword, setKeyword] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
-  
   const [source, setSource] = useState<'jable' | 'xvideos'>('jable');
 
   const fetcher = async (p: number, query: string, src: string) => {
@@ -166,47 +162,46 @@ export function View() {
   const goPrev = () => setPage(p => Math.max(1, p - 1));
   const triggerSearch = () => { if (keyword.trim() === activeSearch) return; setPage(1); setActiveSearch(keyword.trim()); };
   const clearSearch = () => { setKeyword(""); setActiveSearch(""); setPage(1); };
-  
-  const switchSource = (s: 'jable' | 'xvideos') => {
-    setSource(s);
-    setPage(1);
-    setKeyword("");
-    setActiveSearch("");
-  };
+  const switchSource = (s: 'jable' | 'xvideos') => { setSource(s); setPage(1); setKeyword(""); setActiveSearch(""); };
 
   return (
     <VStack spacing={0} background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
+        
+        {/* 🏔️ 固定 Header */}
         <VStack spacing={0} background="systemBackground" zIndex={100}>
           <HStack padding={{ top: 8, leading: 16, trailing: 16, bottom: 4 }} alignment="center">
             <CircleIconButton icon="xmark" action={dismiss} />
             <Spacer />
-            
-            {/* 🏔️ Header Dropdown Select: 物理點擊標題即可顯示選單 */}
-            <Menu>
-              <Button buttonStyle="plain">
-                <VStack alignment="center">
-                  <HStack spacing={4}>
-                    <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v10.2</Text>
-                    <Image systemName="chevron.down" font={10} foregroundStyle="tertiaryLabel" />
-                  </HStack>
-                  <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">{source === 'jable' ? "Jable.tv 頻道" : "XVideos 頻道"}</Text>
-                </VStack>
-              </Button>
-              <Button title="Jable 頻道" action={() => switchSource('jable')} />
-              <Button title="XVideos 頻道" action={() => switchSource('xvideos')} />
-            </Menu>
-            
+            <VStack alignment="center">
+              <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v10.3</Text>
+              <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">Page {page}</Text>
+            </VStack>
             <Spacer />
             <HStack spacing={12}>
               <CircleIconButton icon="chevron.left" action={goPrev} disabled={page === 1} foregroundStyle={page === 1 ? "tertiaryLabel" : "label"} />
               <CircleIconButton icon="chevron.right" action={goNext} />
             </HStack>
           </HStack>
-          
-          <HStack spacing={8} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
-            <HStack frame={{ maxWidth: "infinity" }} padding={{ horizontal: 10, vertical: 6 }} background="secondarySystemBackground" cornerRadius={10}>
+
+          {/* 🏔️ 中間控制層：下拉選單 + 搜尋 */}
+          <HStack spacing={10} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
+            
+            {/* 🔌 來源切換下拉 (位於 Header 與內容之間) */}
+            <Menu>
+              <Button buttonStyle="plain">
+                <HStack spacing={4} padding={{ horizontal: 10, vertical: 8 }} background="secondarySystemBackground" cornerRadius={10}>
+                  <Image systemName={source === 'jable' ? "leaf.fill" : "globe.americas.fill"} font={14} foregroundStyle={source === 'jable' ? "systemGreen" : "systemBlue"} />
+                  <Text font={{ size: 13, name: "system-bold" }}>{source === 'jable' ? "Jable" : "XV"}</Text>
+                  <Image systemName="chevron.down" font={8} foregroundStyle="tertiaryLabel" />
+                </HStack>
+              </Button>
+              <Button title="Jable.tv 頻道" action={() => switchSource('jable')} />
+              <Button title="XVideos 頻道" action={() => switchSource('xvideos')} />
+            </Menu>
+
+            <HStack frame={{ maxWidth: "infinity" }} padding={{ horizontal: 10, vertical: 8 }} background="secondarySystemBackground" cornerRadius={10}>
               <Image systemName="magnifyingglass" font={14} foregroundStyle="secondaryLabel" />
-              <TextField title="" prompt={`在 ${source === 'jable' ? 'Jable' : 'XV'} 中搜尋...`} value={keyword} onChanged={setKeyword} onSubmit={triggerSearch} frame={{ maxWidth: "infinity" }} textFieldStyle="plain" />
+              <TextField title="" prompt="探查..." value={keyword} onChanged={setKeyword} onSubmit={triggerSearch} frame={{ maxWidth: "infinity" }} textFieldStyle="plain" />
               {keyword.length > 0 && (
                 <Button action={clearSearch} buttonStyle="plain">
                   <Image systemName="xmark.circle.fill" font={14} foregroundStyle="tertiaryLabel" />
@@ -234,8 +229,6 @@ export function View() {
                 <ScrollView padding={space}>
                   {loading && list.length === 0 ? (
                     <VStack alignment="center" padding={60}><ProgressView /></VStack>
-                  ) : list.length === 0 ? (
-                    <VStack alignment="center" padding={60} spacing={10}><Image systemName="bolt.slash" font={40} foregroundStyle="quaternaryLabel" /><Text foregroundStyle="secondaryLabel">訊號中斷，請重試</Text></VStack>
                   ) : (
                     <VStack spacing={18}>
                       {chunks.map((row, i) => (
