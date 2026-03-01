@@ -15,7 +15,9 @@ import {
   WebViewController,
   GeometryReader,
   DragGesture,
-  Circle
+  Circle,
+  TextField,
+  RoundedRectangle
 } from "scripting";
 
 interface Movie {
@@ -29,9 +31,9 @@ interface Movie {
 // 🛡️ 播放鎖定單例
 let PLAY_LOCK = false;
 
-function CircleIconButton({ icon, action, size = 32, iconSize = 16, fill = "rgba(0,0,0,0.06)", foregroundStyle = "label" }: any) {
+function CircleIconButton({ icon, action, size = 32, iconSize = 16, fill = "rgba(0,0,0,0.06)", foregroundStyle = "label", disabled = false }: any) {
   return (
-    <Button action={action} buttonStyle="plain">
+    <Button action={action} buttonStyle="plain" disabled={disabled}>
       <ZStack frame={{ width: size, height: size }}>
         <Circle fill={fill} />
         <Image systemName={icon} font={iconSize} foregroundStyle={foregroundStyle} />
@@ -88,37 +90,64 @@ export function View() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadingUid, setloadingUid] = useState<string | null>(null);
+  
+  // 🔍 搜尋相關狀態
+  const [keyword, setKeyword] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
 
-  const fetcher = async (p: number) => {
+  const fetcher = async (p: number, query: string) => {
     setLoading(true);
     setList([]);
     try {
-      const r = await fetch(`https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${(p - 1) * 24}&_=${Date.now()}`);
+      // 標校區塊 ID：搜尋結果與首頁區區塊不同
+      const blockId = query ? "list_videos_videos_list_search_result" : "list_videos_common_videos_list";
+      const baseUrl = query ? `https://jable.tv/search/${encodeURIComponent(query)}/${p}/` : "https://jable.tv/hot/";
+      const fromOffset = (p - 1) * 24;
+      
+      const targetUrl = `${baseUrl}?mode=async&function=get_block&block_id=${blockId}&from=${fromOffset}&_=${Date.now()}`;
+      
+      const r = await fetch(targetUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
       const h = await r.text();
+      
+      // 正則提取邏輯維持通用標校
       const reg = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img[^>]*?data-src="([^"]+)"[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<(?:div|h6) class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
       const res: Movie[] = [];
       let m;
-      while ((m = reg.exec(h)) !== null) res.push({ url: m[1], thumbnail: m[2], duration: m[3], title: m[4], category: "" });
+      while ((m = reg.exec(h)) !== null) {
+        if (m[2] && !m[2].includes('placeholder')) res.push({ url: m[1], thumbnail: m[2], duration: m[3], title: m[4], category: "" });
+      }
       setList(res);
     } catch (e) {} finally { setLoading(false); }
   };
 
-  useEffect(() => { fetcher(page); PLAY_LOCK = false; }, [page]);
+  useEffect(() => { fetcher(page, activeSearch); PLAY_LOCK = false; }, [page, activeSearch]);
 
   const goNext = () => setPage(p => p + 1);
   const goPrev = () => setPage(p => Math.max(1, p - 1));
+  
+  const triggerSearch = () => {
+    if (keyword.trim() === activeSearch) return;
+    setPage(1);
+    setActiveSearch(keyword.trim());
+  };
+
+  const clearSearch = () => {
+    setKeyword("");
+    setActiveSearch("");
+    setPage(1);
+  };
 
   return (
     <VStack spacing={0} background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
         
-        {/* 🏔️ 物理 Header：移除頂部過大空白，提升緊湊度 */}
+        {/* 🏔️ 物理 Header 組 */}
         <VStack spacing={0} background="systemBackground" zIndex={100}>
-          <HStack padding={{ top: 8, leading: 16, trailing: 16, bottom: 8 }} alignment="center">
+          <HStack padding={{ top: 8, leading: 16, trailing: 16, bottom: 4 }} alignment="center">
             <CircleIconButton icon="xmark" action={dismiss} />
             <Spacer />
             <VStack alignment="center">
-              <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v9</Text>
-              <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">當前第 {page} 頁</Text>
+              <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v9.9.8</Text>
+              <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">{activeSearch ? `搜尋：${activeSearch}` : "首頁熱門"} · P.{page}</Text>
             </VStack>
             <Spacer />
             <HStack spacing={12}>
@@ -126,6 +155,38 @@ export function View() {
               <CircleIconButton icon="chevron.right" action={goNext} />
             </HStack>
           </HStack>
+          
+          {/* 🔍 搜尋列模組 (Navidrome 風格標校) */}
+          <HStack spacing={8} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
+            <HStack 
+              frame={{ maxWidth: "infinity" }} 
+              padding={{ horizontal: 10, vertical: 6 }} 
+              background="secondarySystemBackground" 
+              cornerRadius={10}
+            >
+              <Image systemName="magnifyingglass" font={14} foregroundStyle="secondaryLabel" />
+              <TextField 
+                title=""
+                prompt="輸入關鍵字..." 
+                value={keyword} 
+                onChanged={setKeyword}
+                onSubmit={triggerSearch}
+                frame={{ maxWidth: "infinity" }}
+                textFieldStyle="plain"
+              />
+              {keyword.length > 0 && (
+                <Button action={clearSearch} buttonStyle="plain">
+                  <Image systemName="xmark.circle.fill" font={14} foregroundStyle="tertiaryLabel" />
+                </Button>
+              )}
+            </HStack>
+            {keyword.trim() !== activeSearch && (
+              <Button action={triggerSearch} buttonStyle="plain">
+                <Text font={{ size: 14, name: "system-bold" }} foregroundStyle="systemBlue">搜尋</Text>
+              </Button>
+            )}
+          </HStack>
+          
           <VStack frame={{ height: 0.5, maxWidth: "infinity" }} background="separator" />
         </VStack>
 
@@ -150,6 +211,11 @@ export function View() {
                 <ScrollView padding={space}>
                   {loading && list.length === 0 ? (
                     <VStack alignment="center" padding={60}><ProgressView /></VStack>
+                  ) : list.length === 0 ? (
+                    <VStack alignment="center" padding={60} spacing={10}>
+                      <Image systemName="magnifyingglass" font={40} foregroundStyle="quaternaryLabel" />
+                      <Text foregroundStyle="secondaryLabel">未找到相關內容</Text>
+                    </VStack>
                   ) : (
                     <VStack spacing={18}>
                       {chunks.map((row, i) => (
@@ -162,7 +228,6 @@ export function View() {
                           ))}
                         </HStack>
                       ))}
-                      {/* 🏔️ 內容底部空白優化 */}
                       <Spacer frame={{ height: 40 }} />
                     </VStack>
                   )}
