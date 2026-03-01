@@ -15,8 +15,7 @@ import {
   WebViewController,
   GeometryReader,
   DragGesture,
-  Circle,
-  NavigationStack
+  Circle
 } from "scripting";
 
 interface Movie {
@@ -30,7 +29,7 @@ interface Movie {
 // 🛡️ 播放鎖定單例
 let PLAY_LOCK = false;
 
-function CircleIconButton({ icon, action, size = 34, iconSize = 18, fill = "rgba(0,0,0,0.3)", foregroundStyle = "white" }: any) {
+function CircleIconButton({ icon, action, size = 32, iconSize = 16, fill = "rgba(0,0,0,0.06)", foregroundStyle = "label" }: any) {
   return (
     <Button action={action} buttonStyle="plain">
       <ZStack frame={{ width: size, height: size }}>
@@ -44,7 +43,9 @@ function CircleIconButton({ icon, action, size = 34, iconSize = 18, fill = "rgba
 function Thumbnail({ url }: { url: string }) {
   const [img, setImg] = useState<UIImage | null>(null);
   useEffect(() => {
-    UIImage.fromURL(url).then(i => { if (i) setImg(i); }).catch(() => {});
+    let active = true;
+    UIImage.fromURL(url).then(i => { if (i && active) setImg(i); }).catch(() => {});
+    return () => { active = false; };
   }, [url]);
   if (!img) return <ProgressView progressViewStyle="circular" />;
   return <Image image={img} resizable scaleToFill frame={{ maxWidth: "infinity", height: "infinity" }} />;
@@ -76,7 +77,7 @@ function MoviePoster({ movie, itemWidth, loadingUid, setloadingUid }: any) {
            <Text font={{size: 9, name: "system-bold"}} background="rgba(0,0,0,0.6)" padding={2} cornerRadius={4} foregroundStyle="white">{movie.duration}</Text>
         </VStack>
       </ZStack>
-      <Text font={{size: 12, name: "system-bold"}} lineLimit={2} opacity={PLAY_LOCK && !isL ? 0.4 : 1}>{movie.title}</Text>
+      <Text font={{size: 11, name: "system-bold"}} lineLimit={2} opacity={PLAY_LOCK && !isL ? 0.35 : 1}>{movie.title}</Text>
     </VStack>
   );
 }
@@ -108,75 +109,68 @@ export function View() {
   const goPrev = () => setPage(p => Math.max(1, p - 1));
 
   return (
-    <NavigationStack>
-      <ZStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} background="systemBackground">
+    <VStack spacing={0} background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
         
-        {/* 🏔️ 內容區域 */}
-        <VStack spacing={0} frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
-          
-          {/* 🏔️ 範本級別 Header (固定於頂部) */}
-          <VStack spacing={0} background="systemBackground" zIndex={100}>
-            <HStack padding={{ top: 56, leading: 16, trailing: 16, bottom: 12 }} alignment="center">
-              <CircleIconButton icon="xmark" action={dismiss} fill="rgba(0,0,0,0.08)" foregroundStyle="label" />
-              <Spacer />
-              <VStack alignment="center">
-                <Text font={{ size: 17, name: "system-bold" }}>龍蝦影院 v9</Text>
-                <Text font={{ size: 10 }} foregroundStyle="secondaryLabel">Page {page}</Text>
-              </VStack>
-              <Spacer />
-              <HStack spacing={12}>
-                <CircleIconButton icon="chevron.left" action={goPrev} disabled={page === 1} fill="rgba(0,0,0,0.05)" foregroundStyle={page === 1 ? "tertiaryLabel" : "label"} />
-                <CircleIconButton icon="chevron.right" action={goNext} fill="rgba(0,0,0,0.05)" foregroundStyle="label" />
-              </HStack>
+        {/* 🏔️ 物理 Header：移除頂部過大空白，提升緊湊度 */}
+        <VStack spacing={0} background="systemBackground" zIndex={100}>
+          <HStack padding={{ top: 8, leading: 16, trailing: 16, bottom: 8 }} alignment="center">
+            <CircleIconButton icon="xmark" action={dismiss} />
+            <Spacer />
+            <VStack alignment="center">
+              <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v9</Text>
+              <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">當前第 {page} 頁</Text>
+            </VStack>
+            <Spacer />
+            <HStack spacing={12}>
+              <CircleIconButton icon="chevron.left" action={goPrev} disabled={page === 1} foregroundStyle={page === 1 ? "tertiaryLabel" : "label"} />
+              <CircleIconButton icon="chevron.right" action={goNext} />
             </HStack>
-            <VStack frame={{ height: 0.5, maxWidth: "infinity" }} background="separator" />
-          </VStack>
-
-          <GeometryReader>
-            {(proxy) => {
-              const columns = proxy.size.width > 600 ? 4 : 2;
-              const itemWidth = (proxy.size.width - 12 * (columns + 1)) / columns;
-              const chunks = [];
-              for (let i = 0; i < list.length; i += columns) chunks.push(list.slice(i, i + columns));
-
-              return (
-                <ZStack
-                  frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
-                  simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded(e => {
-                    const dx = e.translation.width;
-                    const dy = e.translation.height;
-                    // 🖐️ 手勢判定校準：橫移門檻 100 像素
-                    if (Math.abs(dx) > 100 && Math.abs(dx) > Math.abs(dy)) {
-                      if (dx < 0) goNext();
-                      else goPrev();
-                    }
-                  })}
-                >
-                  <ScrollView padding={12}>
-                    {loading && list.length === 0 ? (
-                      <VStack alignment="center" padding={60}><ProgressView /><Text marginTop={10} font={12} foregroundStyle="secondaryLabel">龍蝦深潛中...</Text></VStack>
-                    ) : (
-                      <VStack spacing={18}>
-                        {chunks.map((row, i) => (
-                          <HStack key={`p${page}r${i}`} spacing={12} alignment="top">
-                            {row.map(m => (
-                              <MoviePoster key={m.url} movie={m} itemWidth={itemWidth} loadingUid={loadingUid} setloadingUid={setloadingUid} />
-                            ))}
-                            {row.length < columns && Array.from({ length: columns - row.length }).map((_, si) => (
-                              <Spacer key={si} frame={{ width: itemWidth }} />
-                            ))}
-                          </HStack>
-                        ))}
-                        <Spacer frame={{ height: 150 }} />
-                      </VStack>
-                    )}
-                  </ScrollView>
-                </ZStack>
-              );
-            }}
-          </GeometryReader>
+          </HStack>
+          <VStack frame={{ height: 0.5, maxWidth: "infinity" }} background="separator" />
         </VStack>
-      </ZStack>
-    </NavigationStack>
+
+        <GeometryReader>
+          {(proxy) => {
+            const columns = proxy.size.width > 600 ? 4 : 2;
+            const space = 12;
+            const itemWidth = (proxy.size.width - space * (columns + 1)) / columns;
+            const chunks = [];
+            for (let i = 0; i < list.length; i += columns) chunks.push(list.slice(i, i + columns));
+
+            return (
+              <ZStack
+                frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
+                simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded(e => {
+                  if (Math.abs(e.translation.width) > 100 && Math.abs(e.translation.width) > Math.abs(e.translation.height)) {
+                    if (e.translation.width < 0) goNext();
+                    else goPrev();
+                  }
+                })}
+              >
+                <ScrollView padding={space}>
+                  {loading && list.length === 0 ? (
+                    <VStack alignment="center" padding={60}><ProgressView /></VStack>
+                  ) : (
+                    <VStack spacing={18}>
+                      {chunks.map((row, i) => (
+                        <HStack key={`p${page}r${i}`} spacing={space} alignment="top">
+                          {row.map(m => (
+                            <MoviePoster key={m.url} movie={m} itemWidth={itemWidth} loadingUid={loadingUid} setloadingUid={setloadingUid} />
+                          ))}
+                          {row.length < columns && Array.from({ length: columns - row.length }).map((_, si) => (
+                            <Spacer key={si} frame={{ width: itemWidth }} />
+                          ))}
+                        </HStack>
+                      ))}
+                      {/* 🏔️ 內容底部空白優化 */}
+                      <Spacer frame={{ height: 40 }} />
+                    </VStack>
+                  )}
+                </ScrollView>
+              </ZStack>
+            );
+          }}
+        </GeometryReader>
+    </VStack>
   );
 }
