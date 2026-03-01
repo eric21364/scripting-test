@@ -117,7 +117,7 @@ function MoviePoster({ movie, itemWidth }: { movie: Movie, itemWidth: number }) 
 
   return (
     <VStack frame={{ width: itemWidth }} spacing={6} onTapGesture={openPlayer}>
-      <ZStack frame={{ width: itemWidth, height: imageHeight }} cornerRadius={10} background="#111" clipShape="rect">
+      <ZStack frame={{ width: itemWidth, height: imageHeight }} cornerRadius={10} background="secondarySystemBackground" clipShape="rect">
         <Thumbnail url={movie.thumbnail} />
         <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="bottomTrailing" padding={6}>
           <Text font={{ size: 10, name: "system-bold" }} padding={3} background="rgba(0,0,0,0.75)" cornerRadius={4} foregroundStyle="white">
@@ -126,7 +126,7 @@ function MoviePoster({ movie, itemWidth }: { movie: Movie, itemWidth: number }) 
         </VStack>
       </ZStack>
       <VStack alignment="leading" spacing={2} padding={{ leading: 2, trailing: 2 }}>
-        <Text font={{ size: 12, name: "system-bold" }} lineLimit={2} foregroundStyle="white">
+        <Text font={{ size: 12, name: "system-bold" }} lineLimit={2}>
           {movie.title}
         </Text>
       </VStack>
@@ -184,24 +184,7 @@ export function View() {
   }, [page]);
 
   return (
-    <VStack background="#000" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
-      {/* 自定義上方工具列：確保文字顏色與背景分離 */}
-      <HStack padding={16} background="#111" frame={{ maxWidth: "infinity" }} alignment="center">
-        <Button systemImage="xmark" foregroundStyle="white" action={dismiss} />
-        <Spacer />
-        <VStack alignment="center" spacing={2}>
-          <Text foregroundStyle="white" font={{ size: 17, name: "system-bold" }}>龍蝦影院 v9・王者復刻</Text>
-          <Text foregroundStyle="#aaa" font={{ size: 12 }}>當前第 {page} 頁</Text>
-        </VStack>
-        <Spacer />
-        <HStack spacing={20}>
-          {page > 1 && (
-            <Button systemImage="chevron.left" foregroundStyle="white" action={() => setPage(page - 1)} />
-          )}
-          <Button systemImage="chevron.right" foregroundStyle="white" action={() => setPage(page + 1)} />
-        </HStack>
-      </HStack>
-
+    <NavigationStack>
       <GeometryReader>
         {(proxy) => {
           const minItemWidth = 160;
@@ -216,31 +199,48 @@ export function View() {
           }
 
           return (
-            <ScrollView padding={spacing}>
-              {loading ? (
-                <VStack alignment="center" padding={60}>
-                  <ProgressView foregroundStyle="white" />
-                  <Text marginTop={10} foregroundStyle="#aaa">正在透過直達傳輸採集...</Text>
-                </VStack>
-              ) : (
-                <VStack spacing={18}>
-                  {chunks.map((row, idx) => (
-                    <HStack key={'row_' + idx} spacing={spacing} frame={{ maxWidth: "infinity" }} alignment="top">
-                      {row.map((item, cidx) => (
-                        <MoviePoster key={'item_' + idx + '_' + cidx} movie={item} itemWidth={itemWidth} />
-                      ))}
-                      {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
-                        <Spacer key={'spacer_' + i} frame={{ width: itemWidth }} />
-                      ))}
-                    </HStack>
-                  ))}
-                  <Spacer frame={{ height: 120 }} />
-                </VStack>
-              )}
-            </ScrollView>
+            <VStack
+              navigationTitle={`龍蝦 v9・智能排版 (P.${page})`}
+              toolbar={{
+                topBarLeading: [
+                    <Button title="離開" systemImage="xmark" action={dismiss} />
+                ],
+                topBarTrailing: [
+                  <HStack spacing={20}>
+                    {page > 1 && (
+                      <Button title="後退" systemImage="chevron.left" action={() => setPage(page - 1)} />
+                    )}
+                    <Button title="前進" systemImage="chevron.right" action={() => setPage(page + 1)} />
+                  </HStack>
+                ]
+              }}
+            >
+              <ScrollView padding={spacing}>
+                {loading ? (
+                  <VStack alignment="center" padding={60}>
+                    <ProgressView />
+                    <Text marginTop={10} foregroundStyle="secondaryLabel">正在透過直達傳輸採集...</Text>
+                  </VStack>
+                ) : (
+                  <VStack spacing={18}>
+                    {chunks.map((row, idx) => (
+                      <HStack key={'row_' + idx} spacing={spacing} frame={{ maxWidth: "infinity" }} alignment="top">
+                        {row.map((item, cidx) => (
+                          <MoviePoster key={'item_' + idx + '_' + cidx} movie={item} itemWidth={itemWidth} />
+                        ))}
+                        {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
+                          <Spacer key={'spacer_' + i} frame={{ width: itemWidth }} />
+                        ))}
+                      </HStack>
+                    ))}
+                    <Spacer frame={{ height: 120 }} />
+                  </VStack>
+                )}
+              </ScrollView>
+            </VStack>
           );
         }}
       </GeometryReader>
-    </VStack>
+    </NavigationStack>
   );
 }
