@@ -15,6 +15,7 @@ import {
   UIImage,
   WebViewController,
   GeometryReader,
+  DragGesture,
 } from "scripting";
 
 interface Movie {
@@ -211,81 +212,86 @@ export function View() {
 
   return (
     <NavigationStack>
-      <GeometryReader>
-        {(proxy) => {
-          const minItemWidth = 160;
-          const spacing = 12;
-          const columns = Math.max(2, Math.floor((proxy.size.width - spacing) / (minItemWidth + spacing)));
-          const totalSpacing = spacing * (columns + 1);
-          const itemWidth = (proxy.size.width - totalSpacing) / columns;
-
-          const chunks = [];
-          for (let i = 0; i < list.length; i += columns) {
-            chunks.push(list.slice(i, i + columns));
+      {/* 🚀 採用王者範本邏輯：使用 ZStack + simultaneousGesture (DragGesture) 實現物理滑動 */}
+      <ZStack
+        frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
+        simultaneousGesture={DragGesture({ minDistance: 40 }).onEnded((event) => {
+          const dx = event.translation.width;
+          if (Math.abs(dx) > 80) {
+              if (dx < 0) handleNext(); // 向左滑 -> 下一頁
+              else handlePrev(); // 向右滑 -> 上一頁
           }
+        })}
+      >
+        <VStack
+          navigationTitle={`龍蝦 v9・手勢進化 (P.${page})`}
+          toolbar={{
+            topBarLeading: [<Button systemImage="xmark" action={() => dismiss()} />],
+            topBarTrailing: [
+              <HStack spacing={15}>
+                <Button systemImage="chevron.left" action={handlePrev} />
+                <Button systemImage="chevron.right" action={handleNext} />
+              </HStack>
+            ]
+          }}
+        >
+          <GeometryReader>
+            {(proxy) => {
+              const minItemWidth = 160;
+              const spacing = 12;
+              const columns = Math.max(2, Math.floor((proxy.size.width - spacing) / (minItemWidth + spacing)));
+              const totalSpacing = spacing * (columns + 1);
+              const itemWidth = (proxy.size.width - totalSpacing) / columns;
 
-          return (
-            <VStack
-              navigationTitle={`龍蝦 v9・智慧分頁 (P.${page})`}
-              toolbar={{
-                topBarLeading: [<Button key="close-btn" systemImage="xmark" action={dismiss} />],
-                topBarTrailing: [
-                  <HStack spacing={15}>
-                    <Button key="prev-btn" systemImage="chevron.left" action={handlePrev} />
-                    <Button key="next-btn" systemImage="chevron.right" action={handleNext} />
-                  </HStack>
-                ]
-              }}
-            >
-              {/* 🛡️ 將手勢區域限縮在內容區，不影響工具列 */}
-              <ScrollView 
-                padding={spacing}
-                onSwipeGesture={(direction) => {
-                    if (direction === "left") handleNext();
-                    if (direction === "right") handlePrev();
-                }}
-              >
-                {loading && list.length === 0 ? (
-                  <VStack alignment="center" padding={60}>
-                    <ProgressView />
-                    <Text marginTop={10} foregroundStyle="secondaryLabel">正在採集第 {page} 頁...</Text>
-                  </VStack>
-                ) : (
-                  <VStack spacing={18}>
-                    {chunks.map((row, idx) => (
-                      <HStack key={'row_' + idx} spacing={spacing} frame={{ maxWidth: "infinity" }} alignment="top">
-                        {row.map((item, cidx) => (
-                          <MoviePoster 
-                            key={'item_p' + page + '_' + idx + '_' + cidx} 
-                            movie={item} 
-                            itemWidth={itemWidth} 
-                            globalLoadingId={globalLoadingId}
-                            setGlobalLoadingId={setGlobalLoadingId}
-                          />
-                        ))}
-                        {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
-                          <Spacer key={'spacer_' + i} frame={{ width: itemWidth }} />
-                        ))}
-                      </HStack>
-                    ))}
-                    {list.length > 0 && (
-                        <VStack alignment="center" padding={20}>
-                            <HStack spacing={30}>
-                                <Button title="上一頁" action={handlePrev} disabled={page === 1} />
-                                <Text foregroundStyle="secondaryLabel">第 {page} 頁</Text>
-                                <Button title="下一頁" action={handleNext} />
-                            </HStack>
-                            <Text marginTop={10} font={{ size: 10 }} foregroundStyle="quaternaryLabel">提示：可左右滑動頁面進行手勢翻頁</Text>
-                        </VStack>
-                    )}
-                    <Spacer frame={{ height: 120 }} />
-                  </VStack>
-                )}
-              </ScrollView>
-            </VStack>
-          );
-        }}
-      </GeometryReader>
+              const chunks = [];
+              for (let i = 0; i < list.length; i += columns) {
+                chunks.push(list.slice(i, i + columns));
+              }
+
+              return (
+                <ScrollView padding={spacing}>
+                  {loading && list.length === 0 ? (
+                    <VStack alignment="center" padding={60}>
+                      <ProgressView />
+                      <Text marginTop={10} foregroundStyle="secondaryLabel">龍蝦正職採集第 {page} 頁...</Text>
+                    </VStack>
+                  ) : (
+                    <VStack spacing={18}>
+                      {chunks.map((row, idx) => (
+                        <HStack key={'row_' + idx} spacing={spacing} frame={{ maxWidth: "infinity" }} alignment="top">
+                          {row.map((item, cidx) => (
+                            <MoviePoster 
+                              key={'item_p' + page + '_' + idx + '_' + cidx} 
+                              movie={item} 
+                              itemWidth={itemWidth} 
+                              globalLoadingId={globalLoadingId}
+                              setGlobalLoadingId={setGlobalLoadingId}
+                            />
+                          ))}
+                          {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
+                            <Spacer key={'spacer_' + i} frame={{ width: itemWidth }} />
+                          ))}
+                        </HStack>
+                      ))}
+                      {list.length > 0 && (
+                          <VStack alignment="center" padding={20}>
+                              <HStack spacing={30}>
+                                  <Button title="上一頁" action={handlePrev} disabled={page === 1} />
+                                  <Text foregroundStyle="secondaryLabel">第 {page} 頁</Text>
+                                  <Button title="下一頁" action={handleNext} />
+                              </HStack>
+                              <Text marginTop={10} font={{ size: 10 }} foregroundStyle="quaternaryLabel">💡 提示：支援左右滑動翻頁，且不影嚮按鈕點擊</Text>
+                          </VStack>
+                      )}
+                      <Spacer frame={{ height: 120 }} />
+                    </VStack>
+                  )}
+                </ScrollView>
+              );
+            }}
+          </GeometryReader>
+        </VStack>
+      </ZStack>
     </NavigationStack>
   );
 }
