@@ -26,7 +26,7 @@ interface Movie {
   category: string;
 }
 
-// 🛡️ 龍蝦物理全域鎖定
+// 🛡️ 龍蝦物理全域鎖定：物理級單例模式
 let LOBSTER_GLOBAL_PLAYER_LOCK = false;
 
 function Thumbnail({ url }: { url: string }) {
@@ -66,7 +66,6 @@ function MoviePoster({ movie, itemWidth, globalLoadingId, setGlobalLoadingId }: 
 
   const openPlayer = async () => {
     if (LOBSTER_GLOBAL_PLAYER_LOCK) return;
-    
     LOBSTER_GLOBAL_PLAYER_LOCK = true;
     setGlobalLoadingId(movieId);
 
@@ -162,7 +161,6 @@ function MoviePoster({ movie, itemWidth, globalLoadingId, setGlobalLoadingId }: 
 }
 
 export function View() {
-  const dismiss = Navigation.useDismiss();
   const [list, setList] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -212,86 +210,85 @@ export function View() {
 
   return (
     <NavigationStack>
-      {/* 🚀 採用王者範本邏輯：使用 ZStack + simultaneousGesture (DragGesture) 實現物理滑動 */}
-      <ZStack
-        frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
-        simultaneousGesture={DragGesture({ minDistance: 40 }).onEnded((event) => {
-          const dx = event.translation.width;
-          if (Math.abs(dx) > 80) {
-              if (dx < 0) handleNext(); // 向左滑 -> 下一頁
-              else handlePrev(); // 向右滑 -> 上一頁
-          }
-        })}
-      >
-        <VStack
-          navigationTitle={`龍蝦 v9・手勢進化 (P.${page})`}
-          toolbar={{
-            topBarLeading: [<Button systemImage="xmark" action={() => dismiss()} />],
-            topBarTrailing: [
-              <HStack spacing={15}>
-                <Button systemImage="chevron.left" action={handlePrev} />
-                <Button systemImage="chevron.right" action={handleNext} />
-              </HStack>
-            ]
-          }}
-        >
-          <GeometryReader>
+      <VStack background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
+        {/* 🛠️ 手製王者導航列：徹底解決 Native Toolbar 觸控被攔截與配色問題 */}
+        <HStack padding={16} alignment="center" background="systemBackground">
+          <Button systemImage="xmark" action={() => Navigation.dismiss()} />
+          <Spacer />
+          <VStack alignment="center" spacing={2}>
+            <Text font={{ size: 17, name: "system-bold" }}>龍蝦・王者復刻</Text>
+            <Text font={{ size: 12 }} foregroundStyle="secondaryLabel">第 {page} 頁</Text>
+          </VStack>
+          <Spacer />
+          <HStack spacing={20}>
+            <Button systemImage="chevron.left" action={handlePrev} />
+            <Button systemImage="chevron.right" action={handleNext} />
+          </HStack>
+        </HStack>
+
+        <GeometryReader>
             {(proxy) => {
-              const minItemWidth = 160;
-              const spacing = 12;
-              const columns = Math.max(2, Math.floor((proxy.size.width - spacing) / (minItemWidth + spacing)));
-              const totalSpacing = spacing * (columns + 1);
-              const itemWidth = (proxy.size.width - totalSpacing) / columns;
+                const minItemWidth = 160;
+                const spacing = 12;
+                const columns = Math.max(2, Math.floor((proxy.size.width - spacing) / (minItemWidth + spacing)));
+                const totalSpacing = spacing * (columns + 1);
+                const itemWidth = (proxy.size.width - totalSpacing) / columns;
 
-              const chunks = [];
-              for (let i = 0; i < list.length; i += columns) {
-                chunks.push(list.slice(i, i + columns));
-              }
+                const chunks = [];
+                for (let i = 0; i < list.length; i += columns) {
+                    chunks.push(list.slice(i, i + columns));
+                }
 
-              return (
-                <ScrollView padding={spacing}>
-                  {loading && list.length === 0 ? (
-                    <VStack alignment="center" padding={60}>
-                      <ProgressView />
-                      <Text marginTop={10} foregroundStyle="secondaryLabel">龍蝦正職採集第 {page} 頁...</Text>
-                    </VStack>
-                  ) : (
-                    <VStack spacing={18}>
-                      {chunks.map((row, idx) => (
-                        <HStack key={'row_' + idx} spacing={spacing} frame={{ maxWidth: "infinity" }} alignment="top">
-                          {row.map((item, cidx) => (
-                            <MoviePoster 
-                              key={'item_p' + page + '_' + idx + '_' + cidx} 
-                              movie={item} 
-                              itemWidth={itemWidth} 
-                              globalLoadingId={globalLoadingId}
-                              setGlobalLoadingId={setGlobalLoadingId}
-                            />
-                          ))}
-                          {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
-                            <Spacer key={'spacer_' + i} frame={{ width: itemWidth }} />
-                          ))}
-                        </HStack>
-                      ))}
-                      {list.length > 0 && (
-                          <VStack alignment="center" padding={20}>
-                              <HStack spacing={30}>
-                                  <Button title="上一頁" action={handlePrev} disabled={page === 1} />
-                                  <Text foregroundStyle="secondaryLabel">第 {page} 頁</Text>
-                                  <Button title="下一頁" action={handleNext} />
-                              </HStack>
-                              <Text marginTop={10} font={{ size: 10 }} foregroundStyle="quaternaryLabel">💡 提示：支援左右滑動翻頁，且不影嚮按鈕點擊</Text>
-                          </VStack>
-                      )}
-                      <Spacer frame={{ height: 120 }} />
-                    </VStack>
-                  )}
-                </ScrollView>
-              );
+                return (
+                    /* 🛡️ 物理手勢保護區：手勢只覆蓋內容區，且使用 simultaneousGesture 以免干擾 ScrollView 捲動 */
+                    <ZStack
+                        frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
+                        simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded((event) => {
+                            const dx = event.translation.width;
+                            if (Math.abs(dx) > 100) {
+                                if (dx < 0) handleNext();
+                                else handlePrev();
+                            }
+                        })}
+                    >
+                        <ScrollView padding={spacing}>
+                            {loading && list.length === 0 ? (
+                                <VStack alignment="center" padding={60}>
+                                    <ProgressView />
+                                    <Text marginTop={10} foregroundStyle="secondaryLabel">王者正在採集...</Text>
+                                </VStack>
+                            ) : (
+                                <VStack spacing={18}>
+                                    {chunks.map((row, idx) => (
+                                        <HStack key={'row_' + idx} spacing={spacing} frame={{ maxWidth: "infinity" }} alignment="top">
+                                            {row.map((item, cidx) => (
+                                                <MoviePoster 
+                                                    key={'item_p' + page + '_' + idx + '_' + cidx} 
+                                                    movie={item} 
+                                                    itemWidth={itemWidth} 
+                                                    globalLoadingId={globalLoadingId}
+                                                    setGlobalLoadingId={setGlobalLoadingId}
+                                                />
+                                            ))}
+                                            {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
+                                                <Spacer key={'spacer_' + i} frame={{ width: itemWidth }} />
+                                            ))}
+                                        </HStack>
+                                    ))}
+                                    {list.length > 0 && (
+                                        <VStack alignment="center" padding={20}>
+                                            <Text font={{ size: 10 }} foregroundStyle="quaternaryLabel">💡 支持左右滑動翻頁</Text>
+                                        </VStack>
+                                    )}
+                                    <Spacer frame={{ height: 120 }} />
+                                </VStack>
+                            )}
+                        </ScrollView>
+                    </ZStack>
+                );
             }}
-          </GeometryReader>
-        </VStack>
-      </ZStack>
+        </GeometryReader>
+      </VStack>
     </NavigationStack>
   );
 }
