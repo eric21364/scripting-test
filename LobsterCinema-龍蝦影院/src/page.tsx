@@ -156,18 +156,18 @@ export function View() {
 
   return (
     <VStack background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
-      {/* 🛠️ 鋼鐵防護 Header：完全獨立，不被任何手勢覆蓋 */}
-      <HStack padding={16} alignment="center" background="systemBackground">
-        <Button title="關閉" systemImage="xmark" action={dismiss} />
+      {/* 🛠️ 王者 Header 視覺重塑：純圖示按鈕模式 */}
+      <HStack padding={12} alignment="center" background="systemBackground">
+        <Button systemImage="xmark" action={dismiss} padding={8} />
         <Spacer />
-        <VStack alignment="center">
+        <VStack alignment="center" spacing={2}>
           <Text font={{ size: 17, name: "system-bold" }}>龍蝦影院 v9</Text>
           <Text font={{ size: 11 }} foregroundStyle="secondaryLabel">第 {page} 頁</Text>
         </VStack>
         <Spacer />
-        <HStack spacing={20}>
-          <Button systemImage="chevron.left" action={handlePrev} />
-          <Button systemImage="chevron.right" action={handleNext} />
+        <HStack spacing={16}>
+          <Button systemImage="chevron.left" action={handlePrev} padding={8} />
+          <Button systemImage="chevron.right" action={handleNext} padding={8} />
         </HStack>
       </HStack>
 
@@ -180,7 +180,6 @@ export function View() {
           for (let i = 0; i < list.length; i += columns) chunks.push(list.slice(i, i + columns));
 
           return (
-            /* 🛡️ 物理手勢限縮：DragGesture 只掛載在 ScrollView 上，絕不干擾 Header */
             <ScrollView 
                 padding={spacing}
                 simultaneousGesture={DragGesture({ minDistance: 60 }).onEnded((event) => {
@@ -211,6 +210,16 @@ export function View() {
                                 ))}
                             </HStack>
                         ))}
+                        {list.length > 0 && (
+                            <VStack alignment="center" padding={20} spacing={10}>
+                                <HStack spacing={40}>
+                                    <Button systemImage="arrow.left.circle.fill" action={handlePrev} disabled={page === 1} font={24} />
+                                    <Text foregroundStyle="secondaryLabel">第 {page} 頁</Text>
+                                    <Button systemImage="arrow.right.circle.fill" action={handleNext} font={24} />
+                                </HStack>
+                                <Text font={{ size: 10 }} foregroundStyle="quaternaryLabel">💡 支持左右滑動翻頁</Text>
+                            </VStack>
+                        )}
                         <Spacer frame={{ height: 120 }} />
                     </VStack>
                 )}
