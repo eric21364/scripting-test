@@ -25,8 +25,8 @@ interface Movie {
   category: string;
 }
 
-// 🛡️ 全域單例鎖
-let GLOBAL_PLAYER_OPENING = false;
+// 🛡️ 全域播放鎖定
+let LOBSTER_READY_LOCK = false;
 
 function Thumbnail({ url }: { url: string }) {
   const [image, setImage] = useState<UIImage | null>(null);
@@ -47,10 +47,10 @@ function Thumbnail({ url }: { url: string }) {
 function MoviePoster({ movie, itemWidth, currentLoadingId, setcurrentLoadingId }: any) {
   const isOpening = currentLoadingId === movie.url;
   const openPlayer = async () => {
-    if (GLOBAL_PLAYER_OPENING) return;
-    GLOBAL_PLAYER_OPENING = true;
+    if (LOBSTER_READY_LOCK) return;
+    LOBSTER_READY_LOCK = true;
     setcurrentLoadingId(movie.url);
-    const stopWatch = setTimeout(() => { GLOBAL_PLAYER_OPENING = false; setcurrentLoadingId(null); }, 15000);
+    const timer = setTimeout(() => { LOBSTER_READY_LOCK = false; setcurrentLoadingId(null); }, 15000);
 
     try {
       const resp = await fetch(movie.url, { headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1' } });
@@ -60,15 +60,15 @@ function MoviePoster({ movie, itemWidth, currentLoadingId, setcurrentLoadingId }
         const player = new WebViewController();
         await player.loadURL(match[1]);
         await player.present({ fullscreen: true, navigationTitle: movie.title });
-        return;
+      } else {
+        const webView = new WebViewController();
+        await webView.loadURL(movie.url);
+        await webView.present({ fullscreen: true, navigationTitle: movie.title });
       }
-      const webView = new WebViewController();
-      await webView.loadURL(movie.url);
-      await webView.present({ fullscreen: true, navigationTitle: movie.title });
     } catch (e) {
     } finally {
-      clearTimeout(stopWatch);
-      GLOBAL_PLAYER_OPENING = false;
+      clearTimeout(timer);
+      LOBSTER_READY_LOCK = false;
       setcurrentLoadingId(null);
     }
   };
@@ -77,12 +77,12 @@ function MoviePoster({ movie, itemWidth, currentLoadingId, setcurrentLoadingId }
     <VStack frame={{ width: itemWidth }} spacing={6} onTapGesture={openPlayer}>
       <ZStack frame={{ width: itemWidth, height: itemWidth * 0.5625 }} cornerRadius={10} background="secondarySystemBackground" clipShape="rect">
         <Thumbnail url={movie.thumbnail} />
-        {isOpening && <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="center" background="rgba(0,0,0,0.4)"><ProgressView /></VStack>}
+        {isOpening && <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="center" background="rgba(0,0,0,0.5)"><ProgressView /></VStack>}
         <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="bottomTrailing" padding={6}>
-          <Text font={{ size: 10, name: "system-bold" }} padding={3} background="rgba(0,0,0,0.75)" cornerRadius={4} foregroundStyle="white">{movie.duration}</Text>
+          <Text font={{ size: 10, name: "system-bold" }} padding={3} background="rgba(0,0,0,0.8)" cornerRadius={4} foregroundStyle="white">{movie.duration}</Text>
         </VStack>
       </ZStack>
-      <Text font={{ size: 12, name: "system-bold" }} lineLimit={2} opacity={(GLOBAL_PLAYER_OPENING && !isOpening) ? 0.3 : 1}>{movie.title}</Text>
+      <Text font={{ size: 12, name: "system-bold" }} lineLimit={2} opacity={(LOBSTER_READY_LOCK && !isOpening) ? 0.3 : 1}>{movie.title}</Text>
     </VStack>
   );
 }
@@ -112,41 +112,38 @@ export function View() {
     } catch (e) {} finally { setLoading(false); }
   };
 
-  useEffect(() => { 
-    scrape(page); 
-    GLOBAL_PLAYER_OPENING = false;
-  }, [page]);
+  useEffect(() => { scrape(page); LOBSTER_READY_LOCK = false; }, [page]);
 
-  const handleNext = () => setPage(p => p + 1);
-  const handlePrev = () => setPage(p => Math.max(1, p - 1));
+  const pNext = () => setPage(p => p + 1);
+  const pPrev = () => setPage(p => Math.max(1, p - 1));
 
   return (
     <ZStack alignment="top">
       <VStack background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
           
-          {/* 🏔️ 物理極致 Header：確保按鈕絕對出現在頂層 */}
-          <HStack padding={{ leading: 16, trailing: 16, top: 54, bottom: 8 }} alignment="center" background="systemBackground">
-              {/* ❌ 獨立關閉按鈕：增加觸控熱區與層級 */}
-              <Button action={() => dismiss()} padding={10}>
-                  <Image systemImage="xmark.circle.fill" font={28} foregroundStyle="secondaryLabel" />
-              </Button>
+          {/* 🏔️ 物理極致 Header (手寫導航列) - 增加 top padding 避免被瀏海遮擋 */}
+          <HStack padding={{ leading: 16, trailing: 16, top: 60, bottom: 12 }} alignment="center" background="systemBackground">
+              {/* ❌ 點擊按鈕組 */}
+              <HStack spacing={0} onTapGesture={() => dismiss()}>
+                <Image systemImage="xmark.circle.fill" font={28} foregroundStyle="secondaryLabel" />
+              </HStack>
               
               <Spacer />
               
               <VStack alignment="center">
-                  <Text font={{ size: 17, name: "system-bold" }}>龍蝦影院</Text>
-                  <Text font={{ size: 12 }} foregroundStyle="secondaryLabel">第 {page} 頁</Text>
+                  <Text font={{ size: 17, name: "system-bold" }}>龍蝦影院 v9</Text>
+                  <Text font={{ size: 11 }} foregroundStyle="secondaryLabel">第 {page} 頁</Text>
               </VStack>
               
               <Spacer />
               
-              <HStack spacing={16}>
-                  <Button action={handlePrev} disabled={page === 1} padding={10}>
-                      <Image systemImage="chevron.left.circle" font={24} foregroundStyle="label" />
-                  </Button>
-                  <Button action={handleNext} padding={10}>
-                      <Image systemImage="chevron.right.circle" font={24} foregroundStyle="label" />
-                  </Button>
+              <HStack spacing={20}>
+                  <HStack onTapGesture={pPrev}>
+                    <Image systemImage="chevron.left.circle" font={24} foregroundStyle={page === 1 ? "tertiaryLabel" : "label"} />
+                  </HStack>
+                  <HStack onTapGesture={pNext}>
+                    <Image systemImage="chevron.right.circle" font={24} foregroundStyle="label" />
+                  </HStack>
               </HStack>
           </HStack>
 
@@ -163,10 +160,10 @@ export function View() {
                   simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded((event) => {
                       const dx = event.translation.width;
                       const dy = event.translation.height;
-                      // 🖐️ 手勢判定門檻維持 100
+                      // 🖐️ 手勢判定門檻 100
                       if (Math.abs(dx) > 100 && Math.abs(dx) > Math.abs(dy)) {
-                          if (dx < 0) handleNext();
-                          else handlePrev();
+                          if (dx < 0) pNext();
+                          else pPrev();
                       }
                   })}
                 >
@@ -176,12 +173,12 @@ export function View() {
                     ) : (
                       <VStack spacing={18}>
                         {groups.map((row, idx) => (
-                          <HStack key={`pg${page}r${idx}`} spacing={12} frame={{ maxWidth: "infinity" }} alignment="top">
+                          <HStack key={`p${page}r${idx}`} spacing={12} frame={{ maxWidth: "infinity" }} alignment="top">
                             {row.map((item) => (
                               <MoviePoster key={item.url} movie={item} itemWidth={itemWidth} currentLoadingId={currentLoadingId} setcurrentLoadingId={setcurrentLoadingId} />
                             ))}
                             {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
-                              <Spacer key={`pg${page}s${i}`} frame={{ width: itemWidth }} />
+                              <Spacer key={`p${page}s${i}`} frame={{ width: itemWidth }} />
                             ))}
                           </HStack>
                         ))}
