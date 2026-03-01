@@ -26,7 +26,6 @@ interface Movie {
   category: string;
 }
 
-// 🛡️ 龍蝦物理全域鎖定
 let LOBSTER_GLOBAL_PLAYER_LOCK = false;
 
 function Thumbnail({ url }: { url: string }) {
@@ -76,8 +75,9 @@ function MoviePoster({ movie, itemWidth, globalLoadingId, setGlobalLoadingId }: 
       const match = html.match(/hlsUrl\s*=\s*['"]([^'"]+\.m3u8)['"]/);
 
       if (match && match[1]) {
+        const m3u8 = match[1];
         const player = new WebViewController();
-        await player.loadURL(match[1]);
+        await player.loadURL(m3u8);
         await player.present({ fullscreen: true, navigationTitle: movie.title });
         LOBSTER_GLOBAL_PLAYER_LOCK = false;
         setGlobalLoadingId(null);
@@ -155,78 +155,73 @@ export function View() {
   const handlePrev = () => { if (!LOBSTER_GLOBAL_PLAYER_LOCK) setPage(p => Math.max(1, p - 1)); };
 
   return (
-    <VStack background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
-      {/* 🛠️ 王者 Header 視覺重塑：純圖示按鈕模式 */}
-      <HStack padding={12} alignment="center" background="systemBackground">
-        <Button systemImage="xmark" action={dismiss} padding={8} />
-        <Spacer />
-        <VStack alignment="center" spacing={2}>
-          <Text font={{ size: 17, name: "system-bold" }}>龍蝦影院 v9</Text>
-          <Text font={{ size: 11 }} foregroundStyle="secondaryLabel">第 {page} 頁</Text>
-        </VStack>
-        <Spacer />
-        <HStack spacing={16}>
-          <Button systemImage="chevron.left" action={handlePrev} padding={8} />
-          <Button systemImage="chevron.right" action={handleNext} padding={8} />
-        </HStack>
-      </HStack>
-
-      <GeometryReader>
-        {(proxy) => {
-          const columns = proxy.size.width > 600 ? 4 : 2;
-          const spacing = 12;
-          const itemWidth = (proxy.size.width - spacing * (columns + 1)) / columns;
-          const chunks = [];
-          for (let i = 0; i < list.length; i += columns) chunks.push(list.slice(i, i + columns));
-
-          return (
-            <ScrollView 
-                padding={spacing}
-                simultaneousGesture={DragGesture({ minDistance: 60 }).onEnded((event) => {
-                    const dx = event.translation.width;
-                    if (Math.abs(dx) > 100) {
-                        if (dx < 0) handleNext();
-                        else handlePrev();
-                    }
-                })}
-            >
-                {loading && list.length === 0 ? (
-                    <VStack alignment="center" padding={60}><ProgressView /><Text marginTop={10}>龍蝦領航中...</Text></VStack>
-                ) : (
-                    <VStack spacing={18}>
-                        {chunks.map((row, idx) => (
-                            <HStack key={'r' + page + idx} spacing={spacing} frame={{ maxWidth: "infinity" }} alignment="top">
-                                {row.map((item, cidx) => (
-                                    <MoviePoster 
-                                        key={'m' + page + idx + cidx} 
-                                        movie={item} 
-                                        itemWidth={itemWidth} 
-                                        globalLoadingId={globalLoadingId}
-                                        setGlobalLoadingId={setGlobalLoadingId}
-                                    />
-                                ))}
-                                {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
-                                    <Spacer key={'s' + i} frame={{ width: itemWidth }} />
-                                ))}
-                            </HStack>
-                        ))}
-                        {list.length > 0 && (
-                            <VStack alignment="center" padding={20} spacing={10}>
-                                <HStack spacing={40}>
-                                    <Button systemImage="arrow.left.circle.fill" action={handlePrev} disabled={page === 1} font={24} />
-                                    <Text foregroundStyle="secondaryLabel">第 {page} 頁</Text>
-                                    <Button systemImage="arrow.right.circle.fill" action={handleNext} font={24} />
-                                </HStack>
-                                <Text font={{ size: 10 }} foregroundStyle="quaternaryLabel">💡 支持左右滑動翻頁</Text>
-                            </VStack>
-                        )}
-                        <Spacer frame={{ height: 120 }} />
-                    </VStack>
-                )}
-            </ScrollView>
-          );
+    <NavigationStack>
+      <VStack
+        navigationTitle={`龍蝦影院 v9 (P.${page})`}
+        toolbar={{
+          topBarLeading: [
+            <Button systemImage="xmark" action={dismiss} />
+          ],
+          topBarTrailing: [
+            <Button systemImage="chevron.left" action={handlePrev} disabled={page === 1} />,
+            <Button systemImage="chevron.right" action={handleNext} />
+          ]
         }}
-      </GeometryReader>
-    </VStack>
+      >
+        <GeometryReader>
+            {(proxy) => {
+                const columns = proxy.size.width > 600 ? 4 : 2;
+                const spacing = 12;
+                const itemWidth = (proxy.size.width - spacing * (columns + 1)) / columns;
+                const chunks = [];
+                for (let i = 0; i < list.length; i += columns) chunks.push(list.slice(i, i + columns));
+
+                return (
+                    <ZStack
+                        frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
+                        simultaneousGesture={DragGesture({ minDistance: 80 }).onEnded((event) => {
+                            const dx = event.translation.width;
+                            if (Math.abs(dx) > 120) {
+                                if (dx < -100) handleNext();
+                                else if (dx > 100) handlePrev();
+                            }
+                        })}
+                    >
+                        <ScrollView padding={spacing}>
+                            {loading && list.length === 0 ? (
+                                <VStack alignment="center" padding={60}><ProgressView /><Text marginTop={10} foregroundStyle="secondaryLabel">龍蝦正在潛水採集...</Text></VStack>
+                            ) : (
+                                <VStack spacing={18}>
+                                    {chunks.map((row, idx) => (
+                                        <HStack key={'r' + page + idx} spacing={spacing} frame={{ maxWidth: "infinity" }} alignment="top">
+                                            {row.map((item, cidx) => (
+                                                <MoviePoster 
+                                                    key={'m' + page + idx + cidx} 
+                                                    movie={item} 
+                                                    itemWidth={itemWidth} 
+                                                    globalLoadingId={globalLoadingId}
+                                                    setGlobalLoadingId={setGlobalLoadingId}
+                                                />
+                                            ))}
+                                            {row.length < columns && Array.from({ length: columns - row.length }).map((_, i) => (
+                                                <Spacer key={'s' + i} frame={{ width: itemWidth }} />
+                                            ))}
+                                        </HStack>
+                                    ))}
+                                    {list.length > 0 && (
+                                        <VStack alignment="center" padding={20}>
+                                            <Text font={{ size: 10 }} foregroundStyle="quaternaryLabel">💡 支持左右滑動翻頁 (第 {page} 頁)</Text>
+                                        </VStack>
+                                    )}
+                                    <Spacer frame={{ height: 120 }} />
+                                </VStack>
+                            )}
+                        </ScrollView>
+                    </ZStack>
+                );
+            }}
+        </GeometryReader>
+      </VStack>
+    </NavigationStack>
   );
 }
