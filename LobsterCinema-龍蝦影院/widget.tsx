@@ -1,4 +1,4 @@
-import { Widget, Text, VStack, HStack, Image, Spacer, ZStack, UIImage, ProgressView, Circle } from "scripting";
+import { Widget, Text, VStack, HStack, Image, Spacer, ZStack, UIImage, ProgressView, Script } from "scripting";
 
 interface Movie {
   title: string;
@@ -21,41 +21,16 @@ function EnergyBadge({ weight }: { weight: number }) {
   );
 }
 
-// 🏔️ 強化版組件縮圖渲染器
-function WidgetThumbnail({ url, frame }: { url: string, frame?: any }) {
-  const [img, setImg] = Widget.useState<UIImage | null>(null);
-  
-  Widget.useEffect(() => {
-    // 🛡️ 龍蝦物理採集：確保 URL 完整
-    const cleanUrl = url.startsWith('http') ? url : `https:${url}`;
-    UIImage.fromURL(cleanUrl).then(i => { 
-      if (i) setImg(i); 
-    }).catch(() => {});
-  }, [url]);
-
-  if (!img) return (
-    <ZStack frame={frame || { maxWidth: "infinity", maxHeight: "infinity" }} background="secondarySystemBackground">
-      <ProgressView />
-    </ZStack>
-  );
-  
-  return (
-    <Image 
-      image={img} 
-      resizable 
-      scaleToFill 
-      frame={frame || { maxWidth: "infinity", maxHeight: "infinity" }} 
-    />
-  );
-}
-
 // 🏔️ 小組件：龍蝦隨機海報 (Random Poster)
-function SystemSmallView({ movie }: { movie: Movie }) {
+function SystemSmallView({ movie, img }: { movie: Movie, img: UIImage | null }) {
   return (
     <ZStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} background="black">
-      <WidgetThumbnail url={movie.thumbnail} />
+      {img ? (
+        <Image image={img} resizable scaleToFill frame={{ maxWidth: "infinity", maxHeight: "infinity" }} />
+      ) : (
+        <ZStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} background="secondarySystemBackground" />
+      )}
       
-      {/* 🔮 漸層遮罩增強文字辨識度 */}
       <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} background="linear-gradient(to top, rgba(0,0,0,0.9), transparent 70%)" />
       
       <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} alignment="topLeading" padding={8}>
@@ -74,10 +49,14 @@ function SystemSmallView({ movie }: { movie: Movie }) {
 }
 
 // 🏔️ 中組件：龍蝦焦點劇照 (Featured Focus)
-function SystemMediumView({ movie }: { movie: Movie }) {
+function SystemMediumView({ movie, img }: { movie: Movie, img: UIImage | null }) {
   return (
     <HStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} background="systemBackground" spacing={0}>
-      <WidgetThumbnail url={movie.thumbnail} frame={{ width: "60%", height: "infinity" }} />
+      {img ? (
+        <Image image={img} resizable scaleToFill frame={{ width: "60%", height: "infinity" }} />
+      ) : (
+        <ZStack frame={{ width: "60%", height: "infinity" }} background="secondarySystemBackground" />
+      )}
       
       <VStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} padding={12} alignment="leading">
         <HStack>
@@ -86,9 +65,7 @@ function SystemMediumView({ movie }: { movie: Movie }) {
         </HStack>
         
         <Spacer frame={{ height: 8 }} />
-        
         <Text font={{ size: 12, name: "system-bold" }} lineLimit={3}>{movie.title}</Text>
-        
         <Spacer />
         
         <VStack alignment="leading" spacing={6}>
@@ -107,7 +84,6 @@ function SystemMediumView({ movie }: { movie: Movie }) {
   try {
     const r = await fetch(`https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=0&_=${Date.now()}`);
     const h = await r.text();
-    // 🛡️ 強化正則：更精準鎖定圖片與標題
     const reg = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img[^>]*?data-src="([^"]+)"[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<(?:div|h6) class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
     const res: Movie[] = [];
     let m;
@@ -122,23 +98,29 @@ function SystemMediumView({ movie }: { movie: Movie }) {
     
     if (res.length === 0) throw new Error("No Data");
     
-    // 🎲 隨機性標校
     const featuredMovie = res[Math.floor(Math.random() * res.length)];
+    const cleanThumbUrl = featuredMovie.thumbnail.startsWith('http') ? featuredMovie.thumbnail : `https:${featuredMovie.thumbnail}`;
+    
+    // 🏔️ 核心修復：在 Present 之前預加載圖片（小組件不支援異步 Hook）
+    const img = await UIImage.fromURL(cleanThumbUrl).catch(() => null);
 
     switch (Widget.family) {
       case "systemSmall":
-        Widget.present(<SystemSmallView movie={featuredMovie} />);
+        Widget.present(<SystemSmallView movie={featuredMovie} img={img} />);
         break;
       case "systemMedium":
-        Widget.present(<SystemMediumView movie={featuredMovie} />);
+        Widget.present(<SystemMediumView movie={featuredMovie} img={img} />);
         break;
       case "systemLarge":
-        Widget.present(<SystemMediumView movie={featuredMovie} />); 
+        Widget.present(<SystemMediumView movie={featuredMovie} img={img} />); 
         break;
       default:
         Widget.present(<Text>核心未對齊</Text>);
     }
   } catch (e) {
-    Widget.present(<VStack alignment="center" spacing={10}><Image systemName="antenna.radiowaves.left.and.right.slash" font={24} foregroundStyle="secondaryLabel" /><Text font={12}>深海通訊重試中...</Text></VStack>);
+    Widget.present(<VStack alignment="center" spacing={10}><Image systemName="antenna.radiowaves.left.and.right.slash" font={24} foregroundStyle="secondaryLabel" /><Text font={12}>深海通訊失敗</Text></VStack>);
+  } finally {
+    // 🛡️ 龍蝦物理規範：確保小組件正常退出
+    Script.exit();
   }
 })();
