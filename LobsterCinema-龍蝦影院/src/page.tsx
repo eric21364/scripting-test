@@ -10,7 +10,6 @@ import {
   Button,
   useState,
   useEffect,
-  useRef,
   ProgressView,
   ZStack,
   UIImage,
@@ -26,7 +25,7 @@ interface Movie {
   category: string;
 }
 
-// 🛡️ 龍蝦物理全域鎖定：定義在組件外部，確保跨元件完全 singleton
+// 🛡️ 龍蝦物理全域鎖定
 let LOBSTER_GLOBAL_PLAYER_LOCK = false;
 
 function Thumbnail({ url }: { url: string }) {
@@ -65,16 +64,12 @@ function MoviePoster({ movie, itemWidth, globalLoadingId, setGlobalLoadingId }: 
   const isThisOpening = globalLoadingId === movieId;
 
   const openPlayer = async () => {
-    if (LOBSTER_GLOBAL_PLAYER_LOCK) {
-        console.log("🛡️ 物理鎖定生效：阻擋多重視窗開啟請求");
-        return;
-    }
+    if (LOBSTER_GLOBAL_PLAYER_LOCK) return;
     
     LOBSTER_GLOBAL_PLAYER_LOCK = true;
     setGlobalLoadingId(movieId);
 
     try {
-      // 🚀 HLS 直達採集
       const resp = await fetch(movie.url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1' }
       });
@@ -92,7 +87,6 @@ function MoviePoster({ movie, itemWidth, globalLoadingId, setGlobalLoadingId }: 
       }
     } catch (e) {}
 
-    // 🏥 手術模式
     const webView = new WebViewController();
     const css = `
       header, footer, nav, .navbar, .sidebar, .m-footer, .header-mobile,
@@ -175,9 +169,7 @@ export function View() {
 
   const scrapeJableLivePage = async (pageNum: number) => {
     setLoading(true);
-    // 💡 翻頁時先清空當前列表，避免用戶誤以為沒翻過去
     setList([]);
-
     try {
       const startFrom = (pageNum - 1) * 24;
       const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${startFrom}&_=${Date.now()}`;
@@ -197,11 +189,8 @@ export function View() {
             pageVideos.push({ url: match[1], thumbnail: match[2], duration: match[3], title: match[4], category: "LIVE" });
         }
       }
-      // 不管有沒有抓到，都要讓這次結果反應出來
       setList(pageVideos);
-    } catch (e) {
-      console.log("Page Scrape Error:", e);
-    } finally {
+    } catch (e) {} finally {
       setLoading(false);
     }
   };
@@ -211,6 +200,14 @@ export function View() {
     LOBSTER_GLOBAL_PLAYER_LOCK = false;
     setGlobalLoadingId(null);
   }, [page]);
+
+  const handleNext = () => {
+    if (!LOBSTER_GLOBAL_PLAYER_LOCK) setPage(p => p + 1);
+  };
+
+  const handlePrev = () => {
+    if (!LOBSTER_GLOBAL_PLAYER_LOCK) setPage(p => Math.max(1, p - 1));
+  };
 
   return (
     <NavigationStack>
@@ -229,14 +226,18 @@ export function View() {
 
           return (
             <VStack
-              navigationTitle={`龍蝦 v9・王者復刻 (P.${page})`}
+              navigationTitle={`龍蝦 v9・智慧分頁 (P.${page})`}
+              // 🖐️ 手勢感應核心：向左滑翻下一頁，向右滑翻上一頁
+              onSwipeGesture={(direction) => {
+                  if (direction === "left") handleNext();
+                  if (direction === "right") handlePrev();
+              }}
               toolbar={{
-                topBarLeading: [<Button title="離開" systemImage="xmark" action={dismiss} />],
+                topBarLeading: [<Button systemImage="xmark" action={dismiss} />],
                 topBarTrailing: [
-                  <HStack spacing={20}>
-                    {/* 🛡️ 放寬按鈕限制：僅在「影片開啟鎖定」時禁止翻頁，載入期間允許重新翻頁 */}
-                    <Button systemImage="chevron.left" action={() => { if (!LOBSTER_GLOBAL_PLAYER_LOCK) setPage(Math.max(1, page - 1)) }} />
-                    <Button systemImage="chevron.right" action={() => { if (!LOBSTER_GLOBAL_PLAYER_LOCK) setPage(page + 1) }} />
+                  <HStack spacing={15}>
+                    <Button systemImage="chevron.left" action={handlePrev} />
+                    <Button systemImage="chevron.right" action={handleNext} />
                   </HStack>
                 ]
               }}
@@ -245,7 +246,7 @@ export function View() {
                 {loading && list.length === 0 ? (
                   <VStack alignment="center" padding={60}>
                     <ProgressView />
-                    <Text marginTop={10} foregroundStyle="secondaryLabel">正在採集第 {page} 頁內容...</Text>
+                    <Text marginTop={10} foregroundStyle="secondaryLabel">正在採集第 {page} 頁...</Text>
                   </VStack>
                 ) : (
                   <VStack spacing={18}>
@@ -266,9 +267,14 @@ export function View() {
                       </HStack>
                     ))}
                     {list.length > 0 && (
-                      <HStack alignment="center" padding={20} frame={{ maxWidth: "infinity" }}>
-                           <Text foregroundStyle="secondaryLabel">--- 第 {page} 頁加載完畢 ---</Text>
-                      </HStack>
+                        <VStack alignment="center" padding={20}>
+                            <HStack spacing={30}>
+                                <Button title="上一頁" action={handlePrev} disabled={page === 1} />
+                                <Text foregroundStyle="secondaryLabel">第 {page} 頁</Text>
+                                <Button title="下一頁" action={handleNext} />
+                            </HStack>
+                            <Text marginTop={10} font={{ size: 10 }} foregroundStyle="quaternaryLabel">提示：可左右滑動頁面進行手勢翻頁</Text>
+                        </VStack>
                     )}
                     <Spacer frame={{ height: 120 }} />
                   </VStack>
