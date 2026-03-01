@@ -26,7 +26,7 @@ interface Movie {
   category: string;
 }
 
-// 🛡️ 龍蝦單例鎖：防止重複開啟
+// 🛡️ 龍蝦物理單例鎖：僅鎖定「影片開啟視窗」行為
 let GLOBAL_PLAYER_OPENING = false;
 
 function Thumbnail({ url }: { url: string }) {
@@ -128,27 +128,40 @@ export function View() {
 
   useEffect(() => { 
     scrape(page); 
+    // ⚠️ 翻頁不應該被全域鎖定限制，確保在此強制重置
     GLOBAL_PLAYER_OPENING = false;
     setcurrentLoadingId(null);
   }, [page]);
 
-  const handleNext = () => { if (!GLOBAL_PLAYER_OPENING) setPage(p => p + 1); };
-  const handlePrev = () => { if (!GLOBAL_PLAYER_OPENING) setPage(p => Math.max(1, p - 1)); };
+  const handleNext = () => setPage(p => p + 1);
+  const handlePrev = () => setPage(p => Math.max(1, p - 1));
 
   return (
     <NavigationStack>
-      <VStack
-        navigationTitle={`龍蝦影院 (P.${page})`}
-        toolbar={{
-          topBarLeading: [
-            <Button key="close" systemImage="xmark" action={() => Navigation.dismiss()} />
-          ],
-          topBarTrailing: [
-            <Button key="prev" systemImage="chevron.left" action={handlePrev} disabled={page === 1} />,
-            <Button key="next" systemImage="chevron.right" action={handleNext} />
-          ]
-        }}
-      >
+      <VStack background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
+        
+        {/* 🛠️ 本體 Header：標題居中，關閉與翻頁明確分離 */}
+        <HStack padding={12} alignment="center" background="systemBackground">
+          {/* 左側原件：關閉按鈕，不受任何內部變數鎖定影響 */}
+          <Button systemImage="xmark.circle.fill" font={22} foregroundStyle="secondaryLabel" action={() => Navigation.dismiss()} />
+          
+          <Spacer />
+          
+          {/* 中間原件：標題資訊 */}
+          <VStack alignment="center">
+            <Text font={{ size: 17, name: "system-bold" }}>龍蝦影院 (P.{page})</Text>
+            {loading && <Text font={{ size: 10 }} foregroundStyle="systemBlue">正在採集...</Text>}
+          </VStack>
+          
+          <Spacer />
+          
+          {/* 右側原件：翻頁按鈕 */}
+          <HStack spacing={15}>
+            <Button systemImage="chevron.left" font={18} action={handlePrev} disabled={page === 1} />
+            <Button systemImage="chevron.right" font={18} action={handleNext} />
+          </HStack>
+        </HStack>
+
         <GeometryReader>
           {(proxy) => {
             const columns = proxy.size.width > 600 ? 4 : 2;
@@ -160,11 +173,11 @@ export function View() {
             return (
               <ScrollView 
                 padding={spacing}
-                simultaneousGesture={DragGesture({ minDistance: 100 }).onEnded((event) => {
+                simultaneousGesture={DragGesture({ minDistance: 80 }).onEnded((event) => {
                     const dx = event.translation.width;
                     const dy = event.translation.height;
-                    // 🛡️ 龍蝦手勢標校：必須是明確的橫向大動作 (角度過濾)
-                    if (Math.abs(dx) > 150 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+                    // 🖐️ 手勢標校：僅在明顯橫向滑動時觸發，提高門檻
+                    if (Math.abs(dx) > 160 && Math.abs(dx) > Math.abs(dy) * 2) {
                         if (dx < 0) handleNext();
                         else handlePrev();
                     }
@@ -184,16 +197,7 @@ export function View() {
                         ))}
                       </HStack>
                     ))}
-                    {list.length > 0 && (
-                        <VStack alignment="center" padding={30} spacing={15}>
-                            <HStack spacing={40}>
-                                <Button title="上一頁" action={handlePrev} disabled={page === 1} buttonStyle="bordered" />
-                                <Button title="下一頁" action={handleNext} buttonStyle="bordered" />
-                            </HStack>
-                            <Text font={{ size: 10 }} foregroundStyle="quaternaryLabel">💡 由側邊大範圍橫向滑動可翻頁 (第 {page} 頁)</Text>
-                        </VStack>
-                    )}
-                    <Spacer frame={{ height: 120 }} />
+                    <Spacer frame={{ height: 150 }} />
                   </VStack>
                 )}
               </ScrollView>
