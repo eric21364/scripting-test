@@ -16,7 +16,8 @@ import {
   GeometryReader,
   DragGesture,
   Circle,
-  TextField
+  TextField,
+  Menu
 } from "scripting";
 
 interface Movie {
@@ -121,7 +122,6 @@ export function View() {
   const [keyword, setKeyword] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
   
-  // 🔌 多源切換：jable | xvideos
   const [source, setSource] = useState<'jable' | 'xvideos'>('jable');
 
   const fetcher = async (p: number, query: string, src: string) => {
@@ -144,7 +144,7 @@ export function View() {
           }
         }
       } else {
-        const targetUrl = query ? `https://www.xvideos.com/?k=${encodeURIComponent(query)}&p=${p}` : `https://www.xvideos.com/?p=${p}`;
+        const targetUrl = query ? `https://www.xvideos.com/?k=${encodeURIComponent(query)}&p=${p - 1}` : `https://www.xvideos.com/new/${p - 1}`;
         const r = await fetch(targetUrl);
         const h = await r.text();
         const reg = /<div id="video_([^"]+)"[\s\S]*?<a href="([^"]+)"[^>]*?>[\s\S]*?data-src="([^"]+)"[\s\S]*?<p class="title"><a href="[^"]+" title="([^"]+)">/g;
@@ -167,9 +167,8 @@ export function View() {
   const triggerSearch = () => { if (keyword.trim() === activeSearch) return; setPage(1); setActiveSearch(keyword.trim()); };
   const clearSearch = () => { setKeyword(""); setActiveSearch(""); setPage(1); };
   
-  const toggleSource = () => {
-    const next = source === 'jable' ? 'xvideos' : 'jable';
-    setSource(next);
+  const switchSource = (s: 'jable' | 'xvideos') => {
+    setSource(s);
     setPage(1);
     setKeyword("");
     setActiveSearch("");
@@ -181,13 +180,22 @@ export function View() {
           <HStack padding={{ top: 8, leading: 16, trailing: 16, bottom: 4 }} alignment="center">
             <CircleIconButton icon="xmark" action={dismiss} />
             <Spacer />
-            <VStack alignment="center">
-              <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v10.1</Text>
-              <HStack spacing={4}>
-                 <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">{source === 'jable' ? "Jable 頻道" : "XV 頻道"}</Text>
-                 <Text font={{ size: 9 }} foregroundStyle="tertiaryLabel">· P.{page}</Text>
-              </HStack>
-            </VStack>
+            
+            {/* 🏔️ Header Dropdown Select: 物理點擊標題即可顯示選單 */}
+            <Menu>
+              <Button buttonStyle="plain">
+                <VStack alignment="center">
+                  <HStack spacing={4}>
+                    <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v10.2</Text>
+                    <Image systemName="chevron.down" font={10} foregroundStyle="tertiaryLabel" />
+                  </HStack>
+                  <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">{source === 'jable' ? "Jable.tv 頻道" : "XVideos 頻道"}</Text>
+                </VStack>
+              </Button>
+              <Button title="Jable 頻道" action={() => switchSource('jable')} />
+              <Button title="XVideos 頻道" action={() => switchSource('xvideos')} />
+            </Menu>
+            
             <Spacer />
             <HStack spacing={12}>
               <CircleIconButton icon="chevron.left" action={goPrev} disabled={page === 1} foregroundStyle={page === 1 ? "tertiaryLabel" : "label"} />
@@ -196,17 +204,9 @@ export function View() {
           </HStack>
           
           <HStack spacing={8} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
-            {/* 🔌 物理切換按鈕：由於 Menu 可能在特定環境渲染失效，改用實體 Toggle 按鈕 */}
-            <Button action={toggleSource} buttonStyle="plain">
-               <HStack spacing={4} padding={{ horizontal: 10, vertical: 6 }} background="secondarySystemBackground" cornerRadius={8}>
-                  <Image systemName={source === 'jable' ? "leaf.fill" : "globe.americas.fill"} font={12} foregroundStyle={source === 'jable' ? "systemGreen" : "systemBlue"} />
-                  <Text font={{ size: 10, name: "system-bold" }}>切換源</Text>
-               </HStack>
-            </Button>
-
             <HStack frame={{ maxWidth: "infinity" }} padding={{ horizontal: 10, vertical: 6 }} background="secondarySystemBackground" cornerRadius={10}>
               <Image systemName="magnifyingglass" font={14} foregroundStyle="secondaryLabel" />
-              <TextField title="" prompt={`探查 ${source === 'jable' ? 'Jable' : 'XV'} 關鍵字...`} value={keyword} onChanged={setKeyword} onSubmit={triggerSearch} frame={{ maxWidth: "infinity" }} textFieldStyle="plain" />
+              <TextField title="" prompt={`在 ${source === 'jable' ? 'Jable' : 'XV'} 中搜尋...`} value={keyword} onChanged={setKeyword} onSubmit={triggerSearch} frame={{ maxWidth: "infinity" }} textFieldStyle="plain" />
               {keyword.length > 0 && (
                 <Button action={clearSearch} buttonStyle="plain">
                   <Image systemName="xmark.circle.fill" font={14} foregroundStyle="tertiaryLabel" />
@@ -226,31 +226,33 @@ export function View() {
             for (let i = 0; i < list.length; i += columns) chunks.push(list.slice(i, i + columns));
 
             return (
-              <ScrollView padding={space}>
-                {loading && list.length === 0 ? (
-                  <VStack alignment="center" padding={60}><ProgressView /></VStack>
-                ) : list.length === 0 ? (
-                  <VStack alignment="center" padding={60} spacing={10}><Image systemName="bolt.slash" font={40} foregroundStyle="quaternaryLabel" /><Text foregroundStyle="secondaryLabel">當前波段無訊號</Text></VStack>
-                ) : (
-                  <VStack spacing={18} simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded(e => {
-                      if (Math.abs(e.translation.width) > 100 && Math.abs(e.translation.width) > Math.abs(e.translation.height)) {
-                        if (e.translation.width < 0) goNext(); else goPrev();
-                      }
-                    })}>
-                    {chunks.map((row, i) => (
-                      <HStack key={`s${source}p${page}r${i}`} spacing={space} alignment="top">
-                        {row.map(m => (
-                          <MoviePoster key={`${source}-${m.url}`} movie={m} itemWidth={itemWidth} loadingUid={loadingUid} setloadingUid={setloadingUid} source={source} />
-                        ))}
-                        {row.length < columns && Array.from({ length: columns - row.length }).map((_, si) => (
-                          <Spacer key={si} frame={{ width: itemWidth }} />
-                        ))}
-                      </HStack>
-                    ))}
-                    <Spacer frame={{ height: 40 }} />
-                  </VStack>
-                )}
-              </ScrollView>
+              <ZStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded(e => {
+                  if (Math.abs(e.translation.width) > 100 && Math.abs(e.translation.width) > Math.abs(e.translation.height)) {
+                    if (e.translation.width < 0) goNext(); else goPrev();
+                  }
+                })}>
+                <ScrollView padding={space}>
+                  {loading && list.length === 0 ? (
+                    <VStack alignment="center" padding={60}><ProgressView /></VStack>
+                  ) : list.length === 0 ? (
+                    <VStack alignment="center" padding={60} spacing={10}><Image systemName="bolt.slash" font={40} foregroundStyle="quaternaryLabel" /><Text foregroundStyle="secondaryLabel">訊號中斷，請重試</Text></VStack>
+                  ) : (
+                    <VStack spacing={18}>
+                      {chunks.map((row, i) => (
+                        <HStack key={`s${source}p${page}r${i}`} spacing={space} alignment="top">
+                          {row.map(m => (
+                            <MoviePoster key={`${source}-${m.url}`} movie={m} itemWidth={itemWidth} loadingUid={loadingUid} setloadingUid={setloadingUid} source={source} />
+                          ))}
+                          {row.length < columns && Array.from({ length: columns - row.length }).map((_, si) => (
+                            <Spacer key={si} frame={{ width: itemWidth }} />
+                          ))}
+                        </HStack>
+                      ))}
+                      <Spacer frame={{ height: 40 }} />
+                    </VStack>
+                  )}
+                </ScrollView>
+              </ZStack>
             );
           }}
         </GeometryReader>
