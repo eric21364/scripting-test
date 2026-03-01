@@ -122,36 +122,48 @@ export function View() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
-  // 🥩 物理採集核心：完全採用 v9.0 原始成功代碼
+  // 🥩 物理採集核心：強勢回歸 v9.0 王者邏輯，並針對 2026 官網結構進行「彈道校準」
   const scrapeJableLivePage = async (pageNum: number) => {
     setLoading(true);
     try {
       const startFrom = (pageNum - 1) * 24;
-      // v9.0 正式 pageUrl 格式
+      // v9.0 核心請求格式：加入更多隨機參數與完整偽裝
       const pageUrl = `https://jable.tv/hot/?mode=async&function=get_block&block_id=list_videos_common_videos_list&sort_by=post_date&from=${startFrom}&_=${Date.now()}`;
       
       const resp = await fetch(pageUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
+        headers: { 
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
+            'Accept': 'text/html, */*; q=0.01',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
       });
       const html = await resp.text();
 
-      // v9.0 王者正則探針：修正正則標識符，確保在編譯後依然生效
-      const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img(?:[^>]*?data-src="([^"]+)")?[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<div class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
+      // v22.0 「原力探針」核心校準：
+      // 1. 務必優先抓取 data-src 以避開佔位圖 (placeholder)
+      // 2. 兼容 h6/div title 標籤（官網 2026 最新變動）
+      const cardRegex = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img[^>]*?data-src="([^"]+)"[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<(?:div|h6) class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
       
       const pageVideos: Movie[] = [];
       let match;
       while ((match = cardRegex.exec(html)) !== null) {
-        pageVideos.push({
-          url: match[1],
-          thumbnail: match[2] || "",
-          duration: match[3],
-          title: match[4],
-          category: "LIVE"
-        });
+        // 排除佔位圖，確保海報絕不全黑
+        const thumb = match[2];
+        if (thumb && !thumb.includes('placeholder')) {
+            pageVideos.push({
+              url: match[1],
+              thumbnail: thumb,
+              duration: match[3],
+              title: match[4],
+              category: "LIVE"
+            });
+        }
       }
       
       if (pageVideos.length > 0) {
         setList(pageVideos);
+      } else {
+        console.log("Regex found 0 items. HTML sample:", html.substring(0, 500));
       }
     } catch (e) {
       console.log("Live Scrape Failed:", e);
@@ -182,7 +194,7 @@ export function View() {
 
           return (
             <VStack
-              navigationTitle={`龍蝦 v21 (P.${page})`}
+              navigationTitle={`龍蝦 v9・復刻校準版 (P.${page})`}
               background="#000"
               toolbar={{
                 topBarLeading: [
@@ -202,7 +214,7 @@ export function View() {
                 {loading ? (
                   <VStack alignment="center" padding={60}>
                     <ProgressView />
-                    <Text marginTop={10} foregroundStyle="secondaryLabel">正在透過 v9 探針入侵官網...</Text>
+                    <Text marginTop={10} foregroundStyle="secondaryLabel">正在執行 v9 王者邏輯・物理深度採集...</Text>
                   </VStack>
                 ) : (
                   <VStack spacing={12}>
