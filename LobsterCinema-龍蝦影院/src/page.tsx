@@ -26,8 +26,8 @@ interface Movie {
   category: string;
 }
 
-// 🛡️ 物理級全域鎖：確保單一實例
-let LOBSTER_PLAYER_LOCK = false;
+// 🛡️ 龍蝦全域鎖定單例
+let GLOBAL_PLAYER_OPENING = false;
 
 function Thumbnail({ url }: { url: string }) {
   const [image, setImage] = useState<UIImage | null>(null);
@@ -48,12 +48,10 @@ function Thumbnail({ url }: { url: string }) {
 function MoviePoster({ movie, itemWidth, loadingId, setLoadingId }: any) {
   const isThisLoading = loadingId === movie.url;
   const openPlayer = async () => {
-    if (LOBSTER_PLAYER_LOCK) return;
-    LOBSTER_PLAYER_LOCK = true;
+    if (GLOBAL_PLAYER_OPENING) return;
+    GLOBAL_PLAYER_OPENING = true;
     setLoadingId(movie.url);
-    
-    // 安全定時器：10秒必自動解鎖
-    const timer = setTimeout(() => { LOBSTER_PLAYER_LOCK = false; setLoadingId(null); }, 10000);
+    const stopWatch = setTimeout(() => { GLOBAL_PLAYER_OPENING = false; setLoadingId(null); }, 12000);
 
     try {
       const resp = await fetch(movie.url, { headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1' } });
@@ -70,8 +68,8 @@ function MoviePoster({ movie, itemWidth, loadingId, setLoadingId }: any) {
       await webView.present({ fullscreen: true, navigationTitle: movie.title });
     } catch (e) {
     } finally {
-      clearTimeout(timer);
-      LOBSTER_PLAYER_LOCK = false;
+      clearTimeout(stopWatch);
+      GLOBAL_PLAYER_OPENING = false;
       setLoadingId(null);
     }
   };
@@ -85,13 +83,12 @@ function MoviePoster({ movie, itemWidth, loadingId, setLoadingId }: any) {
           <Text font={{ size: 10, name: "system-bold" }} padding={3} background="rgba(0,0,0,0.7)" cornerRadius={4} foregroundStyle="white">{movie.duration}</Text>
         </VStack>
       </ZStack>
-      <Text font={{ size: 12, name: "system-bold" }} lineLimit={2} opacity={(LOBSTER_PLAYER_LOCK && !isThisLoading) ? 0.3 : 1}>{movie.title}</Text>
+      <Text font={{ size: 12, name: "system-bold" }} lineLimit={2} opacity={(GLOBAL_PLAYER_OPENING && !isThisLoading) ? 0.3 : 1}>{movie.title}</Text>
     </VStack>
   );
 }
 
 export function View() {
-  const dismiss = Navigation.useDismiss();
   const [list, setList] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -113,58 +110,57 @@ export function View() {
     } catch (e) {} finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchData(page); LOBSTER_PLAYER_LOCK = false; }, [page]);
+  useEffect(() => { fetchData(page); }, [page]);
 
   const goNext = () => setPage(p => p + 1);
   const goPrev = () => setPage(p => Math.max(1, p - 1));
 
   return (
     <NavigationStack>
-      <VStack background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
-        
-        {/* 🏔️ 物理層級 Header (zIndex 999 確保觸控優先) */}
-        <HStack padding={{ leading: 16, trailing: 16, top: 12, bottom: 12 }} alignment="center" background="systemBackground" zIndex={999}>
-          <Button systemImage="xmark" font={20} foregroundStyle="label" action={() => dismiss()} />
-          <Spacer />
-          <VStack alignment="center">
-            <Text font={{ size: 17, name: "system-bold" }}>龍蝦影院 v9</Text>
-            <Text font={{ size: 11 }} foregroundStyle="secondaryLabel">當前第 {page} 頁</Text>
-          </VStack>
-          <Spacer />
-          <HStack spacing={20}>
-            <Button systemImage="chevron.left" font={18} action={goPrev} disabled={page === 1} />
-            <Button systemImage="chevron.right" font={18} action={goNext} />
-          </HStack>
-        </HStack>
+      {/* 🚀 物理手勢層：夾在 NavigationStack 下方，但不包裹 Toolbar 常駐車區域 */}
+      <ZStack
+        frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
+        simultaneousGesture={DragGesture({ minDistance: 80 }).onEnded((event) => {
+            const dx = event.translation.width;
+            const dy = event.translation.height;
+            // 🖐️ 側邊中上滑動偏好校準：dx 門檻 150，容許向上滑動 (dy 為負)
+            if (Math.abs(dx) > 150 && dy < 60) {
+                if (dx < 0) goNext();
+                else goPrev();
+            }
+        })}
+      >
+        <VStack
+          navigationTitle={`龍蝦影院 (第 ${page} 頁)`}
+          navigationBarTitleDisplayMode="inline"
+          toolbar={{
+            topBarLeading: [
+              <Button systemImage="xmark" action={() => Navigation.dismiss()} />
+            ],
+            topBarTrailing: [
+              <HStack spacing={15}>
+                <Button systemImage="chevron.left" action={goPrev} disabled={page === 1} />
+                <Button systemImage="chevron.right" action={goNext} />
+              </HStack>
+            ]
+          }}
+        >
+          <GeometryReader>
+            {(proxy) => {
+              const columns = proxy.size.width > 600 ? 4 : 2;
+              const spacing = 12;
+              const itemWidth = (proxy.size.width - spacing * (columns + 1)) / columns;
+              const chunks = [];
+              for (let i = 0; i < list.length; i += columns) chunks.push(list.slice(i, i + columns));
 
-        <GeometryReader>
-          {(proxy) => {
-            const columns = proxy.size.width > 600 ? 4 : 2;
-            const itemWidth = (proxy.size.width - 12 * (columns + 1)) / columns;
-            const chunks = [];
-            for (let i = 0; i < list.length; i += columns) chunks.push(list.slice(i, i + columns));
-
-            return (
-              <ZStack
-                frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
-                simultaneousGesture={DragGesture({ minDistance: 60 }).onEnded((event) => {
-                    const dx = event.translation.width;
-                    const dy = event.translation.height;
-                    // 🖐️ 符合您的習慣：側邊滑向「中上」(dx 很大，dy 是負值且明顯)
-                    // 橫移門檻 140，且向上的力道或純橫向力道大過下墜力
-                    if (Math.abs(dx) > 140 && dy < 50) {
-                        if (dx < 0) goNext();
-                        else goPrev();
-                    }
-                })}
-              >
-                <ScrollView padding={12}>
+              return (
+                <ScrollView padding={spacing}>
                   {loading && list.length === 0 ? (
-                    <VStack alignment="center" padding={60}><ProgressView /><Text marginTop={10}>正在採集...</Text></VStack>
+                    <VStack alignment="center" padding={60}><ProgressView /><Text marginTop={10} foregroundStyle="secondaryLabel">龍蝦正在潛水...</Text></VStack>
                   ) : (
                     <VStack spacing={18}>
                       {chunks.map((row, idx) => (
-                        <HStack key={`r${page}_${idx}`} spacing={12} frame={{ maxWidth: "infinity" }} alignment="top">
+                        <HStack key={`r${page}_${idx}`} spacing={spacing} frame={{ maxWidth: "infinity" }} alignment="top">
                           {row.map((item) => (
                             <MoviePoster key={item.url} movie={item} itemWidth={itemWidth} loadingId={loadingId} setLoadingId={setLoadingId} />
                           ))}
@@ -177,11 +173,11 @@ export function View() {
                     </VStack>
                   )}
                 </ScrollView>
-              </ZStack>
-            );
-          }}
-        </GeometryReader>
-      </VStack>
+              );
+            }}
+          </GeometryReader>
+        </VStack>
+      </ZStack>
     </NavigationStack>
   );
 }
