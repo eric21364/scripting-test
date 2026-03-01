@@ -134,10 +134,8 @@ export function View() {
         const reg = /<div class="video-img-box[^>]*>[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img[^>]*?data-src="([^"]+)"[^>]*?>[\s\S]*?<span class="label">([^<]+)<\/span>[\s\S]*?<(?:div|h6) class="title">[\s\S]*?<a[^>]*>([^<]+)<\/a>/g;
         let m;
         while ((m = reg.exec(h)) !== null) {
-          if (!m[2].includes('placeholder')) {
-            const seed = m[4].length + m[1].length;
-            res.push({ url: m[1], thumbnail: m[2], duration: m[3], title: m[4], category: "", weight: 50 + (seed % 50) });
-          }
+          const seed = m[4].length + m[1].length;
+          res.push({ url: m[1], thumbnail: m[2], duration: m[3], title: m[4], category: "", weight: 50 + (seed % 50) });
         }
       } else {
         const targetUrl = query ? `https://www.xvideos.com/?k=${encodeURIComponent(query)}&p=${p - 1}` : `https://www.xvideos.com/new/${p - 1}`;
@@ -147,9 +145,7 @@ export function View() {
         let m;
         while ((m = reg.exec(h)) !== null) {
           const durationMatch = h.substring(m.index, m.index + 1000).match(/<span class="duration">([^<]+)<\/span>/);
-          const duration = durationMatch ? durationMatch[1] : "N/A";
-          const seed = m[4].length + m[2].length;
-          res.push({ url: m[2], thumbnail: m[3], duration, title: m[4], category: "", weight: 50 + (seed % 50) });
+          res.push({ url: m[2], thumbnail: m[3], duration: durationMatch ? durationMatch[1] : "N/A", title: m[4], category: "", weight: 50 + (m[4].length % 50) });
         }
       }
       setList(res);
@@ -167,14 +163,14 @@ export function View() {
   return (
     <VStack spacing={0} background="systemBackground" frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
         
-        {/* 🏔️ 固定 Header */}
+        {/* 🏔️ Header */}
         <VStack spacing={0} background="systemBackground" zIndex={100}>
           <HStack padding={{ top: 8, leading: 16, trailing: 16, bottom: 4 }} alignment="center">
             <CircleIconButton icon="xmark" action={dismiss} />
             <Spacer />
             <VStack alignment="center">
-              <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v10.3</Text>
-              <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">Page {page}</Text>
+              <Text font={{ size: 16, name: "system-bold" }}>龍蝦影院 v10.4</Text>
+              <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">當前波段：{source === 'jable' ? 'Jable' : 'XV'}</Text>
             </VStack>
             <Spacer />
             <HStack spacing={12}>
@@ -183,15 +179,16 @@ export function View() {
             </HStack>
           </HStack>
 
-          {/* 🏔️ 中間控制層：下拉選單 + 搜尋 */}
-          <HStack spacing={10} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
+          {/* 🏔️ 整合控制列：縮減搜尋寬度，確保下拉選單 100% 顯現 */}
+          <HStack spacing={8} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
             
-            {/* 🔌 來源切換下拉 (位於 Header 與內容之間) */}
+            {/* 🔌 來源切換 (下拉固定寬度) */}
             <Menu>
               <Button buttonStyle="plain">
-                <HStack spacing={4} padding={{ horizontal: 10, vertical: 8 }} background="secondarySystemBackground" cornerRadius={10}>
-                  <Image systemName={source === 'jable' ? "leaf.fill" : "globe.americas.fill"} font={14} foregroundStyle={source === 'jable' ? "systemGreen" : "systemBlue"} />
-                  <Text font={{ size: 13, name: "system-bold" }}>{source === 'jable' ? "Jable" : "XV"}</Text>
+                <HStack spacing={4} padding={{ horizontal: 8, vertical: 8 }} background="secondarySystemBackground" cornerRadius={10} frame={{ width: 85 }}>
+                  <Image systemName={source === 'jable' ? "leaf.fill" : "globe.americas.fill"} font={12} foregroundStyle={source === 'jable' ? "systemGreen" : "systemBlue"} />
+                  <Text font={{ size: 12, name: "system-bold" }}>{source === 'jable' ? "Jable" : "XV"}</Text>
+                  <Spacer />
                   <Image systemName="chevron.down" font={8} foregroundStyle="tertiaryLabel" />
                 </HStack>
               </Button>
@@ -199,12 +196,13 @@ export function View() {
               <Button title="XVideos 頻道" action={() => switchSource('xvideos')} />
             </Menu>
 
+            {/* 🔍 搜尋框（自適應剩餘空間） */}
             <HStack frame={{ maxWidth: "infinity" }} padding={{ horizontal: 10, vertical: 8 }} background="secondarySystemBackground" cornerRadius={10}>
-              <Image systemName="magnifyingglass" font={14} foregroundStyle="secondaryLabel" />
+              <Image systemName="magnifyingglass" font={12} foregroundStyle="secondaryLabel" />
               <TextField title="" prompt="探查..." value={keyword} onChanged={setKeyword} onSubmit={triggerSearch} frame={{ maxWidth: "infinity" }} textFieldStyle="plain" />
               {keyword.length > 0 && (
                 <Button action={clearSearch} buttonStyle="plain">
-                  <Image systemName="xmark.circle.fill" font={14} foregroundStyle="tertiaryLabel" />
+                  <Image systemName="xmark.circle.fill" font={12} foregroundStyle="tertiaryLabel" />
                 </Button>
               )}
             </HStack>
@@ -221,16 +219,16 @@ export function View() {
             for (let i = 0; i < list.length; i += columns) chunks.push(list.slice(i, i + columns));
 
             return (
-              <ZStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }} simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded(e => {
-                  if (Math.abs(e.translation.width) > 100 && Math.abs(e.translation.width) > Math.abs(e.translation.height)) {
-                    if (e.translation.width < 0) goNext(); else goPrev();
-                  }
-                })}>
+              <ZStack frame={{ maxWidth: "infinity", maxHeight: "infinity" }}>
                 <ScrollView padding={space}>
                   {loading && list.length === 0 ? (
                     <VStack alignment="center" padding={60}><ProgressView /></VStack>
                   ) : (
-                    <VStack spacing={18}>
+                    <VStack spacing={18} simultaneousGesture={DragGesture({ minDistance: 50 }).onEnded(e => {
+                        if (Math.abs(e.translation.width) > 100 && Math.abs(e.translation.width) > Math.abs(e.translation.height)) {
+                          if (e.translation.width < 0) goNext(); else goPrev();
+                        }
+                      })}>
                       {chunks.map((row, i) => (
                         <HStack key={`s${source}p${page}r${i}`} spacing={space} alignment="top">
                           {row.map(m => (
