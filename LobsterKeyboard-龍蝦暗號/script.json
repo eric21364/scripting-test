@@ -1,0 +1,8 @@
+{
+  "name": "龍蝦隱寫術",
+  "version": "1.1.0",
+  "description": "龍蝦軍團專用系統級加解密鍵盤",
+  "type": "keyboard",
+  "entry": "keyboard.tsx",
+  "icon": "shield.lefthalf.filled"
+}

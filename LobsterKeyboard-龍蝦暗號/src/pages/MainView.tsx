@@ -6,59 +6,13 @@ import {
   Spacer,
   Image,
   useState,
-  useEffect,
   Clipboard,
   CustomKeyboard
 } from "scripting";
 
-// 🌊 龍蝦暗號波段映射 (Hex-to-Sea-Creatures)
-const EMOJI_MAP: Record<string, string> = {
-  '0': '🦀', '1': '🦞', '2': '🦐', '3': '🦑', '4': '🐙', '5': '🐚', '6': '🐟', '7': '🐠',
-  '8': '🐡', '9': '🦈', 'a': '🐳', 'b': '🐬', 'c': '🐋', 'd': '🐢', 'e': '🐧', 'f': '🌟'
-};
+import { MARKER, encode, decode } from "../utils/cipher";
 
-const REVERSE_MAP: Record<string, string> = Object.fromEntries(
-  Object.entries(EMOJI_MAP).map(([k, v]) => [v, k])
-);
-
-const MARKER = '🔱';
-
-// 🛠️ 物理轉譯函數
-function encode(text: string): string {
-  if (!text) return "";
-  const hex = Array.from(new TextEncoder().encode(text))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-  
-  const emojis = Array.from(hex).map(char => EMOJI_MAP[char] || char).join('');
-  return `${MARKER}${emojis}${MARKER}`;
-}
-
-function decode(cipher: string): string {
-  if (!cipher || !cipher.includes(MARKER)) return "無效暗號";
-  const content = cipher.split(MARKER)[1];
-  if (!content) return "暗號落空";
-
-  // 取得 Emoji 陣列 (處理 multi-byte emojis)
-  const emojis = Array.from(content);
-  let hex = "";
-  for (const e of emojis) {
-    if (REVERSE_MAP[e]) {
-      hex += REVERSE_MAP[e];
-    } else {
-      return "非龍蝦波段";
-    }
-  }
-
-  try {
-    const bytes = new Uint8Array(hex.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
-    return new TextDecoder().decode(bytes);
-  } catch (e) {
-    return "解讀失敗";
-  }
-}
-
-export function View() {
+export default function MainView() {
   const [debugMsg, setDebugMsg] = useState("等待波段中...");
   const [decodedContent, setDecodedContent] = useState("");
 
@@ -105,7 +59,7 @@ export function View() {
       {/* 龍蝦鍵盤 Header - 物理鎖定 44pt */}
       <HStack padding={{ horizontal: 16 }} frame={{ height: 44 }} background="secondarySystemBackground">
         <Image systemName="shield.lefthalf.filled" font={14} foregroundStyle="systemOrange" />
-        <Text font={{ size: 13, name: "system-bold" }}> 龍蝦隱寫術 v1.0 </Text>
+        <Text font={{ size: 13, name: "system-bold" }}> 龍蝦隱寫術 v1.1 </Text>
         <Spacer />
         <Text font={{ size: 10 }} foregroundStyle="secondaryLabel">{debugMsg}</Text>
       </HStack>
@@ -116,15 +70,19 @@ export function View() {
         <HStack spacing={12} frame={{ height: 54 }}>
            <Button action={handleEncode} buttonStyle="plain" frame={{ maxWidth: "infinity", height: "infinity" }}>
               <VStack background="rgba(255, 69, 0, 0.1)" cornerRadius={12} frame={{ maxWidth: "infinity", height: "infinity" }} alignment="center">
+                 <Spacer />
                  <Text font={{ size: 14, name: "system-bold" }} foregroundStyle="systemOrange">🦞 隱入塵煙</Text>
                  <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">加密當前輸入</Text>
+                 <Spacer />
               </VStack>
            </Button>
 
            <Button action={handleDecode} buttonStyle="plain" frame={{ maxWidth: "infinity", height: "infinity" }}>
               <VStack background="rgba(0, 122, 255, 0.1)" cornerRadius={12} frame={{ maxWidth: "infinity", height: "infinity" }} alignment="center">
+                 <Spacer />
                  <Text font={{ size: 14, name: "system-bold" }} foregroundStyle="systemBlue">👁️ 洞穿真相</Text>
                  <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">讀取剪貼簿暗號</Text>
+                 <Spacer />
               </VStack>
            </Button>
         </HStack>
@@ -144,20 +102,20 @@ export function View() {
            <Button action={clearInput} buttonStyle="plain">
               <HStack padding={{ horizontal: 12 }} background="rgba(255,0,0,0.05)" cornerRadius={8} frame={{ height: 36 }}>
                 <Image systemName="trash" font={12} foregroundStyle="systemRed" />
-                <Text font={{ size: 12 }} foregroundStyle="systemRed"> 清除 </Text>
+                <Text font={{ size: 12 }} foregroundStyle="systemRed" padding={{ leading: 4 }}> 清除 </Text>
               </HStack>
            </Button>
            <Spacer />
            <Button action={() => CustomKeyboard.dismissToHome()} buttonStyle="plain">
               <HStack padding={{ horizontal: 12 }} background="secondarySystemBackground" cornerRadius={8} frame={{ height: 36 }}>
                  <Image systemName="house" font={12} />
-                 <Text font={{ size: 12 }}> 返回清單 </Text>
+                 <Text font={{ size: 12 }} padding={{ leading: 4 }}> 返回清單 </Text>
               </HStack>
            </Button>
            <Button action={() => CustomKeyboard.nextKeyboard()} buttonStyle="plain">
               <HStack padding={{ horizontal: 12 }} background="secondarySystemBackground" cornerRadius={8} frame={{ height: 36 }}>
                  <Image systemName="globe" font={12} />
-                 <Text font={{ size: 12 }}> 下一個 </Text>
+                 <Text font={{ size: 12 }} padding={{ leading: 4 }}> 下一個 </Text>
               </HStack>
            </Button>
         </HStack>
@@ -166,6 +124,3 @@ export function View() {
     </VStack>
   );
 }
-
-// 物理啟動
-CustomKeyboard.present(<View />);
