@@ -5,13 +5,14 @@ import { selectStore, KeyboardLang } from "../store";
 declare const CustomKeyboard: any;
 
 /**
- * 🧪 龍蝦標準注音映射 (IBM/QWERTY Standard)
- * 修正了 v2.0.7 中的位元偏差
+ * 🧪 龍蝦標準注音映射 (Windows Standard/iOS Layout)
+ * 完全校準聲母、韻母與聲調 (˙ˊˇˋ)
  */
 const ZH_MAP: Record<string, string> = {
-  'Q': 'ㄆ', 'W': 'ㄊ', 'E': 'ㄍ', 'R': 'ㄐ', 'T': 'ㄔ', 'Y': 'ㄗ', 'U': 'ㄧ', 'I': 'ㄛ', 'O': 'ㄝ', 'P': 'ㄣ',
-  'A': 'ㄇ', 'S': 'ㄋ', 'D': 'ㄎ', 'F': 'ㄑ', 'G': 'ㄒ', 'H': 'ㄘ', 'J': 'ㄨ', 'K': 'ㄜ', 'L': 'ㄠ',
-  'Z': 'ㄈ', 'X': 'ㄌ', 'C': 'ㄏ', 'V': 'ㄒ', 'B': 'ㄖ', 'N': 'ㄙ', 'M': 'ㄩ'
+  '1': 'ㄅ', '2': 'ㄆ', '3': 'ㄇ', '4': 'ㄈ', '5': 'ㄉ', '6': 'ㄊ', '7': 'ㄋ', '8': 'ㄌ', '9': 'ㄍ', '0': 'ㄎ',
+  'Q': 'ㄏ', 'W': 'ㄐ', 'E': 'ㄑ', 'R': 'ㄒ', 'T': 'ㄓ', 'Y': 'ㄔ', 'U': 'ㄕ', 'I': 'ㄖ', 'O': 'ㄗ', 'P': 'ㄘ',
+  'A': 'ㄙ', 'S': 'ㄚ', 'D': 'ㄛ', 'F': 'ㄜ', 'G': 'ㄝ', 'H': 'ㄞ', 'J': 'ㄟ', 'K': 'ㄠ', 'L': 'ㄡ', ';': 'ㄢ',
+  'Z': 'ㄣ', 'X': 'ㄤ', 'C': 'ㄥ', 'V': 'ㄦ', 'B': 'ㄧ', 'N': 'ㄨ', 'M': 'ㄩ', ',': '˙', '.': 'ˊ', '/': 'ˇ', '\'': 'ˋ'
 };
 
 export function RowView({
@@ -21,7 +22,6 @@ export function RowView({
   spacing?: number
   keyWidth?: number
 }) {
-  // ⚡️ 效能優化：僅監聽必要的狀態
   const { lang, capsState } = selectStore(store => ({
     lang: store.lang,
     capsState: store.capsState
@@ -29,6 +29,7 @@ export function RowView({
 
   const getChar = (c: string) => {
     if (lang === KeyboardLang.EN) {
+      if (c.length > 1) return c; // space, 換行等標記
       return capsState !== 0 ? c.toUpperCase() : c.toLowerCase();
     }
     return ZH_MAP[c] || c;
@@ -37,7 +38,7 @@ export function RowView({
   return <HStack spacing={spacing} alignment="center">
     {chars.split(' ').map((c, i) =>
       <KeyView
-        key={`${lang}-${i}`}
+        key={`${lang}-${i}-${c}`}
         title={getChar(c)}
         minWidth={keyWidth}
         action={() => {

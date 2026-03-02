@@ -100,23 +100,9 @@ export default function MainView() {
       <VStack spacing={6} padding={{ top: 8, leading: 4, trailing: 4, bottom: 10 }} frame={{ maxWidth: "infinity" }}>
         {mode === KeyboardMode.Standard ? (
           <VStack spacing={6} alignment="center">
-            {/* Row 0: 數字快速鍵 */}
-            <HStack spacing={4}>
-              {"1 2 3 4 5 6 7 8 9 0".split(' ').map((num, i) => (
-                <KeyView 
-                  key={i} 
-                  title={num} 
-                  minWidth={35} 
-                  height={40}
-                  fontSize={16}
-                  background="systemBackground"
-                  action={() => CustomKeyboard.insertText(num)} 
-                />
-              ))}
-            </HStack>
-
+            <RowView chars="1 2 3 4 5 6 7 8 9 0" spacing={4} keyWidth={34} />
             <RowView chars="Q W E R T Y U I O P" spacing={5} keyWidth={34} />
-            <RowView chars="A S D F G H J K L" spacing={5} keyWidth={34} />
+            <RowView chars="A S D F G H J K L ;" spacing={5} keyWidth={34} />
             
             <HStack spacing={6} alignment="center">
               <KeyView 
@@ -136,7 +122,7 @@ export default function MainView() {
                 background={capsState !== CapsState.Off ? "systemBackground" : FUNCTIONAL_GRAY} 
                 foregroundStyle={capsState !== CapsState.Off ? "systemBlue" : "label"} 
               />
-              <RowView chars="Z X C V B N M" spacing={6} keyWidth={34} />
+              <RowView chars={lang === KeyboardLang.ZH ? "Z X C V B N M , . / '" : "Z X C V B N M"} spacing={6} keyWidth={34} />
               <KeyView title="⌫" minWidth={44} height={44} background={FUNCTIONAL_GRAY} action={() => CustomKeyboard.deleteBackward()} />
             </HStack>
             
