@@ -5,48 +5,38 @@ import { selectStore, KeyboardLang } from "../store";
 declare const CustomKeyboard: any;
 
 /**
- * 🧪 龍蝦標準注音映射 (PC/QWERTY Standard)
- * v2.2.1 [注音聲符全對位補完]
+ * 🧪 v2.2.2 靈活 RowView
+ * 支援根據傳入的字串陣列直接渲染，簡化佈局逻辑
  */
-const ZH_MAP: Record<string, string> = {
-  // 注音ㄅ..ㄎ (含數字排)
-  '1': 'ㄅ', '2': 'ㄉ', '3': 'ˇ', '4': 'ㄓ', '5': 'ㄔ', '6': 'ㄗ', '7': '˙', '8': 'ㄚ', '9': 'ㄞ', '0': 'ㄢ',
-  // QWERTY 第一排 (ㄅ..ㄙ、聲符)
-  'Q': 'ㄆ', 'W': 'ㄊ', 'E': 'ㄍ', 'R': 'ㄐ', 'T': 'ㄘ', 'Y': 'ㄙ', 'U': 'ㄧ', 'I': 'ㄛ', 'O': 'ㄝ', 'P': 'ㄣ',
-  // QWERTY 第二排 (ㄇ..ㄠ、ㄤ)
-  'A': 'ㄇ', 'S': 'ㄋ', 'D': 'ㄎ', 'F': 'ㄑ', 'G': 'ㄒ', 'H': 'ㄖ', 'J': 'ㄨ', 'K': 'ㄜ', 'L': 'ㄠ', ';': 'ㄤ',
-  // QWERTY 第三排 (ㄈ..ㄩ、聲調)
-  'Z': 'ㄈ', 'X': 'ㄌ', 'C': 'ㄏ', 'V': 'ㄒ', 'B': 'ㄕ', 'N': 'ㄙ', 'M': 'ㄩ', ',': 'ㄝ', '.': 'ㄡ', '/': 'ㄥ', '\'': 'ˋ'
-};
-
 export function RowView({
-  chars, spacing = 5, keyWidth = 35
+  chars, spacing = 4, keyWidth = 35, fontSize
 }: {
   chars: string
   spacing?: number
   keyWidth?: number
+  fontSize?: number
 }) {
   const { lang, capsState } = selectStore(store => ({
     lang: store.lang,
     capsState: store.capsState
   }));
 
-  const getChar = (c: string) => {
-    if (lang === KeyboardLang.EN) {
-      if (c.length > 1) return c; 
+  const processChar = (c: string) => {
+    if (lang === KeyboardLang.EN && c.length === 1) {
       return capsState !== 0 ? c.toUpperCase() : c.toLowerCase();
     }
-    return ZH_MAP[c] || c;
+    return c;
   };
 
   return <HStack spacing={spacing} alignment="center">
     {chars.split(' ').map((c, i) =>
       <KeyView
-        key={`${lang}-${i}-${c}`}
-        title={getChar(c)}
+        key={`${i}-${c}`}
+        title={processChar(c)}
         minWidth={keyWidth}
+        fontSize={fontSize}
         action={() => {
-          CustomKeyboard.insertText(getChar(c));
+          CustomKeyboard.insertText(processChar(c));
         }}
       />
     )}
