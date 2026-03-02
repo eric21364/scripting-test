@@ -5,42 +5,48 @@ import {
   Button,
   Spacer,
   Image,
-  Clipboard
 } from "scripting";
 
 import { useStore } from "./store";
 import { KeyView } from "./components/Key";
 import { encode, decode, MARKER } from "./utils/cipher";
 
-// @ts-ignore
-const CustomKeyboardGlobal = CustomKeyboard;
-// @ts-ignore
-const PasteboardGlobal = Pasteboard;
+// ⚠️ Scripting 環境中 CustomKeyboard 與 Pasteboard 是全域命名空間，不可從 "scripting" 模組 import
+declare const CustomKeyboard: any;
+declare const Pasteboard: any;
+declare const Clipboard: any;
 
 export default function MainView() {
   const { debugMsg, updateDebugMsg, decodedContent, updateDecodedContent } = useStore();
 
   const handleEncode = () => {
-    CustomKeyboardGlobal.playInputClick();
-    const currentText = CustomKeyboardGlobal.allText;
+    CustomKeyboard.playInputClick();
+    const currentText = CustomKeyboard.allText;
     if (!currentText) {
       updateDebugMsg("目前無波段可隱入");
       return;
     }
     
     // 物理清理當前輸入
-    while(CustomKeyboardGlobal.hasText) {
-      CustomKeyboardGlobal.deleteBackward();
+    while(CustomKeyboard.hasText) {
+      CustomKeyboard.deleteBackward();
     }
     
     const cipher = encode(currentText);
-    CustomKeyboardGlobal.insertText(cipher);
+    CustomKeyboard.insertText(cipher);
     updateDebugMsg("暗號已就緒 🦞");
   };
 
   const handleDecode = async () => {
-    CustomKeyboardGlobal.playInputClick();
-    const clip = await PasteboardGlobal.getString();
+    CustomKeyboard.playInputClick();
+    // 優先使用新版 Pasteboard，若無則降級回 Clipboard
+    let clip: string | null = null;
+    try {
+      clip = await Pasteboard.getString();
+    } catch (e) {
+      clip = await Clipboard.getString();
+    }
+
     if (!clip || !clip.includes(MARKER)) {
       updateDebugMsg("剪貼簿無龍蝦暗號");
       return;
@@ -52,9 +58,9 @@ export default function MainView() {
   };
 
   const clearInput = () => {
-    CustomKeyboardGlobal.playInputClick();
-    while(CustomKeyboardGlobal.hasText) {
-      CustomKeyboardGlobal.deleteBackward();
+    CustomKeyboard.playInputClick();
+    while(CustomKeyboard.hasText) {
+      CustomKeyboard.deleteBackward();
     }
   };
 
@@ -62,8 +68,8 @@ export default function MainView() {
     <VStack spacing={0} background="systemBackground" frame={{ height: 300 }}>
       {/* 龍蝦鍵盤 Header - 物理鎖定 44pt */}
       <HStack padding={{ horizontal: 16 }} frame={{ height: 44 }} background="secondarySystemBackground">
-        <Image systemName="shield.lefthalf.filled" font={14} foregroundStyle="systemOrange" />
-        <Text font={{ size: 13, name: "system-bold" }}> 龍蝦隱寫術 v1.3.2 </Text>
+        <Image systemName="shield.lefthalf.filled" font={{ size: 14, name: "system" }} foregroundStyle="systemOrange" />
+        <Text font={{ size: 13, name: "system-bold" }}> 龍蝦隱寫術 v1.3.3 </Text>
         <Spacer />
         <Text font={{ size: 10, name: "system" }} foregroundStyle="secondaryLabel">{debugMsg}</Text>
       </HStack>
@@ -91,10 +97,9 @@ export default function MainView() {
         </HStack>
 
         {/* 解碼顯示區域 */}
-        {decodedContent.length > 0 && (
+        {decodedContent.length > 0 ? (
           <VStack 
             background="secondarySystemBackground" 
-            clipShape={{ type: 'rect', cornerRadius: 10 }}
             padding={12} 
             alignment="leading" 
             frame={{ maxWidth: "infinity" }}
@@ -102,7 +107,7 @@ export default function MainView() {
              <Text font={{ size: 10, name: "system-bold" }} foregroundStyle="secondaryLabel">解碼內容：</Text>
              <Text font={{ size: 14, name: "system" }} padding={{ top: 2 }}>{decodedContent}</Text>
           </VStack>
-        )}
+        ) : null}
 
         <Spacer />
 
@@ -112,33 +117,30 @@ export default function MainView() {
               <HStack 
                 padding={{ horizontal: 12 }} 
                 background="rgba(255,0,0,0.05)" 
-                clipShape={{ type: 'rect', cornerRadius: 8 }}
                 frame={{ height: 36 }}
               >
-                <Image systemName="trash" font={12} foregroundStyle="systemRed" />
+                <Image systemName="trash" font={{ size: 12, name: "system" }} foregroundStyle="systemRed" />
                 <Text font={{ size: 12, name: "system" }} foregroundStyle="systemRed" padding={{ leading: 4 }}> 清除 </Text>
               </HStack>
            </Button>
            <Spacer />
-           <Button action={() => { CustomKeyboardGlobal.playInputClick(); CustomKeyboardGlobal.dismissToHome(); }} buttonStyle="plain">
+           <Button action={() => { CustomKeyboard.playInputClick(); CustomKeyboard.dismissToHome(); }} buttonStyle="plain">
               <HStack 
                 padding={{ horizontal: 12 }} 
                 background="secondarySystemBackground" 
-                clipShape={{ type: 'rect', cornerRadius: 8 }}
                 frame={{ height: 36 }}
               >
-                 <Image systemName="house" font={12} />
+                 <Image systemName="house" font={{ size: 12, name: "system" }} />
                  <Text font={{ size: 12, name: "system" }} padding={{ leading: 4 }}> 返回清單 </Text>
               </HStack>
            </Button>
-           <Button action={() => { CustomKeyboardGlobal.playInputClick(); CustomKeyboardGlobal.nextKeyboard(); }} buttonStyle="plain">
+           <Button action={() => { CustomKeyboard.playInputClick(); CustomKeyboard.nextKeyboard(); }} buttonStyle="plain">
               <HStack 
                 padding={{ horizontal: 12 }} 
                 background="secondarySystemBackground" 
-                clipShape={{ type: 'rect', cornerRadius: 8 }}
                 frame={{ height: 36 }}
               >
-                 <Image systemName="globe" font={12} />
+                 <Image systemName="globe" font={{ size: 12, name: "system" }} />
                  <Text font={{ size: 12, name: "system" }} padding={{ leading: 4 }}> 下一個 </Text>
               </HStack>
            </Button>
