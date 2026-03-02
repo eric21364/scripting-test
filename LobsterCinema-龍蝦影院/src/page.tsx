@@ -16,7 +16,8 @@ import {
   GeometryReader,
   DragGesture,
   Circle,
-  TextField
+  TextField,
+  Menu
 } from "scripting";
 
 interface Movie {
@@ -192,31 +193,26 @@ export function View() {
 
           <HStack spacing={10} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
             
-            {/* 🔌 實體頻道切換器 - 物理高度鎖定 36 */}
-            <HStack spacing={0} background="secondarySystemBackground" cornerRadius={10} padding={2} frame={{ height: 36 }}>
-               <Button action={() => switchSource('jable')} buttonStyle="plain">
-                  <Text 
-                    font={{ size: 11, name: "system-bold" }} 
-                    padding={{ horizontal: 12 }} 
-                    frame={{ maxHeight: "infinity" }}
-                    background={source === 'jable' ? "systemBackground" : "transparent"} 
-                    cornerRadius={8} 
-                    shadow={source === 'jable' ? { color: "rgba(0,0,0,0.1)", radius: 2 } : undefined}
-                    foregroundStyle={source === 'jable' ? "systemGreen" : "secondaryLabel"}
-                  >Jable</Text>
-               </Button>
-               <Button action={() => switchSource('xvideos')} buttonStyle="plain">
-                  <Text 
-                    font={{ size: 11, name: "system-bold" }} 
-                    padding={{ horizontal: 12 }} 
-                    frame={{ maxHeight: "infinity" }}
-                    background={source === 'xvideos' ? "systemBackground" : "transparent"} 
-                    cornerRadius={8} 
-                    shadow={source === 'xvideos' ? { color: "rgba(0,0,0,0.1)", radius: 2 } : undefined}
-                    foregroundStyle={source === 'xvideos' ? "systemBlue" : "secondaryLabel"}
-                  >XV</Text>
-               </Button>
-            </HStack>
+            {/* 🔌 實體頻道切換器 - 龍蝦 v11.1 下拉選單化 */}
+            <Menu
+              label={
+                <HStack 
+                   spacing={6} 
+                   background="secondarySystemBackground" 
+                   cornerRadius={10} 
+                   padding={{ horizontal: 12 }} 
+                   frame={{ height: 36 }}
+                >
+                  <Text font={{ size: 11, name: "system-bold" }} foregroundStyle={source === 'jable' ? "systemGreen" : "systemBlue"}>
+                    {source === 'jable' ? "Jable" : "XV"}
+                  </Text>
+                  <Image systemName="chevron.down" font={9} foregroundStyle="secondaryLabel" />
+                </HStack>
+              }
+            >
+               <Button title="Jable (繁體)" action={() => switchSource('jable')} />
+               <Button title="XVideos (波段)" action={() => switchSource('xvideos')} />
+            </Menu>
 
             {/* 🔍 搜尋列 - 物理高度鎖定 36 */}
             <HStack frame={{ maxWidth: "infinity", height: 36 }} padding={{ horizontal: 10 }} background="secondarySystemBackground" cornerRadius={10} alignment="center">
