@@ -3,7 +3,7 @@ import { Button, ZStack, VStack, Text, Spacer } from "scripting";
 declare const HapticFeedback: any;
 
 /**
- * 龍蝦鍵盤通用按鍵 - v1.8 霧化質感與物理標校
+ * 龍蝦鍵盤通用按鍵 - v1.9 物理統一質感標校
  */
 export function KeyView(props: any) {
   const {
@@ -15,12 +15,12 @@ export function KeyView(props: any) {
     action();
   }
 
-  // 🧪 物理標校：標準鍵寬 35pt，高度 42pt
-  const finalWidth = minWidth ?? (wide ? 180 : 35);
+  // 🧪 物理標校：標準鍵寬 34pt，高度 42pt
+  const finalWidth = minWidth ?? (wide ? 180 : 34);
   const finalHeight = height ?? 42;
   
-  // 🔮 預設玻璃質感背景：半透明白
-  const finalBackground = background ?? "rgba(255, 255, 255, 0.8)";
+  // 🔮 統一背景色：強制的玻璃霧化感，移除色差
+  const finalBackground = background ?? "rgba(255, 255, 255, 0.85)";
 
   return <Button
     action={handleAction}
@@ -28,7 +28,8 @@ export function KeyView(props: any) {
   >
     <ZStack 
       background={finalBackground} 
-      clipShape={{ type: 'rect', cornerRadius: 5 }}
+      // 🛡️ 物理鎖定：四周圓角標校
+      clipShape={{ type: 'rect', cornerRadius: 10 }}
       frame={{ width: finalWidth, height: finalHeight }}
       shadow={{ color: 'rgba(0,0,0,0.1)', radius: 0.1, y: 1 }}
     >
