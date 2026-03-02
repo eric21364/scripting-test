@@ -3,12 +3,12 @@ import { Button, ZStack, Text, VStack, Spacer } from "scripting";
 declare const HapticFeedback: any;
 
 /**
- * 龍蝦鍵盤通用按鍵 - v2.2.0 [物理 ZStack 質感複刻版]
- * 回歸 v2.0.4 的雙層 ZStack 設計，強化實體感與點擊範圍
+ * 龍蝦鍵盤通用按鍵 - v2.2.1 [v2.0.4 物理美學複刻版]
+ * 回歸雙層 ZStack 結構，解決「按鈕範圍過小」與「質感欠缺」問題
  */
 export function KeyView(props: any) {
   const {
-    title, action, wide = false, background, foregroundStyle = "label", 
+    title, action, wide = false, background, foregroundStyle = "black", 
     minWidth, height, fontSize, functional = false, onTapGesture
   } = props;
 
@@ -17,12 +17,12 @@ export function KeyView(props: any) {
     if (action) action();
   }
 
-  // 🧪 物理修正：回歸 v2.0.4 的按鍵尺寸 (35x40) 以解決範圍過小的問題
+  // 🧪 物理標校：回歸 v2.0.4 的標準比例 (35x40)
   const finalWidth = minWidth ?? (wide ? 180 : 35); 
-  const finalHeight = height ?? 42; 
+  const finalHeight = height ?? 40; 
 
-  // iOS 原生功能配色標校
-  const DEFAULT_BG = functional ? "rgba(172, 179, 188, 1)" : "rgba(255, 255, 255, 1)";
+  // v2.0.4 經典配色
+  const DEFAULT_BG = functional ? "rgba(171, 177, 182, 1)" : "rgba(255, 255, 255, 1)";
   const keyBg = background ?? DEFAULT_BG;
 
   return <Button
@@ -31,25 +31,25 @@ export function KeyView(props: any) {
     buttonStyle="plain"
     frame={{ width: finalWidth, height: finalHeight }}
   >
-    {/* 底層：實體背框 (模擬實體厚度與陰影) */}
+    {/* 底層：實體深色背框 (產生物理厚度陰影) */}
     <ZStack 
-      background="rgba(0,0,0,0.25)" 
+      background="rgba(0,0,0,0.2)" 
       clipShape={{ type: 'rect', cornerRadius: 5 }}
       frame={{ width: finalWidth, height: finalHeight }}
     >
-      {/* 頂層：實體面鍵 (向上偏移 1.5pt，產生模擬厚度感) */}
+      {/* 頂層：實體白色面鍵 (向上偏移 1.5pt 營造厚度感) */}
       <ZStack 
         background={keyBg} 
         clipShape={{ type: 'rect', cornerRadius: 5 }}
         frame={{ width: finalWidth, height: finalHeight - 1.5 }}
-        offset={{ x: 0, y: -0.8 }}
+        offset={{ x: 0, y: -0.75 }}
       >
-        <VStack alignment="center">
+        <VStack alignment="center" frame={{maxWidth:"infinity", maxHeight:"infinity"}}>
           <Spacer />
           <Text 
-            font={{ size: fontSize ?? 19, name: "system" }} 
-            fontWeight="regular"
-            foregroundStyle={foregroundStyle}
+            font={{ size: fontSize ?? 18, name: "system" }} 
+            fontWeight="bold"
+            foregroundStyle={foregroundStyle === "label" ? "black" : foregroundStyle}
           >
             {title}
           </Text>
