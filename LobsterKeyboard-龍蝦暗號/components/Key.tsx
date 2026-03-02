@@ -3,7 +3,7 @@ import { Button, ZStack, Text, VStack, Spacer } from "scripting";
 declare const HapticFeedback: any;
 
 /**
- * 龍蝦鍵盤通用按鍵 - v2.0.2 [物理純淨化標校版]
+ * 龍蝦鍵盤通用按鍵 - v2.0.3 [TypeScript 嚴格修復版]
  */
 export function KeyView(props: any) {
   const {
@@ -27,11 +27,10 @@ export function KeyView(props: any) {
     frame={{ width: finalWidth, height: finalHeight }}
   >
     <ZStack 
-      background="rgba(0,0,0,0.12)" // 極細底色
+      background="rgba(0,0,0,0.12)" 
       clipShape={{ type: 'rect', cornerRadius: 6 }}
       frame={{ width: finalWidth, height: finalHeight }}
     >
-      {/* 🛡️ 物理修復：移除 offset，改用固定高度差確保純淨度，消除周圍雜訊 */}
       <VStack spacing={0}>
         <ZStack 
           background={keyBg} 
@@ -40,17 +39,18 @@ export function KeyView(props: any) {
         >
           <VStack alignment="center">
             <Spacer />
+            {/* 🛡️ 修正點 1：移除 Text 組件上不存在的 alignment 屬性 */}
             <Text 
               font={{ size: fontSize ?? 18, name: "system-bold" }} 
               foregroundStyle={foregroundStyle}
-              alignment="center"
             >
               {title}
             </Text>
             <Spacer />
           </VStack>
         </ZStack>
-        <Spacer frame={{ height: 1.5 }} /> {/* 底部的 1.5pt 就是厚度感 */}
+        {/* 🛡️ 修正點 2：移除 VStack 內部的裸漏 Spacer 與雜項，確保 children 類型正確 */}
+        <VStack frame={{ height: 1.5 }} />
       </VStack>
     </ZStack>
   </Button>
