@@ -24,8 +24,8 @@ declare const Pasteboard: any;
 declare const Clipboard: any;
 
 /**
- * 龍蝦暗號 v2.2.3 [v2.0.4 佈局歸位 + 聲調修正版]
- * 完全複刻 v2.0.4 重心與位置，修正注音聲調至 Row 1
+ * 龍蝦暗號 v2.2.4 [iOS 18 注音位置與邏輯修正版]
+ * 回歸 v2.0.4 佈局位置，修正 ˋ (四聲) 至 ˇ 的右邊 (鍵位 4)
  */
 export default function MainView() {
   const { mode, setMode } = selectStore(s => ({ mode: s.mode, setMode: s.setMode }));
@@ -52,13 +52,13 @@ export default function MainView() {
   return (
     <VStack spacing={0} background={KEYBOARD_BG} frame={{ maxWidth: "infinity", height: 240 }}>
       
-      {/* 🚀 v2.0.4 標誌：頂部 Spacer 壓低重心 */}
+      {/* 🚀 重心下移：v2.0.4 Spacer 置頂 */}
       <Spacer />
 
-      {/* 🔮 龍蝦 Toolbar */}
+      {/* 🔮 龍蝦互動列 */}
       <HStack padding={{ horizontal: 16 }} frame={{ height: 34 }} background={TOOLBAR_BG}>
         <Image systemName="shield.lefthalf.filled" font={{ size: 12, name: "system" }} foregroundStyle="systemOrange" />
-        <Text font={{ size: 11, name: "system-bold" }} padding={{ leading: 4 }}>龍蝦標校 v2.2.3</Text>
+        <Text font={{ size: 11, name: "system-bold" }} padding={{ leading: 4 }}>龍蝦標校 v2.2.4</Text>
         <Spacer />
         <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">{debugMsg}</Text>
         <Spacer />
@@ -74,12 +74,12 @@ export default function MainView() {
         </Button>
       </HStack>
 
-      <VStack spacing={4} padding={{ top: 4, leading: 6, trailing: 6, bottom: 6 }} frame={{ maxWidth: "infinity" }}>
+      <VStack spacing={4} padding={{ top: 2, leading: 6, trailing: 6, bottom: 6 }} frame={{ maxWidth: "infinity" }}>
         {mode === KeyboardMode.Standard ? (
-          /* 🅰️ v2.0.4 核心架構複刻 */
+          /* 🅰️ v2.0.4 標準 4+1 版型 */
           <VStack spacing={4} alignment="center">
             
-            {/* ROW 1: ㄅ..ㄢ (含聲調 ˇ ˊ ˙) */}
+            {/* ROW 1: ㄅ..ㄎ (1 2 3 4 5 6 7 8 9 0) */}
             <RowView chars="1 2 3 4 5 6 7 8 9 0" spacing={4} keyWidth={35} />
 
             {/* ROW 2: ㄆ..ㄣ (Q..P) */}
@@ -88,7 +88,7 @@ export default function MainView() {
             {/* ROW 3: ㄇ..ㄤ (A..;) */}
             <RowView chars={lang === KeyboardLang.ZH ? "A S D F G H J K L ;" : "A S D F G H J K L"} spacing={4} keyWidth={35} />
             
-            {/* ROW 4: Shift + ㄈ..ㄥ + ⌫ */}
+            {/* ROW 4: Shift + (ㄈ..ㄥ / Z..M) + Delete */}
             <HStack spacing={4} alignment="center">
               <KeyView 
                 title="⇧" 
@@ -100,11 +100,11 @@ export default function MainView() {
                 background={capsState !== CapsState.Off ? "white" : FUNCTIONAL_GRAY} 
                 foregroundStyle={capsState !== CapsState.Off ? "#007AFF" : "black"} 
               />
-              <RowView chars={lang === KeyboardLang.ZH ? "Z X C V B N M ' , . /" : "Z X C V B N M"} spacing={4} keyWidth={lang === KeyboardLang.ZH ? 25 : 35} />
+              <RowView chars={lang === KeyboardLang.ZH ? "Z X C V B N M , ." : "Z X C V B N M"} spacing={4} keyWidth={lang === KeyboardLang.ZH ? 25 : 35} />
               <KeyView title="⌫" minWidth={44} height={40} functional background={FUNCTIONAL_GRAY} action={() => CustomKeyboard.deleteBackward()} />
             </HStack>
             
-            {/* ROW 5: 控制排 */}
+            {/* ROW 5: 控制列 */}
             <HStack spacing={6} alignment="center">
               <KeyView title={lang === KeyboardLang.ZH ? "中" : "EN"} minWidth={54} height={40} background={FUNCTIONAL_GRAY} action={() => setLang(lang === KeyboardLang.ZH ? KeyboardLang.EN : KeyboardLang.ZH)} />
               <KeyView title="space" wide={true} minWidth={185} height={40} action={() => CustomKeyboard.insertText(" ")} />
@@ -115,7 +115,7 @@ export default function MainView() {
           /* 🕵️ 特工面板 */
           <VStack spacing={12} padding={10}>
              <HStack spacing={15}>
-               <KeyView title="🦞 隱入塵煙" action={handleEncode} wide={true} minWidth={170} background="rgba(255, 69, 0, 0.2)" foregroundStyle="systemOrange" height={55} />
+               <KeyView title="隱入塵煙" action={handleEncode} wide={true} minWidth={170} background="rgba(255, 69, 0, 0.2)" foregroundStyle="systemOrange" height={55} />
                <KeyView title="打字模式" action={() => setMode(KeyboardMode.Standard)} wide={true} minWidth={170} background={FUNCTIONAL_GRAY} height={55} />
             </HStack>
             <ZStack background="white" clipShape={{ type: 'rect', cornerRadius: 10 }} frame={{ maxWidth: "infinity", height: 70 }}>
