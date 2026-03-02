@@ -24,8 +24,7 @@ declare const Pasteboard: any;
 declare const Clipboard: any;
 
 /**
- * 龍蝦暗號 v2.1.6 [iOS 原生對齊標校 - 完美複刻版]
- * 對位來源：Apple Almond iOS 18 Zhuyin Keyboard Screenshot
+ * 龍蝦暗號 v2.1.7 [iOS 18 原生複刻 - 全語系 5 排對位版]
  */
 export default function MainView() {
   const { mode, setMode } = selectStore(s => ({ mode: s.mode, setMode: s.setMode }));
@@ -53,81 +52,65 @@ export default function MainView() {
       <Spacer />
 
       {/* 🔮 龍蝦互動列 */}
-      <HStack padding={{ horizontal: 16 }} frame={{ height: 32 }} background="rgba(209, 212, 218, 0.5)">
-        <Image systemName="shield.lefthalf.filled" font={{ size: 13, name: "system" }} foregroundStyle="systemOrange" />
+      <HStack padding={{ horizontal: 16 }} frame={{ height: 30 }} background="rgba(209, 212, 218, 0.4)">
+        <Image systemName="shield.lefthalf.filled" font={{ size: 12, name: "system" }} foregroundStyle="systemOrange" />
         <Text font={{ size: 10 }} padding={{ leading: 4 }} foregroundStyle="secondaryLabel">{debugMsg}</Text>
         <Spacer />
         <Button action={() => {
            setMode(mode === KeyboardMode.Standard ? KeyboardMode.Agent : KeyboardMode.Standard);
            HapticFeedback.lightImpact();
         }} buttonStyle="plain">
-          <ZStack background={mode === KeyboardMode.Standard ? "rgba(255,255,255,0.7)" : "systemOrange"} clipShape={{type:'rect', cornerRadius: 6}} padding={{horizontal: 8, vertical: 4}}>
+          <ZStack background={mode === KeyboardMode.Standard ? "rgba(255,255,255,0.7)" : "systemOrange"} clipShape={{type:'rect', cornerRadius: 5}} padding={{horizontal: 7, vertical: 3}}>
              <Text font={{ size: 9, name: "system-bold" }} foregroundStyle={mode === KeyboardMode.Standard ? "label" : "white"}>
-               {mode === KeyboardMode.Standard ? "🕵️ AGENT" : "⌨️ TYPING"}
+               {mode === KeyboardMode.Standard ? "AGENT" : "TYPING"}
              </Text>
           </ZStack>
         </Button>
       </HStack>
 
-      <VStack spacing={8} padding={{ top: 8, leading: 4, trailing: 4, bottom: 8 }} frame={{ maxWidth: "infinity" }}>
+      <VStack spacing={8} padding={{ top: 4, leading: 4, trailing: 4, bottom: 8 }} frame={{ maxWidth: "infinity" }}>
         {mode === KeyboardMode.Standard ? (
-          /* 🅰️ 完美原生對位佈局 */
+          /* 🅰️ 5 排完整對位佈局 */
           <VStack spacing={8} alignment="center">
             
-            {/* ROW 1: ㄅ-ㄎ / Q-P (10 Keys) */}
-            <RowView chars={lang === KeyboardLang.ZH ? "1 2 3 4 5 6 7 8 9 0" : "Q W E R T Y U I O P"} spacing={6} keyWidth={34} />
+            {/* ROW 1: 數字排 (1-0) - 現在 EN/ZH 模式皆顯示 */}
+            <RowView chars="1 2 3 4 5 6 7 8 9 0" spacing={6} keyWidth={34} />
 
-            {/* ROW 2: ㄏ-ㄘ / A-L (10 Keys / 9 Keys) */}
+            {/* ROW 2: ㄅ..ㄎ (ZH) / Q..P (EN) */}
+            <RowView chars="Q W E R T Y U I O P" spacing={6} keyWidth={34} />
+
+            {/* ROW 3: ㄏ..ㄢ / A..L (EN 為縮排) */}
             <HStack spacing={6} alignment="center">
                 {lang === KeyboardLang.EN ? <Spacer /> : null}
-                <RowView chars={lang === KeyboardLang.ZH ? "Q W E R T Y U I O P" : "A S D F G H J K L"} spacing={6} keyWidth={34} />
+                <RowView chars={lang === KeyboardLang.ZH ? "A S D F G H J K L ;" : "A S D F G H J K L"} spacing={6} keyWidth={34} />
                 {lang === KeyboardLang.EN ? <Spacer /> : null}
             </HStack>
             
-            {/* ROW 3: ㄙ-ㄢ / EN: Shift+Z-M+Clear */}
-            {lang === KeyboardLang.ZH ? (
-              <RowView chars="A S D F G H J K L ;" spacing={6} keyWidth={34} />
-            ) : (
-              <HStack spacing={6} alignment="center">
-                <KeyView 
-                    title="⇧" 
-                    minWidth={44} height={44} functional 
-                    action={() => setCapsState(capsState === CapsState.Off ? CapsState.On : CapsState.Off)} 
-                    onTapGesture={{ count: 2, perform: () => { setCapsState(CapsState.Locked); HapticFeedback.lightImpact(); } }}
-                    foregroundStyle={capsState !== CapsState.Off ? "systemBlue" : "label"} 
-                />
-                <RowView chars="Z X C V B N M" spacing={6} keyWidth={34} />
-                <KeyView title="⌫" minWidth={44} height={44} functional action={() => CustomKeyboard.deleteBackward()} />
-              </HStack>
-            )}
-
-            {/* ROW 4: (Only ZH) Shift + ㄣ..ˋ + Backspace (13 elements total) */}
-            {lang === KeyboardLang.ZH ? (
-              <HStack spacing={4} alignment="center">
-                <KeyView 
-                  title={capsState === CapsState.Locked ? "🔒" : "⇧"} 
-                  minWidth={38} 
-                  height={44} 
-                  functional
-                  action={() => setCapsState(capsState === CapsState.Off ? CapsState.On : CapsState.Off)} 
-                  onTapGesture={{ count: 2, perform: () => { setCapsState(CapsState.Locked); HapticFeedback.lightImpact(); } }}
-                  foregroundStyle={capsState !== CapsState.Off ? "systemBlue" : "label"}
-                />
-                <RowView chars="Z X C V B N M , . / '" spacing={4} keyWidth={23} />
-                <KeyView title="⌫" minWidth={38} height={44} functional action={() => CustomKeyboard.deleteBackward()} />
-              </HStack>
-            ) : null}
+            {/* ROW 4: Shift + ㄣ..ˋ(ZH)/Z..M(EN) + Backspace */}
+            <HStack spacing={lang === KeyboardLang.ZH ? 4 : 6} alignment="center">
+              <KeyView 
+                title={capsState === CapsState.Locked ? "🔒" : "⇧"} 
+                minWidth={lang === KeyboardLang.ZH ? 38 : 44} 
+                height={42} 
+                functional
+                action={() => setCapsState(capsState === CapsState.Off ? CapsState.On : CapsState.Off)} 
+                onTapGesture={{ count: 2, perform: () => { setCapsState(CapsState.Locked); HapticFeedback.lightImpact(); } }}
+                foregroundStyle={capsState !== CapsState.Off ? "systemBlue" : "label"} 
+              />
+              <RowView chars={lang === KeyboardLang.ZH ? "Z X C V B N M , . / '" : "Z X C V B N M"} spacing={lang === KeyboardLang.ZH ? 4 : 6} keyWidth={lang === KeyboardLang.ZH ? 23 : 34} />
+              <KeyView title="⌫" minWidth={lang === KeyboardLang.ZH ? 38 : 44} height={42} functional action={() => CustomKeyboard.deleteBackward()} />
+            </HStack>
             
-            {/* ROW 5: 控制列 (123 / Lang / Space / Return) */}
+            {/* ROW 5: 控制列 */}
             <HStack spacing={8} alignment="center">
-              <KeyView title="123" minWidth={44} height={44} functional />
-              <KeyView title={lang === KeyboardLang.ZH ? "中" : "EN"} minWidth={44} height={44} functional action={() => setLang(lang === KeyboardLang.ZH ? KeyboardLang.EN : KeyboardLang.ZH)} />
-              <KeyView title="space" wide={true} minWidth={160} height={44} action={() => CustomKeyboard.insertText(" ")} />
-              <KeyView title="換行" minWidth={80} height={44} functional fontSize={14} action={() => CustomKeyboard.insertText("\n")} />
+              <KeyView title="123" minWidth={44} height={42} functional />
+              <KeyView title={lang === KeyboardLang.ZH ? "中" : "EN"} minWidth={44} height={42} functional action={() => setLang(lang === KeyboardLang.ZH ? KeyboardLang.EN : KeyboardLang.ZH)} />
+              <KeyView title="space" wide={true} minWidth={160} height={42} action={() => CustomKeyboard.insertText(" ")} />
+              <KeyView title="換行" minWidth={80} height={42} functional fontSize={14} action={() => CustomKeyboard.insertText("\n")} />
             </HStack>
           </VStack>
         ) : (
-          /* 🕵️ 特工面板保持穩定 */
+          /* 🕵️ 特工面板 */
           <VStack spacing={12} padding={10}>
             <HStack spacing={15}>
                <KeyView title="隱入塵煙" action={handleEncode} wide={true} minWidth={170} background="rgba(255, 69, 0, 0.15)" foregroundStyle="systemOrange" height={60} />
