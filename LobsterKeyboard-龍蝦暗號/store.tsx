@@ -7,7 +7,7 @@ export enum KeyboardMode {
 
 export enum KeyboardLang {
   EN,
-  ZH // 龍蝦注音模式
+  ZH
 }
 
 export enum CapsState {
