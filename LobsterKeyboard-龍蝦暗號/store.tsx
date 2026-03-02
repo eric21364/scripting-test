@@ -17,7 +17,8 @@ function useStoreState() {
 
 export type StoreState = ReturnType<typeof useStoreState>;
 
-export const StoreContext = createContext<StoreState>(null!);
+// Fixed: createContext used without arguments to match Scripting environment types
+export const StoreContext = createContext<StoreState>();
 
 export function StoreProvider({ children }: { children: VirtualNode }) {
   const store = useStoreState();

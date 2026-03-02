@@ -23,7 +23,7 @@ export function KeyView({
       <VStack alignment="center">
         <Spacer />
         <Text font={{ size: 14, name: "system-bold" }} foregroundStyle={foregroundStyle}>{title}</Text>
-        {subtitle && <Text font={{ size: 9 }} foregroundStyle="secondaryLabel">{subtitle}</Text>}
+        {subtitle && <Text font={{ size: 9, name: "system" }} foregroundStyle="secondaryLabel">{subtitle}</Text>}
         <Spacer />
       </VStack>
     </ZStack>
