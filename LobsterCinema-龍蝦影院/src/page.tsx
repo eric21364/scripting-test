@@ -193,14 +193,14 @@ export function View() {
 
           <HStack spacing={10} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
             
-            {/* 🔌 實體頻道切換器 - 龍蝦 v11.1.6 物理強制 (寬 100, 高 44) */}
+            {/* 🔌 實體頻道切換器 - 龍蝦 v11.1.7 物理補強 (鎖定寬 80, 高 44) */}
             <Menu
-              frame={{ width: 100, height: 44 }}
               label={
-                <ZStack 
+                <VStack 
                   background="secondarySystemBackground" 
                   cornerRadius={10} 
-                  frame={{ width: 100, height: 44 }}
+                  frame={{ width: 80, height: 44 }}
+                  alignment="center"
                 >
                   <HStack spacing={4} alignment="center">
                     <Spacer />
@@ -213,7 +213,7 @@ export function View() {
                     <Image systemName="chevron.down" font={8} foregroundStyle="secondaryLabel" />
                     <Spacer />
                   </HStack>
-                </ZStack>
+                </VStack>
               }
             >
                <Button title="Jable (繁體)" action={() => switchSource('jable')} />
