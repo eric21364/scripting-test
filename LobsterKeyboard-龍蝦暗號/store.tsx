@@ -5,6 +5,11 @@ export enum KeyboardMode {
   Agent
 }
 
+export enum KeyboardLang {
+  EN,
+  ZH // 龍蝦注音模式
+}
+
 export enum CapsState {
   Off,
   On,
@@ -13,8 +18,9 @@ export enum CapsState {
 
 function useStoreState() {
   const [mode, setMode] = useState(KeyboardMode.Standard);
+  const [lang, setLang] = useState(KeyboardLang.EN);
   const [capsState, setCapsState] = useState(CapsState.Off);
-  const [debugMsg, setDebugMsg] = useState("波段穩定中...");
+  const [debugMsg, setDebugMsg] = useState("龍蝦波段已對齊");
   const [decodedContent, setDecodedContent] = useState("");
 
   const capsEnabled = capsState !== CapsState.Off;
@@ -22,6 +28,7 @@ function useStoreState() {
 
   return {
     mode, setMode,
+    lang, setLang,
     capsState, setCapsState,
     capsEnabled, capsLocked,
     debugMsg, setDebugMsg,

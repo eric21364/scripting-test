@@ -3,7 +3,7 @@ import { Button, ZStack, VStack, Text, Spacer } from "scripting";
 declare const HapticFeedback: any;
 
 export function KeyView({
-  title, subtitle, action, wide = false, background = "systemBackground", foregroundStyle = "label", minWidth, height = 44
+  title, subtitle, action, wide = false, background = "systemBackground", foregroundStyle = "label", minWidth, height = 44, fontSize = 20
 }: {
   title: string
   subtitle?: string
@@ -13,25 +13,27 @@ export function KeyView({
   foregroundStyle?: any
   minWidth?: number
   height?: number
+  fontSize?: number
 }) {
   const handleAction = () => {
     if (typeof HapticFeedback !== 'undefined') HapticFeedback.lightImpact();
     action();
   }
 
+  // 物理標校：字母鍵寬度通常為 32~34pt，空格通常為 160pt+
   return <Button
     action={handleAction}
     buttonStyle="plain"
   >
     <ZStack 
       background={background} 
-      clipShape={{ type: 'rect', cornerRadius: 5 }}
-      frame={{ minWidth: minWidth ?? (wide ? 80 : 34), height: height }}
-      shadow={{ color: 'rgba(0,0,0,0.35)', radius: 0.3, y: 1 }}
+      clipShape={{ type: 'rect', cornerRadius: 6 }}
+      frame={{ minWidth: minWidth ?? (wide ? 160 : 32), height: height }}
+      shadow={{ color: 'rgba(0,0,0,0.25)', radius: 0.2, y: 1.2 }}
     >
       <VStack alignment="center">
         <Spacer />
-        <Text font={{ size: 20, name: "system" }} foregroundStyle={foregroundStyle}>{title}</Text>
+        <Text font={{ size: fontSize, name: "system" }} foregroundStyle={foregroundStyle}>{title}</Text>
         {subtitle ? (
           <Text font={{ size: 8, name: "system" }} foregroundStyle="secondaryLabel">{subtitle}</Text>
         ) : null}
