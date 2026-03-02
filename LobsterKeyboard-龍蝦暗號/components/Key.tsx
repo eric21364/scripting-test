@@ -1,6 +1,5 @@
 import { Button, ZStack, VStack, Text, Spacer } from "scripting";
 
-// ⚠️ 全域 HapticFeedback 宣告
 declare const HapticFeedback: any;
 
 export function KeyView({
@@ -27,12 +26,12 @@ export function KeyView({
     <ZStack 
       background={background} 
       clipShape={{ type: 'rect', cornerRadius: 5 }}
-      frame={{ minWidth: minWidth ?? (wide ? 80 : 32), height: height }}
-      shadow={{ color: 'rgba(0,0,0,0.15)', radius: 0.5, y: 1 }}
+      frame={{ minWidth: minWidth ?? (wide ? 80 : 34), height: height }}
+      shadow={{ color: 'rgba(0,0,0,0.35)', radius: 0.3, y: 1 }}
     >
       <VStack alignment="center">
         <Spacer />
-        <Text font={{ size: 16, name: "system-bold" }} foregroundStyle={foregroundStyle}>{title}</Text>
+        <Text font={{ size: 20, name: "system" }} foregroundStyle={foregroundStyle}>{title}</Text>
         {subtitle ? (
           <Text font={{ size: 8, name: "system" }} foregroundStyle="secondaryLabel">{subtitle}</Text>
         ) : null}
