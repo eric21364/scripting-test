@@ -5,7 +5,8 @@ import { selectStore, KeyboardLang } from "../store";
 declare const CustomKeyboard: any;
 
 /**
- * 🧪 龍蝦標準注音映射 (iOS 18 Native Baseline)
+ * 🧪 龍蝦標準注音映射 (iOS 18 Native Alignment)
+ * v2.2.0 [物理與佈局全對位補正]
  */
 const ZH_MAP: Record<string, string> = {
   '1': 'ㄅ', '2': 'ㄆ', '3': 'ㄇ', '4': 'ㄈ', '5': 'ㄉ', '6': 'ㄊ', '7': 'ㄋ', '8': 'ㄌ', '9': 'ㄍ', '0': 'ㄎ',
@@ -15,7 +16,7 @@ const ZH_MAP: Record<string, string> = {
 };
 
 export function RowView({
-  chars, spacing = 5, keyWidth = 32
+  chars, spacing = 5, keyWidth = 35
 }: {
   chars: string
   spacing?: number
