@@ -23,7 +23,7 @@ declare const Pasteboard: any;
 declare const Clipboard: any;
 
 /**
- * 龍蝦暗號 v1.9.6 [實體霸氣寬度與物理厚度版]
+ * 龍蝦暗號 v1.9.7 [範本對接與寬度校準]
  */
 export default function MainView() {
   const store = useStore() as any;
@@ -52,112 +52,99 @@ export default function MainView() {
     setDebugMsg("解碼完成 👁️");
   };
 
-  const FUNCTIONAL_GRAY = "#ABB1B6";
+  // 物理色標：iOS 原生功能鍵配色
+  const FUNCTIONAL_GRAY = "secondarySystemBackground"; // 使用系統語義色
+  const DARK_GRAY = "#ABB1B6";
 
   return (
-    <VStack spacing={0} background="#828A91" frame={{ maxWidth: "infinity", height: 300 }}>
+    <VStack spacing={0} background="rgba(209, 211, 217, 1)" frame={{ maxWidth: "infinity", height: 280 }}>
       
       {/* 🔮 龍蝦 Toolbar */}
-      <HStack padding={{ horizontal: 16 }} frame={{ height: 40 }} background="rgba(240, 242, 245, 0.9)">
+      <HStack padding={{ horizontal: 16 }} frame={{ height: 40 }} background="rgba(255, 255, 255, 0.8)">
         <Image systemName="shield.lefthalf.filled" font={{ size: 14, name: "system" }} foregroundStyle="systemOrange" />
-        <Text font={{ size: 12, name: "system-bold" }}> 龍蝦隱寫 v1.9.6 </Text>
+        <Text font={{ size: 12, name: "system-bold" }} padding={{ leading: 5 }}>龍蝦隱寫 v1.9.7</Text>
         <Spacer />
         <Button action={() => setMode(mode === 0 ? 1 : 0)} buttonStyle="plain">
           <ZStack background={mode === 0 ? "rgba(0,0,0,0.05)" : "systemOrange"} clipShape={{type:'rect', cornerRadius: 8}} padding={{horizontal: 12, vertical: 6}}>
-             <Text font={{ size: 10, name: "system-bold" }} foregroundStyle={mode === 0 ? "black" : "white"}>
+             <Text font={{ size: 10, name: "system-bold" }} foregroundStyle={mode === 0 ? "label" : "white"}>
                {mode === 0 ? "特工模式" : "標準模式"}
              </Text>
           </ZStack>
         </Button>
       </HStack>
 
-      <VStack spacing={8} padding={{ top: 12, leading: 4, trailing: 4, bottom: 8 }} frame={{ maxWidth: "infinity" }}>
+      <VStack spacing={8} padding={{ top: 10, leading: 6, trailing: 6, bottom: 8 }} frame={{ maxWidth: "infinity" }}>
         {mode === 0 ? (
-          /* 🅰️ 實體霸氣佈局：數字+英文 */
+          /* 🅰️ 範本規格 QWERTY 佈局 */
           <VStack spacing={10} alignment="center">
             
-            {/* Row 0: 數字排 - 鎖定 38pt 寬度 */}
-            <HStack spacing={2} alignment="center">
+            {/* Row 0: 數字排 - 寬度 36pt */}
+            <HStack spacing={4} alignment="center">
               {"1 2 3 4 5 6 7 8 9 0".split(' ').map((num, i) => (
                 <KeyView 
                   key={i} 
                   title={num} 
-                  minWidth={38} 
+                  minWidth={36} 
                   fontSize={16}
-                  background="rgba(255, 255, 255, 0.7)"
+                  background={FUNCTIONAL_GRAY}
                   action={() => CustomKeyboard.insertText(num)} 
                 />
               ))}
             </HStack>
 
-            {/* Row 1: Q-P */}
-            <RowView chars="Q W E R T Y U I O P" spacing={2} />
+            {/* Row 1: Q-P (白色背景由 KeyView 預設) */}
+            <RowView chars="Q W E R T Y U I O P" spacing={4} />
             
             {/* Row 2: A-L */}
-            <HStack spacing={2} alignment="center">
-               <RowView chars="A S D F G H J K L" spacing={2} />
-            </HStack>
+            <RowView chars="A S D F G H J K L" spacing={4} />
             
             {/* Row 3: ⇧ + Z-M + ⌫ */}
             <HStack spacing={4} alignment="center">
               <KeyView 
                 title="⇧" 
-                minWidth={52} 
-                height={45} 
+                minWidth={46} 
                 action={() => setCapsState(capsState === 0 ? 1 : 0)} 
-                background={capsState !== 0 ? "white" : FUNCTIONAL_GRAY} 
+                background={capsState !== 0 ? "white" : DARK_GRAY} 
                 foregroundStyle={capsState !== 0 ? "systemBlue" : "black"} 
               />
-              <RowView chars="Z X C V B N M" spacing={2} />
+              <RowView chars="Z X C V B N M" spacing={4} />
               <KeyView 
                 title="⌫" 
-                minWidth={52} 
-                height={45} 
-                background={FUNCTIONAL_GRAY}
+                minWidth={46} 
+                background={DARK_GRAY}
                 action={() => CustomKeyboard.deleteBackward()} 
               />
             </HStack>
             
-            {/* Row 4: 底部功能列 - 超寬 Space + 全部圓角化 */}
-            <HStack spacing={6} alignment="center">
+            {/* Row 4: 底部功能列 - space 寬度校準 */}
+            <HStack spacing={8} alignment="center">
               <KeyView 
                 title={lang === 0 ? "中" : "EN"} 
-                minWidth={58} 
-                height={45} 
-                background={FUNCTIONAL_GRAY}
+                minWidth={54} 
+                background={DARK_GRAY}
                 action={() => setLang(lang === 0 ? 1 : 0)} 
               />
               <KeyView 
                 title="space" 
                 wide={true} 
-                minWidth={195} 
-                height={45} 
-                background="white"
+                minWidth={180} 
                 action={() => CustomKeyboard.insertText(" ")} 
               />
               <KeyView 
                 title="換行" 
                 minWidth={68} 
-                height={45} 
-                background={FUNCTIONAL_GRAY}
+                background={DARK_GRAY}
                 fontSize={13} 
                 action={() => CustomKeyboard.insertText("\n")} 
               />
-              <Button action={() => CustomKeyboard.nextKeyboard()} buttonStyle="plain">
-                <ZStack background={FUNCTIONAL_GRAY} clipShape={{type:'rect', cornerRadius: 8}} frame={{width: 50, height: 45}}>
-                   <ZStack background="rgba(255,255,255,0.3)" clipShape={{type:'rect', cornerRadius: 7}} frame={{width: 50, height: 43.5}}>
-                      <Image systemName="globe" font={{size: 20, name: "system"}} foregroundStyle="black"/>
-                   </ZStack>
-                </ZStack>
-              </Button>
             </HStack>
           </VStack>
         ) : (
           /* 🕵️ 特工面板 */
           <VStack spacing={12} padding={10}>
             <HStack spacing={15}>
-               <KeyView title="🦞 隱入塵煙" action={handleEncode} wide={true} minWidth={180} background="rgba(255, 69, 0, 0.2)" foregroundStyle="systemOrange" height={60} />
-               <KeyView title="👁️ 洞穿真相" action={handleDecode} wide={true} minWidth={180} background="rgba(0, 122, 255, 0.2)" foregroundStyle="systemBlue" height={60} />
+               <KeyView title="🦞 隱入塵煙" action={handleEncode} wide={true} minWidth={170} background="rgba(255, 69, 0, 0.2)" foregroundStyle="systemOrange" height={60} />
+               <KeyView title="👁️ 洞穿真相" action={handleDecode} wide={true} minWidth={170} background="rgba(0, 122, 255, 0.2)" foregroundStyle="systemBlue" height={60} />
             </HStack>
             <ZStack background="white" clipShape={{ type: 'rect', cornerRadius: 10 }} frame={{ maxWidth: "infinity", height: 100 }}>
               {decodedContent ? (
@@ -171,8 +158,8 @@ export default function MainView() {
               )}
             </ZStack>
             <HStack spacing={15}>
-               <KeyView title="清除" action={() => { while(CustomKeyboard.hasText){ CustomKeyboard.deleteBackward() } }} wide={true} minWidth={180} background={FUNCTIONAL_GRAY} foregroundStyle="red" height={45} />
-               <KeyView title="返回主單" action={() => CustomKeyboard.dismissToHome()} wide={true} minWidth={180} background={FUNCTIONAL_GRAY} height={45} />
+               <KeyView title="清除" action={() => { while(CustomKeyboard.hasText){ CustomKeyboard.deleteBackward() } }} wide={true} minWidth={170} background={DARK_GRAY} foregroundStyle="red" height={45} />
+               <KeyView title="返回主單" action={() => CustomKeyboard.dismissToHome()} wide={true} minWidth={170} background={DARK_GRAY} height={45} />
             </HStack>
           </VStack>
         )}
