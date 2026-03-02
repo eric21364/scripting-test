@@ -3,17 +3,21 @@ import { Button, Text, ZStack } from "scripting";
 declare const HapticFeedback: any;
 
 /**
- * 龍蝦鍵盤通用按鍵 - v2.1.2 [物理邊界擴張與 iOS 質感重繪]
+ * 龍蝦鍵盤通用按鍵 - v2.1.4 [物理邊界與 iOS 配色標校]
  */
 export function KeyView(props: any) {
   const {
-    title, action, wide = false, background, foregroundStyle = "black", 
-    minWidth, height, fontSize, onTapGesture
+    title, action, wide = false, background, foregroundStyle, 
+    minWidth, height, fontSize, onTapGesture, functional = false
   } = props;
 
-  // 🧪 物理對位：標準寬度與高度適配 260pt 畫布
+  // 🧪 物理對位：適配 260pt 高度畫布的黃金比例
   const finalWidth = minWidth ?? (wide ? 180 : 34); 
   const finalHeight = height ?? 44; 
+
+  // iOS 標準配色標校
+  const DEFAULT_BG = functional ? "rgba(172, 179, 187, 1)" : "rgba(255, 255, 255, 1)";
+  const DEFAULT_TEXT = "label";
 
   return <Button
     action={() => {
@@ -25,15 +29,15 @@ export function KeyView(props: any) {
     frame={{ width: finalWidth, height: finalHeight }}
   >
     <ZStack 
-      background={background ?? "systemSecondaryBackground"}
-      clipShape={{ type: 'rect', cornerRadius: 8 }}
-      shadow={{ color: 'rgba(0,0,0,0.25)', radius: 1, y: 1.5 }}
+      background={background ?? DEFAULT_BG}
+      clipShape={{ type: 'rect', cornerRadius: 5 }} // iOS 鍵盤圓角較小，約 5-6pt
+      shadow={{ color: 'rgba(0,0,0,0.3)', radius: 0, y: 1 }} // 物理影深感
       frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
     >
       <Text 
-        font={{ size: fontSize ?? 18, name: "system" }}
-        fontWeight="medium"
-        foregroundStyle={foregroundStyle === "black" ? "label" : foregroundStyle}
+        font={{ size: fontSize ?? 20, name: "system" }}
+        fontWeight="regular"
+        foregroundStyle={foregroundStyle ?? DEFAULT_TEXT}
       >
         {title}
       </Text>
