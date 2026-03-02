@@ -50,7 +50,7 @@ export default function MainView() {
     HapticFeedback.lightImpact();
   };
 
-  // 🧪 連續刪除優化：長按觸發一次較大範圍的批量刪除 (模擬快進)
+  // 🧪 連續刪除優化：長按觸發一次較大範圍的批量刪除
   const handleContinuousDelete = () => {
      for(let i = 0; i < 15; i++) {
         if (CustomKeyboard.hasText) CustomKeyboard.deleteBackward();
@@ -69,7 +69,7 @@ export default function MainView() {
 
       <HStack padding={{ horizontal: 16 }} frame={{ height: 32 }} background={TOOLBAR_BG}>
         <Image systemName="shield.lefthalf.filled" font={{ size: 12, name: "system" }} foregroundStyle="systemOrange" />
-        <Text font={{ size: 10, name: "system-bold" }} padding={{ leading: 4 }}>龍蝦標校 v2.2.7</Text>
+        <Text font={{ size: 10, name: "system" }} padding={{ leading: 4 }} foregroundStyle="label">龍蝦標校 v2.2.7</Text>
         <Spacer />
         <Text font={{ size: 8, name: "system" }} foregroundStyle="secondaryLabel">{debugMsg}</Text>
         <Spacer />
