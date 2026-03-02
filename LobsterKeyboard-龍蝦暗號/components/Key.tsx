@@ -3,7 +3,7 @@ import { Button, ZStack, Text, VStack, Spacer } from "scripting";
 declare const HapticFeedback: any;
 
 /**
- * 龍蝦鍵盤通用按鍵 - v1.9.9 [實體飽滿背框 & 圓角對位版]
+ * 龍蝦鍵盤通用按鍵 - v2.0.0 [物理圓角對位與 3D 厚度版]
  */
 export function KeyView(props: any) {
   const {
@@ -15,28 +15,31 @@ export function KeyView(props: any) {
     action();
   }
 
-  // 🧪 物理修正：
-  // 標準鍵寬 38pt，高度 46pt (增加高度讓視覺上移)
-  const finalWidth = minWidth ?? (wide ? 200 : 38); 
-  const finalHeight = height ?? 46; 
+  // 🧪 物理修正：35pt 是 10 個按鍵在標準 iOS 寬度下的「不擠壓黃金上限」
+  const finalWidth = minWidth ?? (wide ? 180 : 35); 
+  const finalHeight = height ?? 44; 
 
-  // 🎨 背景對位：預設白色 (字母)，功能鍵由外部傳入 gray
-  const keyBg = background ?? "white";
+  // 🎨 背景統一：預設採用 iOS 霧白玻璃感
+  const keyBg = background ?? "rgba(255, 255, 255, 0.95)";
 
   return <Button
     action={handleAction}
     buttonStyle="plain"
+    frame={{ width: finalWidth, height: finalHeight }}
   >
-    {/* 🛡️ 實體背框：使用雙層 ZStack 模擬 iOS 按鍵的「厚度感」與「陰影框線」 */}
+    {/* 🛡️ 實體背框 (3D 厚度感) */}
     <ZStack 
-      background="rgba(0,0,0,0.25)" // 層底深色框 (厚度感)
+      background="rgba(0,0,0,0.2)" 
       clipShape={{ type: 'rect', cornerRadius: 8 }}
       frame={{ width: finalWidth, height: finalHeight }}
     >
+      {/* 內層面鍵：位移 1.5pt 以露出底框，形成圓潤的厚度感 */}
       <ZStack 
         background={keyBg} 
-        clipShape={{ type: 'rect', cornerRadius: 7 }}
-        frame={{ width: finalWidth, height: finalHeight - 1.5 }} // 位移 1.5pt 產生立體感
+        alignment="center"
+        clipShape={{ type: 'rect', cornerRadius: 8 }}
+        frame={{ width: finalWidth, height: finalHeight - 1.5 }}
+        padding={{ bottom: 2 }} // 調整對齊確保圓角不因位移而奇怪
       >
         <VStack alignment="center">
           <Spacer />
