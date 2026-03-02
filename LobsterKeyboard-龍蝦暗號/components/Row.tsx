@@ -1,40 +1,45 @@
-import { HStack, useContext } from "scripting";
+import { HStack } from "scripting";
 import { KeyView } from "./Key";
-import { StoreContext } from "../store";
+import { selectStore, KeyboardLang } from "../store";
 
 declare const CustomKeyboard: any;
 
-// 🧪 物理映射：中文注音 (ㄅ-ㄙ)
+/**
+ * 🧪 龍蝦標準注音映射 (IBM/QWERTY Standard)
+ * 修正了 v2.0.7 中的位元偏差
+ */
 const ZH_MAP: Record<string, string> = {
-  'Q': 'ㄅ', 'W': 'ㄉ', 'E': 'ˇ', 'R': 'ㄓ', 'T': 'ㄔ', 'Y': 'ㄕ', 'U': 'ㄖ', 'I': 'ㄗ', 'O': 'ㄘ', 'P': 'ㄙ',
+  'Q': 'ㄆ', 'W': 'ㄊ', 'E': 'ㄍ', 'R': 'ㄐ', 'T': 'ㄔ', 'Y': 'ㄗ', 'U': 'ㄧ', 'I': 'ㄛ', 'O': 'ㄝ', 'P': 'ㄣ',
   'A': 'ㄇ', 'S': 'ㄋ', 'D': 'ㄎ', 'F': 'ㄑ', 'G': 'ㄒ', 'H': 'ㄘ', 'J': 'ㄨ', 'K': 'ㄜ', 'L': 'ㄠ',
-  'Z': 'ㄈ', 'X': 'ㄌ', 'C': 'ㄏ', 'V': 'ㄒ', 'B': 'ㄖ', 'N': 'ㄙ', 'M': 'ㄝ'
+  'Z': 'ㄈ', 'X': 'ㄌ', 'C': 'ㄏ', 'V': 'ㄒ', 'B': 'ㄖ', 'N': 'ㄙ', 'M': 'ㄩ'
 };
 
 export function RowView({
-  chars, spacing = 2, keyWidth = 33
+  chars, spacing = 5, keyWidth = 33
 }: {
   chars: string
   spacing?: number
   keyWidth?: number
 }) {
-  const { lang, capsEnabled } = useContext(StoreContext) as any;
+  // ⚡️ 效能優化：僅監聽必要的狀態
+  const { lang, capsState } = selectStore(store => ({
+    lang: store.lang,
+    capsState: store.capsState
+  }));
 
   const getChar = (c: string) => {
-    // EN 模式
-    if (lang === 0) {
-      return capsEnabled ? c.toUpperCase() : c.toLowerCase();
+    if (lang === KeyboardLang.EN) {
+      return capsState !== 0 ? c.toUpperCase() : c.toLowerCase();
     }
-    // ZH 模式 (注音符號)
     return ZH_MAP[c] || c;
   };
 
   return <HStack spacing={spacing} alignment="center">
     {chars.split(' ').map((c, i) =>
       <KeyView
-        key={i}
+        key={`${lang}-${i}`}
         title={getChar(c)}
-        minWidth={keyWidth} // 🛡️ 物理鎖定：強制將寬度傳遞給子元件，防止坍塌成細條
+        minWidth={keyWidth}
         action={() => {
           CustomKeyboard.insertText(getChar(c));
         }}
