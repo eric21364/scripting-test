@@ -4,9 +4,7 @@ import { StoreContext } from "../store";
 
 declare const CustomKeyboard: any;
 
-/**
- * 物理映射：中文注音
- */
+// 🧪 物理映射：中文注音
 const ZH_MAP: Record<string, string> = {
   'Q': 'ㄅ', 'W': 'ㄉ', 'E': 'ˇ', 'R': 'ㄓ', 'T': 'ㄔ', 'Y': 'ㄕ', 'U': 'ㄖ', 'I': 'ㄗ', 'O': 'ㄘ', 'P': 'ㄙ',
   'A': 'ㄇ', 'S': 'ㄋ', 'D': 'ㄎ', 'F': 'ㄑ', 'G': 'ㄒ', 'H': 'ㄘ', 'J': 'ㄨ', 'K': 'ㄜ', 'L': 'ㄠ',
@@ -33,8 +31,8 @@ export function RowView({
       <KeyView
         key={i}
         title={getChar(c)}
-        // 🧪 物理強化：確保 RowView 內的按鍵具備 42pt 的飽滿寬度
-        minWidth={42}
+        // 🧪 物理對位：字母鍵鎖定 38pt 飽滿寬度
+        minWidth={38}
         action={() => {
           CustomKeyboard.insertText(getChar(c));
         }}

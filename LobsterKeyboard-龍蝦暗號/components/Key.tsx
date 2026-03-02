@@ -3,7 +3,7 @@ import { Button, ZStack, VStack, Text, Spacer } from "scripting";
 declare const HapticFeedback: any;
 
 /**
- * 龍蝦鍵盤通用按鍵 - v1.9.5 [實體圓角與質感統一版]
+ * 龍蝦鍵盤通用按鍵 - v1.9.6 [實體霸氣寬度與物理圓角版]
  */
 export function KeyView(props: any) {
   const {
@@ -15,12 +15,13 @@ export function KeyView(props: any) {
     action();
   }
 
-  // 🧪 物理標校：基礎鍵寬 36pt，高度 42pt
-  const finalWidth = minWidth ?? (wide ? 180 : 36); 
-  const finalHeight = height ?? 42; 
+  // 🧪 物理標校：40pt 飽滿寬度，45pt 高度 (增加點擊面積)
+  const finalWidth = minWidth ?? (wide ? 180 : 38); 
+  const finalHeight = height ?? 45; 
   
-  // 🎨 色彩標校：預設白色背景 (字母鍵)，可由外部傳入灰色 (功能鍵)
-  const finalBackground = background ?? "rgba(255, 255, 255, 1)";
+  // 🎨 質感標校：恢復「物理外框」效果
+  const keyBaseColor = background ?? "rgba(255, 255, 255, 1)";
+  const borderColor = "rgba(0, 0, 0, 0.15)";
 
   return <Button
     action={handleAction}
@@ -28,23 +29,26 @@ export function KeyView(props: any) {
     frame={{ width: finalWidth, height: finalHeight }}
   >
     <ZStack 
-      background={finalBackground} 
-      // 🛡️ 物理鎖定：全面強制圓角標校 (8pt)
-      clipShape={{ type: 'rect', cornerRadius: 6 }}
+      background={borderColor} 
+      clipShape={{ type: 'rect', cornerRadius: 8 }}
       frame={{ width: finalWidth, height: finalHeight }}
-      // 🧪 微投影營造立體感
-      shadow={{ color: 'rgba(0,0,0,0.2)', radius: 0.5, y: 1.2 }}
     >
-      <VStack alignment="center">
-        <Spacer />
-        <Text 
-          font={{ size: fontSize ?? 18, name: "system" }} 
-          foregroundStyle={foregroundStyle}
-        >
-          {title}
-        </Text>
-        <Spacer />
-      </VStack>
+      <ZStack 
+        background={keyBaseColor} 
+        clipShape={{ type: 'rect', cornerRadius: 7 }}
+        frame={{ width: finalWidth, height: finalHeight - 1.5 }} // 底留 1.5pt 作為物理厚度感
+      >
+        <VStack alignment="center">
+          <Spacer />
+          <Text 
+            font={{ size: fontSize ?? 18, name: "system-bold" }} // 加粗提升辨識度
+            foregroundStyle={foregroundStyle}
+          >
+            {title}
+          </Text>
+          <Spacer />
+        </VStack>
+      </ZStack>
     </ZStack>
   </Button>
 }
