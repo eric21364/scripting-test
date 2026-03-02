@@ -5,8 +5,7 @@ import { selectStore, KeyboardLang } from "../store";
 declare const CustomKeyboard: any;
 
 /**
- * 🧪 龍蝦標準注音映射 (Windows Standard/iOS Layout)
- * 完全校準聲母、韻母與聲調 (˙ˊˇˋ)
+ * 🧪 龍蝦標準注音映射 (iOS 18 Native Baseline)
  */
 const ZH_MAP: Record<string, string> = {
   '1': 'ㄅ', '2': 'ㄆ', '3': 'ㄇ', '4': 'ㄈ', '5': 'ㄉ', '6': 'ㄊ', '7': 'ㄋ', '8': 'ㄌ', '9': 'ㄍ', '0': 'ㄎ',
@@ -16,7 +15,7 @@ const ZH_MAP: Record<string, string> = {
 };
 
 export function RowView({
-  chars, spacing = 5, keyWidth = 33
+  chars, spacing = 5, keyWidth = 32
 }: {
   chars: string
   spacing?: number
@@ -29,7 +28,7 @@ export function RowView({
 
   const getChar = (c: string) => {
     if (lang === KeyboardLang.EN) {
-      if (c.length > 1) return c; // space, 換行等標記
+      if (c.length > 1) return c; 
       return capsState !== 0 ? c.toUpperCase() : c.toLowerCase();
     }
     return ZH_MAP[c] || c;
