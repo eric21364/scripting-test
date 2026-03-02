@@ -3,7 +3,7 @@ import { Button, Text, ZStack } from "scripting";
 declare const HapticFeedback: any;
 
 /**
- * 龍蝦鍵盤通用按鍵 - v2.1.5 [物理佈局對位與 iOS 標校]
+ * 龍蝦鍵盤通用按鍵 - v2.1.6 [iOS 原生實體感標校]
  */
 export function KeyView(props: any) {
   const {
@@ -11,11 +11,12 @@ export function KeyView(props: any) {
     minWidth, height, fontSize, onTapGesture, functional = false
   } = props;
 
-  // 🧪 物理對齊：緊湊佈局下的核心寬度與高度
+  // 🧪 物理對位：適配原生 iOS 比例
   const finalWidth = minWidth ?? (wide ? 180 : 34); 
   const finalHeight = height ?? 44; 
 
-  // iOS 標準物理配色：字元鍵純白，功能鍵灰藍
+  // iOS 標準物理配色標校
+  // 字元鍵: 純白 | 功能鍵: 灰藍色 (rgba(172, 179, 188, 1))
   const DEFAULT_BG = functional ? "rgba(172, 179, 188, 1)" : "rgba(255, 255, 255, 1)";
   const DEFAULT_TEXT = "label";
 
@@ -31,8 +32,8 @@ export function KeyView(props: any) {
     <ZStack 
       background={background ?? DEFAULT_BG}
       clipShape={{ type: 'rect', cornerRadius: 5 }} 
-      // 🧪 物理厚度強化：radius: 0 產生實體感
-      shadow={{ color: 'rgba(0,0,0,0.3)', radius: 0, y: 1 }} 
+      // 🧪 物理影深標校：radius: 0 產生實體感，y: 1.2 模擬厚度
+      shadow={{ color: 'rgba(0,0,0,0.35)', radius: 0, y: 1.2 }} 
       frame={{ maxWidth: "infinity", maxHeight: "infinity" }}
     >
       <Text 
