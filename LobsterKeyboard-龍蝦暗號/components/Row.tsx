@@ -4,20 +4,19 @@ import { selectStore, KeyboardLang } from "../store";
 
 declare const CustomKeyboard: any;
 
-/**
- * 🧪 v2.2.4 龍蝦標準注音映射 (iOS 18 Native Baseline)
- * 修正聲調位置：ˋ 歸位至 ˇ 的右邊 (鍵位 4)
- * 修正注音不支援大小寫邏輯
- */
 const ZH_MAP: Record<string, string> = {
-  // Row 1: ㄅ ㄉ ˇ ˋ ㄓ ˊ ˙ ㄚ ㄞ ㄢ (1 2 3 4 5 6 7 8 9 0)
   '1': 'ㄅ', '2': 'ㄉ', '3': 'ˇ', '4': 'ˋ', '5': 'ㄓ', '6': 'ˊ', '7': '˙', '8': 'ㄚ', '9': 'ㄞ', '0': 'ㄢ',
-  // Row 2: ㄆ ㄊ ㄍ ㄐ ㄔ ㄗ ㄧ ㄛ ㄝ ㄣ (Q W E R T Y U I O P)
   'Q': 'ㄆ', 'W': 'ㄊ', 'E': 'ㄍ', 'R': 'ㄐ', 'T': 'ㄔ', 'Y': 'ㄗ', 'U': 'ㄧ', 'I': 'ㄛ', 'O': 'ㄝ', 'P': 'ㄣ',
-  // Row 3: ㄇ ㄋ ㄎ ㄑ ㄒ ㄕ ㄨ ㄜ ㄠ ㄡ ㄤ (A S D F G H J K L ;)
   'A': 'ㄇ', 'S': 'ㄋ', 'D': 'ㄎ', 'F': 'ㄑ', 'G': 'ㄒ', 'H': 'ㄕ', 'J': 'ㄨ', 'K': 'ㄜ', 'L': 'ㄠ', ';': 'ㄤ',
-  // Row 4: ㄈ ㄌ ㄏ ㄖ ㄙ ㄩ ㄝ ㄡ ㄥ (Z X C V B N M , . /)
   'Z': 'ㄈ', 'X': 'ㄌ', 'C': 'ㄏ', 'V': 'ㄖ', 'B': 'ㄙ', 'N': 'ㄩ', 'M': 'ㄝ', ',': 'ㄡ', '.': 'ㄥ', '/': '/' 
+};
+
+// 🆕 符號模式映射 (iOS 18 標準版型)
+const SYM_MAP: Record<string, string> = {
+  '1': '[', '2': ']', '3': '{', '4': '}', '5': '#', '6': '%', '7': '^', '8': '*', '9': '+', '0': '=',
+  'Q': '-', 'W': '/', 'E': ':', 'R': ';', 'T': '(', 'Y': ')', 'U': '$', 'I': '&', 'O': '@', 'P': '"',
+  'A': '.', 'S': ',', 'D': '?', 'F': '!', 'G': "'", 'H': '_', 'J': '\\', 'K': '|', 'L': '~', ';': '`',
+  'Z': '<', 'X': '>', 'C': '€', 'V': '£', 'B': '¥', 'N': '·', 'M': '¿'
 };
 
 export function RowView({
@@ -28,17 +27,20 @@ export function RowView({
   keyWidth?: number
   fontSize?: number
 }) {
-  const { lang, capsState } = selectStore(store => ({
+  const { lang, capsState, isSymbols } = selectStore(store => ({
     lang: store.lang,
-    capsState: store.capsState
+    capsState: store.capsState,
+    isSymbols: store.isSymbols
   }));
 
   const processChar = (c: string) => {
-    // 🛡️ 龍蝦準則：注音模式下無視 Caps 狀態，直接輸出映射字元
+    // 🛡️ 龍蝦準則：符號模式優先
+    if (isSymbols) {
+      return SYM_MAP[c] || c;
+    }
     if (lang === KeyboardLang.ZH) {
       return ZH_MAP[c] || c;
     }
-    // EN 模式處理大小寫
     if (c.length === 1) {
       return capsState !== 0 ? c.toUpperCase() : c.toLowerCase();
     }

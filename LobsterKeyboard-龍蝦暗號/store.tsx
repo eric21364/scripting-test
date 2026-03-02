@@ -20,6 +20,7 @@ function useStoreState() {
   const [mode, setMode] = useState(KeyboardMode.Standard);
   const [lang, setLang] = useState(KeyboardLang.EN);
   const [capsState, setCapsState] = useState(CapsState.Off);
+  const [isSymbols, setIsSymbols] = useState(false); // 🆕 符號模式狀態
   const [debugMsg, setDebugMsg] = useState("龍蝦波段已對齊");
   const [decodedContent, setDecodedContent] = useState("");
 
@@ -30,6 +31,7 @@ function useStoreState() {
     mode, setMode,
     lang, setLang,
     capsState, setCapsState,
+    isSymbols, setIsSymbols,
     capsEnabled, capsLocked,
     debugMsg, setDebugMsg,
     decodedContent, setDecodedContent
