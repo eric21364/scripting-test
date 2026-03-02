@@ -193,34 +193,34 @@ export function View() {
 
           <HStack spacing={10} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
             
-            {/* 🔌 實體頻道切換器 - 龍蝦 v11.1.2 寬度補強 (寬度 80, 提升文字容錯) */}
+            {/* 🔌 實體頻道切換器 - 龍蝦 v11.1.5 物理鎖足 (寬度 100, 高度 44) */}
             <Menu
               label={
-                <HStack 
-                   spacing={4} 
-                   background="secondarySystemBackground" 
-                   cornerRadius={10} 
-                   padding={{ horizontal: 10 }} 
-                   frame={{ width: 80, height: 40 }}
-                   alignment="center"
+                <ZStack 
+                  background="secondarySystemBackground" 
+                  cornerRadius={10} 
+                  frame={{ width: 100, height: 44 }}
                 >
-                  <Text 
-                    font={{ size: 11, name: "system-bold" }} 
-                    foregroundStyle={source === 'jable' ? "systemGreen" : "systemBlue"}
-                    frame={{ maxWidth: "infinity" }}
-                  >
-                    {source === 'jable' ? "Jable" : "XV"}
-                  </Text>
-                  <Image systemName="chevron.down" font={8} foregroundStyle="secondaryLabel" />
-                </HStack>
+                  <HStack spacing={4} alignment="center">
+                    <Spacer />
+                    <Text 
+                      font={{ size: 11, name: "system-bold" }} 
+                      foregroundStyle={source === 'jable' ? "systemGreen" : "systemBlue"}
+                    >
+                      {source === 'jable' ? "Jable" : "XV"}
+                    </Text>
+                    <Image systemName="chevron.down" font={8} foregroundStyle="secondaryLabel" />
+                    <Spacer />
+                  </HStack>
+                </ZStack>
               }
             >
                <Button title="Jable (繁體)" action={() => switchSource('jable')} />
                <Button title="XVideos (波段)" action={() => switchSource('xvideos')} />
             </Menu>
 
-            {/* 🔍 搜尋列 - 物理高度鎖定 40 */}
-            <HStack frame={{ maxWidth: "infinity", height: 40 }} padding={{ horizontal: 10 }} background="secondarySystemBackground" cornerRadius={10} alignment="center">
+            {/* 🔍 搜尋列 - 物理高度鎖定 44 */}
+            <HStack frame={{ maxWidth: "infinity", height: 44 }} padding={{ horizontal: 10 }} background="secondarySystemBackground" cornerRadius={10} alignment="center">
               <Image systemName="magnifyingglass" font={12} foregroundStyle="secondaryLabel" />
               <TextField title="" prompt="探查..." value={keyword} onChanged={setKeyword} onSubmit={triggerSearch} frame={{ maxWidth: "infinity" }} textFieldStyle="plain" />
               {keyword.length > 0 && (
