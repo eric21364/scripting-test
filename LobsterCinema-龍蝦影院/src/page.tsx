@@ -193,16 +193,16 @@ export function View() {
 
           <HStack spacing={10} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
             
-            {/* 🔌 實體頻道切換器 - 龍蝦 v11.1.7 物理補強 (鎖定寬 80, 高 44) */}
+            {/* 🔌 實體頻道切換器 - 龍蝦 v11.1.9 最終高度物理校準 (鎖定 80x44) */}
             <Menu
               label={
                 <VStack 
                   background="secondarySystemBackground" 
                   cornerRadius={10} 
                   frame={{ width: 80, height: 44 }}
-                  alignment="center"
                 >
-                  <HStack spacing={4} alignment="center">
+                  <Spacer />
+                  <HStack spacing={2} alignment="center">
                     <Spacer />
                     <Text 
                       font={{ size: 11, name: "system-bold" }} 
@@ -213,6 +213,7 @@ export function View() {
                     <Image systemName="chevron.down" font={8} foregroundStyle="secondaryLabel" />
                     <Spacer />
                   </HStack>
+                  <Spacer />
                 </VStack>
               }
             >
