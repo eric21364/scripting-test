@@ -1,23 +1,35 @@
 import { createContext, useContext, useSelector, useState, VirtualNode } from "scripting";
 
+export enum KeyboardMode {
+  Standard,
+  Agent
+}
+
+export enum CapsState {
+  Off,
+  On,
+  Locked
+}
+
 function useStoreState() {
-  const [debugMsg, setDebugMsg] = useState("等待波段中...");
+  const [mode, setMode] = useState(KeyboardMode.Standard);
+  const [capsState, setCapsState] = useState(CapsState.Off);
+  const [debugMsg, setDebugMsg] = useState("波段穩定中...");
   const [decodedContent, setDecodedContent] = useState("");
 
-  const updateDebugMsg = (msg: string) => setDebugMsg(msg);
-  const updateDecodedContent = (content: string) => setDecodedContent(content);
+  const capsEnabled = capsState !== CapsState.Off;
+  const capsLocked = capsState === CapsState.Locked;
 
   return {
-    debugMsg,
-    updateDebugMsg,
-    decodedContent,
-    updateDecodedContent,
+    mode, setMode,
+    capsState, setCapsState,
+    capsEnabled, capsLocked,
+    debugMsg, setDebugMsg,
+    decodedContent, setDecodedContent
   };
 }
 
 export type StoreState = ReturnType<typeof useStoreState>;
-
-// Fixed: createContext used without arguments to match Scripting environment types
 export const StoreContext = createContext<StoreState>();
 
 export function StoreProvider({ children }: { children: VirtualNode }) {
