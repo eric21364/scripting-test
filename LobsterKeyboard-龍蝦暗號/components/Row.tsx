@@ -12,7 +12,7 @@ const ZH_MAP: Record<string, string> = {
 };
 
 export function RowView({
-  chars, spacing = 4
+  chars, spacing = 3
 }: {
   chars: string
   spacing?: number

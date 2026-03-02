@@ -12,8 +12,9 @@ export function KeyView(props: any) {
     action();
   }
 
-  // 🧪 物理診斷：如果是字母鍵，寬度必須足夠讓觸控點分開 (約 32-35pt)
-  const finalWidth = minWidth ?? (wide ? 160 : 34);
+  // 🧪 物理診斷：緊湊型寬度設定 (31pt)，確保不被擠壓
+  const finalWidth = minWidth ?? (wide ? 160 : 31);
+  const finalHeight = height ?? 38;
 
   return <Button
     action={handleAction}
@@ -21,12 +22,12 @@ export function KeyView(props: any) {
   >
     <ZStack 
       background={background} 
-      cornerRadius={6}
-      frame={{ width: finalWidth, height: height }}
+      cornerRadius={5}
+      frame={{ width: finalWidth, height: finalHeight }}
     >
       <VStack alignment="center">
         <Spacer />
-        <Text font={{ size: 18, name: "system" }} foregroundStyle={foregroundStyle}>{title}</Text>
+        <Text font={{ size: 14, name: "system" }} foregroundStyle={foregroundStyle}>{title}</Text>
         <Spacer />
       </VStack>
     </ZStack>
