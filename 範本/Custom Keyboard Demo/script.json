@@ -1,0 +1,33 @@
+{
+  "author" : {
+    "name" : "Thom Fang",
+    "email" : "tilfon@live.com",
+    "homepage": "https://x.com/thomfang"
+  },
+  "description" : null,
+  "remoteResource" : null,
+  "localizedNames" : {
+    "zh": "自定义键盘演示",
+    "de": "Benutzerdefinierte Tastatur-Demo",
+    "fr": "Démonstration du clavier personnalisé",
+    "ja": "カスタムキーボードデモ",
+    "es": "Demostración de teclado personalizado",
+    "it": "Demo tastiera personalizzata",
+    "ko": "사용자 지정 키보드 데모"
+  },
+  "name" : "Custom Keyboard Demo",
+  "runInApp" : false,
+  "intentInputTypes" : [
+
+  ],
+  "contributors" : [
+
+  ],
+  "version" : "1.0.0",
+  "icon" : "keyboard.fill",
+  "color" : "rgba(238, 92, 98,1)",
+  "localizedDescriptions" : {
+    "zh": "这是一个自定义键盘的演示脚本，展示了如何使用脚本创建一个简单的自定义键盘，并处理按键输入和大写锁定功能。",
+    "fr": "Ceci est un script de démonstration de clavier personnalisé qui montre comment créer un clavier personnalisé simple avec des scripts, gérer les entrées de touches et la fonctionnalité de verrouillage des majuscules."
+  }
+}
