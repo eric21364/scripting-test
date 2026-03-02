@@ -31,7 +31,7 @@ export function RowView({
       <KeyView
         key={i}
         title={getChar(c)}
-        // 🧪 物理對位：字母鍵鎖定 38pt 飽滿寬度
+        // 🧪 物理對位：字母鍵鎖定 38pt 飽滿寬度，背景設為 null 讓其採用 KeyView 預設白底
         minWidth={38}
         action={() => {
           CustomKeyboard.insertText(getChar(c));
