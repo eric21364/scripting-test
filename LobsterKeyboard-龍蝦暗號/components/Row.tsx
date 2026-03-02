@@ -12,7 +12,7 @@ const ZH_MAP: Record<string, string> = {
 };
 
 export function RowView({
-  chars, spacing = 3
+  chars, spacing = 2
 }: {
   chars: string
   spacing?: number
@@ -20,11 +20,9 @@ export function RowView({
   const { lang, capsEnabled } = useContext(StoreContext) as any;
 
   const getChar = (c: string) => {
-    // EN 模式
     if (lang === 0) {
       return capsEnabled ? c.toUpperCase() : c.toLowerCase();
     }
-    // ZH 模式 (注音符號)
     return ZH_MAP[c] || c;
   };
 

@@ -23,7 +23,7 @@ declare const Pasteboard: any;
 declare const Clipboard: any;
 
 /**
- * 龍蝦暗號 v1.9.1 [橫向空間極限擴張版]
+ * 龍蝦暗號 v1.9.2 [TypeScript 完美對位 & 橫向極速擴張]
  */
 export default function MainView() {
   const store = useStore() as any;
@@ -54,10 +54,10 @@ export default function MainView() {
 
   return (
     <VStack spacing={0} background="rgba(200, 203, 210, 0.95)" frame={{ maxWidth: "infinity", height: 280 }}>
-      {/* 🔮 龍蝦 Toolbar */}
+      {/* 🔮 龍蝦 霧化 Toolbar */}
       <HStack padding={{ horizontal: 12 }} frame={{ height: 40 }} background="rgba(255, 255, 255, 0.6)">
         <Image systemName="shield.lefthalf.filled" font={{ size: 14, name: "system" }} foregroundStyle="systemOrange" />
-        <Text font={{ size: 12, name: "system-bold" }}> 龍蝦隱寫 v1.9.1 </Text>
+        <Text font={{ size: 12, name: "system-bold" }}> 龍蝦標校 v1.9.2 </Text>
         <Spacer />
         <Button action={() => setMode(mode === 0 ? 1 : 0)} buttonStyle="plain">
           <HStack 
@@ -76,51 +76,51 @@ export default function MainView() {
         {mode === 0 ? (
           <VStack spacing={8} alignment="center">
             
-            {/* Row 0: 數字排 - 寬度標校為 38pt */}
-            <HStack spacing={2} alignment="center">
+            {/* Row 0: 數字排 - 寬度標校為 40pt，間距縮減至 1pt */}
+            <HStack spacing={1} alignment="center">
               {"1 2 3 4 5 6 7 8 9 0".split(' ').map((num, i) => (
                 <KeyView 
                   key={i} 
                   title={num} 
                   fontSize={16}
-                  minWidth={38} 
+                  minWidth={40} 
                   height={42}
                   action={() => CustomKeyboard.insertText(num)} 
                 />
               ))}
             </HStack>
 
-            {/* Row 1: Q-P - spacing 縮減讓寬度最大化 */}
-            <RowView chars="Q W E R T Y U I O P" spacing={2} />
+            {/* Row 1: Q-P */}
+            <RowView chars="Q W E R T Y U I O P" spacing={1} />
             
             {/* Row 2: A-L */}
-            <RowView chars="A S D F G H J K L" spacing={2} />
+            <RowView chars="A S D F G H J K L" spacing={1} />
             
             {/* Row 3: ⇧ + Z-M + ⌫ */}
             <HStack spacing={4} alignment="center">
               <KeyView 
                 title="⇧" 
-                minWidth={48} 
+                minWidth={50} 
                 height={44} 
                 action={() => setCapsState(capsState === 0 ? 1 : 0)} 
                 background={capsState !== 0 ? "rgba(0, 122, 255, 1)" : "rgba(255, 255, 255, 0.4)"} 
                 foregroundStyle={capsState !== 0 ? "white" : "black"} 
               />
-              <RowView chars="Z X C V B N M" spacing={2} />
+              <RowView chars="Z X C V B N M" spacing={1} />
               <KeyView 
                 title="⌫" 
-                minWidth={48} 
+                minWidth={50} 
                 height={44} 
                 background="rgba(255, 255, 255, 0.4)"
                 action={() => CustomKeyboard.deleteBackward()} 
               />
             </HStack>
             
-            {/* Row 4: 底部 - 空白鍵物理極限化 200pt */}
+            {/* Row 4: 底部 */}
             <HStack spacing={6} alignment="center">
               <KeyView 
                 title={lang === 0 ? "中" : "EN"} 
-                minWidth={54} 
+                minWidth={56} 
                 height={44} 
                 background="rgba(255, 255, 255, 0.4)"
                 action={() => setLang(lang === 0 ? 1 : 0)} 
@@ -128,13 +128,13 @@ export default function MainView() {
               <KeyView 
                 title="space" 
                 wide={true} 
-                minWidth={200} 
+                minWidth={210} 
                 height={44} 
                 action={() => CustomKeyboard.insertText(" ")} 
               />
               <KeyView 
                 title="換行" 
-                minWidth={68} 
+                minWidth={72} 
                 height={44} 
                 background="rgba(255, 255, 255, 0.4)"
                 fontSize={13} 
@@ -149,7 +149,15 @@ export default function MainView() {
                <KeyView title="👁️ 洞穿真相" action={handleDecode} wide={true} minWidth={180} background="rgba(0, 122, 255, 0.25)" foregroundStyle="systemBlue" height={60} />
             </HStack>
             <ZStack background="white" clipShape={{ type: 'rect', cornerRadius: 12 }} frame={{ maxWidth: "infinity", height: 80 }}>
-              {decodedContent ? <ScrollView padding={10}><Text font={{ size: 16 }}>{decodedContent}</Text></ScrollView> : <VStack alignment="center" opacity={0.2}><Image systemName="waveform" font={{size: 28}}/></VStack>}
+              {decodedContent ? (
+                <ScrollView padding={10}>
+                  <Text font={{ size: 16, name: "system" }}>{decodedContent}</Text>
+                </ScrollView>
+              ) : (
+                <VStack alignment="center" opacity={0.2}>
+                  <Image systemName="waveform" font={{ size: 28, name: "system" }} />
+                </VStack>
+              )}
             </ZStack>
             <HStack spacing={15}>
                <KeyView title="清除輸入" action={() => { while(CustomKeyboard.hasText){ CustomKeyboard.deleteBackward() } }} wide={true} minWidth={180} background="rgba(255, 255, 255, 0.4)" foregroundStyle="red" />

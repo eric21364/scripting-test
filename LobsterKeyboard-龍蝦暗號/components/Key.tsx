@@ -3,7 +3,7 @@ import { Button, ZStack, VStack, Text, Spacer } from "scripting";
 declare const HapticFeedback: any;
 
 /**
- * 龍蝦鍵盤通用按鍵 - v1.9.1 物理寬度校準版
+ * 龍蝦鍵盤通用按鍵 - v1.9.2 [物理橫向再擴張版]
  */
 export function KeyView(props: any) {
   const {
@@ -15,10 +15,9 @@ export function KeyView(props: any) {
     action();
   }
 
-  // 🧪 物理診斷：如果是標準字母鍵 (10鍵一排)，物理極限寬度通常在 36-38pt 之間 (視螢幕寬度而定)
-  // 將原本的 34pt 提升至 38pt，增加按鍵的實體飽滿度
-  const finalWidth = minWidth ?? (wide ? 200 : 38); 
-  const finalHeight = height ?? 44; // 提升高度至 44pt，更具歐美/專業鍵盤質感
+  // 🧪 物理對位修正：將基礎寬度提升至 40pt (極限飽滿)
+  const finalWidth = minWidth ?? (wide ? 200 : 40); 
+  const finalHeight = height ?? 44; 
   
   const finalBackground = background ?? "rgba(255, 255, 255, 0.9)";
 
@@ -30,7 +29,7 @@ export function KeyView(props: any) {
       background={finalBackground} 
       clipShape={{ type: 'rect', cornerRadius: 8 }}
       frame={{ width: finalWidth, height: finalHeight }}
-      shadow={{ color: 'rgba(0,0,0,0.1)', radius: 0.2, y: 1.5 }}
+      shadow={{ color: 'rgba(0,0,0,0.1)', radius: 0.1, y: 1 }}
     >
       <VStack alignment="center">
         <Spacer />
