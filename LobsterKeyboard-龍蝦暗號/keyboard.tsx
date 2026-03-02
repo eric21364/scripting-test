@@ -1,4 +1,15 @@
 import { CustomKeyboard } from "scripting";
-import MainView from "./src/pages/MainView";
+import { StoreProvider } from "./src/store";
+import MainView from "./src/views/MainView";
 
-CustomKeyboard.present(<MainView />);
+async function main() {
+  await CustomKeyboard.requestHeight(300);
+  
+  CustomKeyboard.present(
+    <StoreProvider>
+      <MainView />
+    </StoreProvider>
+  )
+}
+
+main();
