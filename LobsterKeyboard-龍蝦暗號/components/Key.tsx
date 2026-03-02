@@ -3,11 +3,11 @@ import { Button, ZStack, VStack, Text, Spacer } from "scripting";
 declare const HapticFeedback: any;
 
 /**
- * 龍蝦鍵盤通用按鍵 - v1.9.3 [終極寬度標校版]
+ * 龍蝦鍵盤通用按鍵 - v1.9.4 [實體框線與圓角補強版]
  */
 export function KeyView(props: any) {
   const {
-    title, action, wide = false, background, foregroundStyle = "label", minWidth, height, fontSize
+    title, action, wide = false, background, foregroundStyle = "black", minWidth, height, fontSize
   } = props;
 
   const handleAction = () => {
@@ -15,12 +15,13 @@ export function KeyView(props: any) {
     action();
   }
 
-  // 🧪 物理修正：將標準字母鍵基準寬度提升至 42pt
-  // 在 10 個鍵位的情況下，這是大多數 iOS 螢幕橫向飽滿感的黃金比例
-  const finalWidth = minWidth ?? (wide ? 220 : 42); 
-  const finalHeight = height ?? 44; 
+  // 🧪 物理對位：
+  // 標準鍵寬 36pt (對應 390pt 屏幕)，高度 42pt
+  // 36 * 10 + 2 * 9 = 378 (留兩側 6pt 安全區)
+  const finalWidth = minWidth ?? (wide ? 180 : 36); 
+  const finalHeight = height ?? 42; 
   
-  const finalBackground = background ?? "rgba(255, 255, 255, 0.9)";
+  const finalBackground = background ?? "rgba(255, 255, 255, 0.95)";
 
   return <Button
     action={handleAction}
@@ -28,19 +29,34 @@ export function KeyView(props: any) {
   >
     <ZStack 
       background={finalBackground} 
+      // 🛡️ 實體圓角與框線：改用具備實體屬性的裁切方案
       clipShape={{ type: 'rect', cornerRadius: 8 }}
       frame={{ width: finalWidth, height: finalHeight }}
-      shadow={{ color: 'rgba(0,0,0,0.1)', radius: 0.2, y: 1.2 }}
+      // 🧪 物理框線：利用 Shadow 模擬精細的 0.5pt 灰框
+      shadow={{ color: 'rgba(0,0,0,0.2)', radius: 0.5, y: 1 }}
     >
-      <VStack alignment="center">
-        <Spacer />
-        <Text 
-          font={{ size: fontSize ?? 20, name: "system" }} 
-          foregroundStyle={foregroundStyle}
+      {/* 🔮 物理外框：多層 ZStack 背景模擬 */}
+      <VStack 
+          frame={{ width: finalWidth, height: finalHeight }} 
+          background="rgba(0,0,0,0.05)" // 極輕框線底色
+          clipShape={{ type: 'rect', cornerRadius: 8 }}
+      >
+        <ZStack 
+            background={finalBackground} 
+            cornerRadius={8} 
+            frame={{ width: finalWidth - 1, height: finalHeight - 1 }}
         >
-          {title}
-        </Text>
-        <Spacer />
+            <VStack alignment="center">
+                <Spacer />
+                <Text 
+                    font={{ size: fontSize ?? 18, name: "system" }} 
+                    foregroundStyle={foregroundStyle}
+                >
+                    {title}
+                </Text>
+                <Spacer />
+            </VStack>
+        </ZStack>
       </VStack>
     </ZStack>
   </Button>
