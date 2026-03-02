@@ -193,8 +193,9 @@ export function View() {
 
           <HStack spacing={10} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
             
-            {/* 🔌 實體頻道切換器 - 龍蝦 v11.1.5 物理鎖足 (寬度 100, 高度 44) */}
+            {/* 🔌 實體頻道切換器 - 龍蝦 v11.1.6 物理強制 (寬 100, 高 44) */}
             <Menu
+              frame={{ width: 100, height: 44 }}
               label={
                 <ZStack 
                   background="secondarySystemBackground" 
