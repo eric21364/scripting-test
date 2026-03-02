@@ -3,7 +3,7 @@ import { Button, ZStack, VStack, Text, Spacer } from "scripting";
 declare const HapticFeedback: any;
 
 /**
- * 龍蝦鍵盤通用按鍵 - v1.9.2 [物理橫向再擴張版]
+ * 龍蝦鍵盤通用按鍵 - v1.9.3 [終極寬度標校版]
  */
 export function KeyView(props: any) {
   const {
@@ -15,8 +15,9 @@ export function KeyView(props: any) {
     action();
   }
 
-  // 🧪 物理對位修正：將基礎寬度提升至 40pt (極限飽滿)
-  const finalWidth = minWidth ?? (wide ? 200 : 40); 
+  // 🧪 物理修正：將標準字母鍵基準寬度提升至 42pt
+  // 在 10 個鍵位的情況下，這是大多數 iOS 螢幕橫向飽滿感的黃金比例
+  const finalWidth = minWidth ?? (wide ? 220 : 42); 
   const finalHeight = height ?? 44; 
   
   const finalBackground = background ?? "rgba(255, 255, 255, 0.9)";
@@ -29,7 +30,7 @@ export function KeyView(props: any) {
       background={finalBackground} 
       clipShape={{ type: 'rect', cornerRadius: 8 }}
       frame={{ width: finalWidth, height: finalHeight }}
-      shadow={{ color: 'rgba(0,0,0,0.1)', radius: 0.1, y: 1 }}
+      shadow={{ color: 'rgba(0,0,0,0.1)', radius: 0.2, y: 1.2 }}
     >
       <VStack alignment="center">
         <Spacer />
