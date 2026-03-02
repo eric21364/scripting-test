@@ -193,20 +193,23 @@ export function View() {
 
           <HStack spacing={10} padding={{ leading: 16, trailing: 16, bottom: 10 }} alignment="center">
             
-            {/* 🔌 實體頻道切換器 - 龍蝦 v11.1 下拉選單化 */}
+            {/* 🔌 實體頻道切換器 - 龍蝦 v11.1 物理校準 (寬度 72, 高度 36) */}
             <Menu
               label={
                 <HStack 
                    spacing={6} 
                    background="secondarySystemBackground" 
                    cornerRadius={10} 
-                   padding={{ horizontal: 12 }} 
-                   frame={{ height: 36 }}
+                   padding={{ horizontal: 8 }} 
+                   frame={{ width: 72, height: 36 }}
+                   alignment="center"
                 >
+                  <Spacer />
                   <Text font={{ size: 11, name: "system-bold" }} foregroundStyle={source === 'jable' ? "systemGreen" : "systemBlue"}>
                     {source === 'jable' ? "Jable" : "XV"}
                   </Text>
-                  <Image systemName="chevron.down" font={9} foregroundStyle="secondaryLabel" />
+                  <Image systemName="chevron.down" font={8} foregroundStyle="secondaryLabel" />
+                  <Spacer />
                 </HStack>
               }
             >
