@@ -2,25 +2,26 @@ import { Button, ZStack, VStack, Text, Spacer } from "scripting";
 
 declare const HapticFeedback: any;
 
+export interface KeyViewProps {
+  title: string;
+  subtitle?: string;
+  action: () => void;
+  wide?: boolean;
+  background?: any;
+  foregroundStyle?: any;
+  minWidth?: number;
+  height?: number;
+  fontSize?: number;
+}
+
 export function KeyView({
   title, subtitle, action, wide = false, background = "systemBackground", foregroundStyle = "label", minWidth, height = 44, fontSize = 20
-}: {
-  title: string
-  subtitle?: string
-  action: () => void
-  wide?: boolean
-  background?: any
-  foregroundStyle?: any
-  minWidth?: number
-  height?: number
-  fontSize?: number
-}) {
+}: KeyViewProps) {
   const handleAction = () => {
     if (typeof HapticFeedback !== 'undefined') HapticFeedback.lightImpact();
     action();
   }
 
-  // 物理標校：字母鍵寬度通常為 32~34pt，空格通常為 160pt+
   return <Button
     action={handleAction}
     buttonStyle="plain"

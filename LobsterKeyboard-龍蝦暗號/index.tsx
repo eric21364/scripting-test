@@ -5,8 +5,6 @@ import {
   Button,
   Spacer,
   Image,
-  Clipboard,
-  Pasteboard,
   ZStack
 } from "scripting";
 
@@ -15,7 +13,10 @@ import { KeyView } from "./components/Key";
 import { RowView } from "./components/Row";
 import { encode, decode, MARKER } from "./utils/cipher";
 
+// ⚠️ 全域命名空間聲明
 declare const CustomKeyboard: any;
+declare const Pasteboard: any;
+declare const Clipboard: any;
 
 export default function MainView() {
   const { 
@@ -40,7 +41,9 @@ export default function MainView() {
 
   const handleDecode = async () => {
     let clip: string | null = null;
-    try { clip = await (typeof Pasteboard !== 'undefined' ? Pasteboard.getString() : Clipboard.getString()); } catch (e) {}
+    try { 
+      clip = await (typeof Pasteboard !== 'undefined' ? Pasteboard.getString() : Clipboard.getString()); 
+    } catch (e) {}
 
     if (!clip || !clip.includes(MARKER)) {
       setDebugMsg("無暗號偵測");
@@ -60,12 +63,16 @@ export default function MainView() {
       {/* 🔮 龍蝦 Toolbar (40pt) */}
       <HStack padding={{ horizontal: 10 }} frame={{ height: 40 }} background="#F8F8F8">
         <Image systemName="shield.lefthalf.filled" font={{ size: 14, name: "system" }} foregroundStyle="systemOrange" />
-        <Text font={{ size: 12, name: "system-bold" }}> 龍蝦標校 v1.5 </Text>
+        <Text font={{ size: 12, name: "system-bold" }}> 龍蝦標校 v1.5.1 </Text>
         <Spacer />
         <Text font={{ size: 10, name: "system" }} foregroundStyle="secondaryLabel">{debugMsg}</Text>
         <Spacer />
         <Button action={() => setMode(mode === KeyboardMode.Standard ? KeyboardMode.Agent : KeyboardMode.Standard)} buttonStyle="plain">
-          <HStack padding={{horizontal: 10, vertical: 5}} background={mode === KeyboardMode.Standard ? "#E0E0E0" : "systemOrange"} cornerRadius={8}>
+          <HStack 
+            padding={{horizontal: 10, vertical: 5}} 
+            background={mode === KeyboardMode.Standard ? "#E0E0E0" : "systemOrange"} 
+            clipShape={{ type: 'rect', cornerRadius: 8 }}
+          >
             <Text font={{ size: 11, name: "system-bold" }} foregroundStyle={mode === KeyboardMode.Standard ? "label" : "white"}>
               {mode === KeyboardMode.Standard ? "特工模式" : "打字模式"}
             </Text>
@@ -99,7 +106,13 @@ export default function MainView() {
               <KeyView title="space" wide={true} action={() => CustomKeyboard.insertText(" ")} />
               <KeyView title="return" minWidth={80} background="#ABB1BA" fontSize={14} action={() => CustomKeyboard.insertText("\n")} />
               <Button action={() => CustomKeyboard.nextKeyboard()} buttonStyle="plain">
-                <ZStack background="#ABB1BA" cornerRadius={6} frame={{width: 42, height: 44}}><Image systemName="globe" font={{size: 20, name: "system"}}/></ZStack>
+                <ZStack 
+                  background="#ABB1BA" 
+                  clipShape={{ type: 'rect', cornerRadius: 6 }}
+                  frame={{width: 42, height: 44}}
+                >
+                  <Image systemName="globe" font={{size: 20, name: "system"}}/>
+                </ZStack>
               </Button>
             </HStack>
           </VStack>
@@ -111,7 +124,11 @@ export default function MainView() {
                <KeyView title="👁️ 洞穿真相" subtitle="剪貼簿深度解調" action={handleDecode} wide={true} background="rgba(0, 122, 255, 0.1)" foregroundStyle="systemBlue" height={74} />
             </HStack>
             
-            <ZStack background="rgba(255,255,255,0.5)" cornerRadius={12} frame={{ maxWidth: "infinity", height: 90 }}>
+            <ZStack 
+              background="rgba(255,255,255,0.5)" 
+              clipShape={{ type: 'rect', cornerRadius: 12 }}
+              frame={{ maxWidth: "infinity", height: 90 }}
+            >
               {decodedContent ? (
                 <VStack padding={12} alignment="leading" frame={{maxWidth: "infinity"}}>
                    <Text font={{ size: 10, name: "system-bold" }} foregroundStyle="secondaryLabel">📡 解碼結果：</Text>
