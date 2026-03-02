@@ -3,7 +3,7 @@ import { Button, ZStack, VStack, Text, Spacer } from "scripting";
 declare const HapticFeedback: any;
 
 /**
- * 龍蝦鍵盤通用按鍵 - v1.9 物理統一質感標校
+ * 龍蝦鍵盤通用按鍵 - v1.9.1 物理寬度校準版
  */
 export function KeyView(props: any) {
   const {
@@ -15,12 +15,12 @@ export function KeyView(props: any) {
     action();
   }
 
-  // 🧪 物理標校：標準鍵寬 34pt，高度 42pt
-  const finalWidth = minWidth ?? (wide ? 180 : 34);
-  const finalHeight = height ?? 42;
+  // 🧪 物理診斷：如果是標準字母鍵 (10鍵一排)，物理極限寬度通常在 36-38pt 之間 (視螢幕寬度而定)
+  // 將原本的 34pt 提升至 38pt，增加按鍵的實體飽滿度
+  const finalWidth = minWidth ?? (wide ? 200 : 38); 
+  const finalHeight = height ?? 44; // 提升高度至 44pt，更具歐美/專業鍵盤質感
   
-  // 🔮 統一背景色：強制的玻璃霧化感，移除色差
-  const finalBackground = background ?? "rgba(255, 255, 255, 0.85)";
+  const finalBackground = background ?? "rgba(255, 255, 255, 0.9)";
 
   return <Button
     action={handleAction}
@@ -28,15 +28,14 @@ export function KeyView(props: any) {
   >
     <ZStack 
       background={finalBackground} 
-      // 🛡️ 物理鎖定：四周圓角標校
-      clipShape={{ type: 'rect', cornerRadius: 10 }}
+      clipShape={{ type: 'rect', cornerRadius: 8 }}
       frame={{ width: finalWidth, height: finalHeight }}
-      shadow={{ color: 'rgba(0,0,0,0.1)', radius: 0.1, y: 1 }}
+      shadow={{ color: 'rgba(0,0,0,0.1)', radius: 0.2, y: 1.5 }}
     >
       <VStack alignment="center">
         <Spacer />
         <Text 
-          font={{ size: fontSize ?? 18, name: "system" }} 
+          font={{ size: fontSize ?? 20, name: "system" }} 
           foregroundStyle={foregroundStyle}
         >
           {title}

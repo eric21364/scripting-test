@@ -3,7 +3,7 @@ import { StoreProvider } from "./store";
 import MainView from "./index";
 
 async function main() {
-  await CustomKeyboard.requestHeight(260);
+  await CustomKeyboard.requestHeight(280);
   
   CustomKeyboard.present(
     <StoreProvider>
