@@ -1,54 +1,33 @@
-import { Button, ZStack, VStack, Text, Spacer } from "scripting";
+import { Button } from "scripting";
 
 declare const HapticFeedback: any;
 
 /**
- * 龍蝦鍵盤通用按鍵 - v2.0.6 [強製寬度保險版]
+ * 龍蝦鍵盤通用按鍵 - v2.0.7 [範本對接與寬度鎖定]
  */
 export function KeyView(props: any) {
   const {
     title, action, wide = false, background, foregroundStyle = "black", minWidth, height, fontSize
   } = props;
 
-  const handleAction = () => {
-    if (typeof HapticFeedback !== 'undefined') HapticFeedback.lightImpact();
-    action();
-  }
-
-  // 🧪 物理對位：34pt 是確保 10 鍵在各機型不坍塌的「安全標校寬度」
-  const finalWidth = minWidth ?? (wide ? 160 : 34); 
-  const finalHeight = height ?? 44; 
-
-  const keyBg = background ?? "white";
+  // 🧪 物理標校：標準鍵寬 35pt，高度 42pt
+  const finalWidth = minWidth ?? (wide ? 180 : 35); 
+  const finalHeight = height ?? 42; 
 
   return <Button
-    action={handleAction}
-    buttonStyle="plain"
-    // 🛡️ 物理鎖定：在 Button 層級強制標註 frame，解決截圖中的細長條坍塌問題
+    title={title}
+    action={() => {
+      if (typeof HapticFeedback !== 'undefined') HapticFeedback.lightImpact();
+      action();
+    }}
+    // 🛡️ 實體渲染：完全對齊範本，使用 title 避免寬度坍塌
+    font={{ size: fontSize ?? 18, name: "system" }}
+    fontWeight="medium"
+    background={background ?? "white"}
+    foregroundStyle={foregroundStyle}
     frame={{ width: finalWidth, height: finalHeight }}
-  >
-    <ZStack 
-      background="rgba(0,0,0,0.15)" 
-      clipShape={{ type: 'rect', cornerRadius: 6 }}
-      frame={{ width: finalWidth, height: finalHeight }}
-    >
-      <ZStack 
-        background={keyBg} 
-        clipShape={{ type: 'rect', cornerRadius: 6 }}
-        frame={{ width: finalWidth, height: finalHeight - 2 }}
-        offset={{ x: 0, y: -1 }}
-      >
-        <VStack alignment="center">
-          <Spacer />
-          <Text 
-            font={{ size: fontSize ?? 18, name: "system-bold" }} 
-            foregroundStyle={foregroundStyle}
-          >
-            {title}
-          </Text>
-          <Spacer />
-        </VStack>
-      </ZStack>
-    </ZStack>
-  </Button>
+    clipShape={{ type: 'rect', cornerRadius: 6 }}
+    // 🧪 物理外框感：利用 shadow y=1.5 模擬底框
+    shadow={{ color: 'rgba(0,0,0,0.15)', radius: 0, y: 1.5 }} 
+  />
 }

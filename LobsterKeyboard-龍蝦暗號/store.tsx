@@ -37,7 +37,7 @@ function useStoreState() {
 }
 
 export type StoreState = ReturnType<typeof useStoreState>;
-export const StoreContext = createContext<StoreState>();
+export const StoreContext = createContext<StoreState>(null!);
 
 export function StoreProvider({ children }: { children: VirtualNode }) {
   const store = useStoreState();
