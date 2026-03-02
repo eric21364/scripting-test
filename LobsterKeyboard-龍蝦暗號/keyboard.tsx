@@ -1,4 +1,4 @@
-import { CustomKeyboard } from "scripting";
+declare const CustomKeyboard: any;
 import { StoreProvider } from "./store";
 import MainView from "./index";
 

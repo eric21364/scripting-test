@@ -4,7 +4,7 @@ declare const HapticFeedback: any;
 
 export function KeyView(props: any) {
   const {
-    title, action, wide = false, background = "systemBackground", foregroundStyle = "label", minWidth, height = 44
+    title, action, wide = false, background = "systemBackground", foregroundStyle = "label", minWidth, height = 44, fontSize
   } = props;
 
   const handleAction = () => {
@@ -22,12 +22,12 @@ export function KeyView(props: any) {
   >
     <ZStack 
       background={background} 
-      cornerRadius={5}
+      clipShape={{ type: 'rect', cornerRadius: 5 }}
       frame={{ width: finalWidth, height: finalHeight }}
     >
       <VStack alignment="center">
         <Spacer />
-        <Text font={{ size: 14, name: "system" }} foregroundStyle={foregroundStyle}>{title}</Text>
+        <Text font={{ size: fontSize ?? 14, name: "system" }} foregroundStyle={foregroundStyle}>{title}</Text>
         <Spacer />
       </VStack>
     </ZStack>
