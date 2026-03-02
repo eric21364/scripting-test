@@ -24,7 +24,7 @@ declare const Pasteboard: any;
 declare const Clipboard: any;
 
 /**
- * 龍蝦暗號 v2.1.0 [物理與效能巔峰標校]
+ * 龍蝦暗號 v2.1.1 [TypeScript 嚴格模式修復與樣式對齊]
  */
 export default function MainView() {
   // ⚡️ 效能對位：分塊訂閱狀態，防止全量重繪
@@ -38,7 +38,7 @@ export default function MainView() {
     const currentText = CustomKeyboard.allText || "";
     if (!currentText) { 
       setDebugMsg("無內容隱入"); 
-      HapticFeedback.notification("error");
+      HapticFeedback.lightImpact();
       return; 
     }
     const cipher = encode(currentText);
@@ -51,7 +51,7 @@ export default function MainView() {
     
     CustomKeyboard.insertText(cipher);
     setDebugMsg("暗號就緒 🦞");
-    HapticFeedback.notification("success");
+    HapticFeedback.lightImpact();
   };
 
   const handleDecode = async () => {
@@ -62,14 +62,14 @@ export default function MainView() {
     
     if (!clip || !clip.includes(MARKER)) { 
       setDebugMsg("未發現暗號"); 
-      HapticFeedback.notification("warning");
+      HapticFeedback.lightImpact();
       return; 
     }
     
     const result = decode(clip);
     setDecodedContent(result);
     setDebugMsg("解碼完成 👁️");
-    HapticFeedback.notification("success");
+    HapticFeedback.lightImpact();
   };
 
   const FUNCTIONAL_GRAY = "systemGray2";
@@ -82,12 +82,12 @@ export default function MainView() {
 
       {/* 🔮 龍蝦互動列 */}
       <HStack padding={{ horizontal: 16 }} frame={{ height: 40 }} background="rgba(240, 242, 245, 0.4)">
-        <Image systemName="shield.lefthalf.filled" font={{ size: 14 }} foregroundStyle="systemOrange" />
+        <Image systemName="shield.lefthalf.filled" font={{ size: 14, name: "system" }} foregroundStyle="systemOrange" />
         <Text font={{ size: 12, name: "system-bold" }} padding={{ leading: 6 }} foregroundStyle="label">{debugMsg}</Text>
         <Spacer />
         <Button action={() => {
            setMode(mode === KeyboardMode.Standard ? KeyboardMode.Agent : KeyboardMode.Standard);
-           HapticFeedback.impact("medium");
+           HapticFeedback.lightImpact();
         }} buttonStyle="plain">
           <ZStack background={mode === KeyboardMode.Standard ? "systemBackground" : "systemOrange"} clipShape={{type:'rect', cornerRadius: 8}} padding={{horizontal: 10, vertical: 6}}>
              <Text font={{ size: 10, name: "system-bold" }} foregroundStyle={mode === KeyboardMode.Standard ? "label" : "white"}>
@@ -130,7 +130,7 @@ export default function MainView() {
                   count: 2,
                   perform: () => {
                     setCapsState(CapsState.Locked);
-                    HapticFeedback.impact("heavy");
+                    HapticFeedback.lightImpact();
                   }
                 }}
                 background={capsState !== CapsState.Off ? "systemBackground" : FUNCTIONAL_GRAY} 
@@ -159,8 +159,8 @@ export default function MainView() {
                 </ScrollView>
               ) : (
                 <VStack alignment="center" opacity={0.3}>
-                  <Image systemName="waveform.and.magnifyingglass" font={{ size: 32 }} foregroundStyle="label" />
-                  <Text font={{ size: 12 }} foregroundStyle="label" padding={{ top: 8 }}>等待解碼暗號...</Text>
+                  <Image systemName="waveform.and.magnifyingglass" font={{ size: 32, name: "system" }} foregroundStyle="label" />
+                  <Text font={{ size: 12, name: "system" }} foregroundStyle="label" padding={{ top: 8 }}>等待解碼暗號...</Text>
                 </VStack>
               )}
             </ZStack>
