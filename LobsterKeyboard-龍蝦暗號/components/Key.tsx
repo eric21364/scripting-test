@@ -7,7 +7,7 @@ export function KeyView({
   subtitle?: string
   action: () => void
   wide?: boolean
-  background?: any // 使用 any 規避嚴格類型檢查，確保字串顏色可用
+  background?: any
   foregroundStyle?: any
 }) {
   return <Button
@@ -16,7 +16,6 @@ export function KeyView({
   >
     <ZStack 
       background={background} 
-      clipShape={{ type: 'rect', cornerRadius: 10 }}
       frame={{ minWidth: wide ? 100 : 44, height: 54 }}
       shadow={{ color: 'rgba(0,0,0,0.1)', radius: 1, y: 1 }}
     >
