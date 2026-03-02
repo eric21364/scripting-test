@@ -201,7 +201,7 @@ export function View() {
                    background="secondarySystemBackground" 
                    cornerRadius={10} 
                    padding={{ horizontal: 10 }} 
-                   frame={{ width: 80, height: 36 }}
+                   frame={{ width: 80, height: 40 }}
                    alignment="center"
                 >
                   <Text 
@@ -219,8 +219,8 @@ export function View() {
                <Button title="XVideos (波段)" action={() => switchSource('xvideos')} />
             </Menu>
 
-            {/* 🔍 搜尋列 - 物理高度鎖定 36 */}
-            <HStack frame={{ maxWidth: "infinity", height: 36 }} padding={{ horizontal: 10 }} background="secondarySystemBackground" cornerRadius={10} alignment="center">
+            {/* 🔍 搜尋列 - 物理高度鎖定 40 */}
+            <HStack frame={{ maxWidth: "infinity", height: 40 }} padding={{ horizontal: 10 }} background="secondarySystemBackground" cornerRadius={10} alignment="center">
               <Image systemName="magnifyingglass" font={12} foregroundStyle="secondaryLabel" />
               <TextField title="" prompt="探查..." value={keyword} onChanged={setKeyword} onSubmit={triggerSearch} frame={{ maxWidth: "infinity" }} textFieldStyle="plain" />
               {keyword.length > 0 && (
