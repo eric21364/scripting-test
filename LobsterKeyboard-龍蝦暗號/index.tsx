@@ -5,7 +5,7 @@ import {
   Button,
   Spacer,
   Image,
-  Clipboard,
+  Pasteboard,
   CustomKeyboard
 } from "scripting";
 
@@ -36,7 +36,7 @@ export default function MainView() {
 
   const handleDecode = async () => {
     CustomKeyboard.playInputClick();
-    const clip = await Clipboard.getString();
+    const clip = await Pasteboard.getString();
     if (!clip || !clip.includes(MARKER)) {
       updateDebugMsg("剪貼簿無龍蝦暗號");
       return;
