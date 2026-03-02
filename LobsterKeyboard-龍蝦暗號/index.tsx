@@ -9,9 +9,9 @@ import {
   CustomKeyboard
 } from "scripting";
 
-import { useStore } from "../store";
-import { KeyView } from "../components/Key";
-import { encode, decode, MARKER } from "../utils/cipher";
+import { useStore } from "./store";
+import { KeyView } from "./components/Key";
+import { encode, decode, MARKER } from "./utils/cipher";
 
 export default function MainView() {
   const { debugMsg, updateDebugMsg, decodedContent, updateDecodedContent } = useStore();
@@ -59,7 +59,7 @@ export default function MainView() {
       {/* 龍蝦鍵盤 Header - 物理鎖定 44pt */}
       <HStack padding={{ horizontal: 16 }} frame={{ height: 44 }} background="secondarySystemBackground">
         <Image systemName="shield.lefthalf.filled" font={14} foregroundStyle="systemOrange" />
-        <Text font={{ size: 13, name: "system-bold" }}> 龍蝦隱寫術 v1.2 </Text>
+        <Text font={{ size: 13, name: "system-bold" }}> 龍蝦隱寫術 v1.3 </Text>
         <Spacer />
         <Text font={{ size: 10 }} foregroundStyle="secondaryLabel">{debugMsg}</Text>
       </HStack>
