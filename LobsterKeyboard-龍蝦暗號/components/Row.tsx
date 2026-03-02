@@ -12,10 +12,11 @@ const ZH_MAP: Record<string, string> = {
 };
 
 export function RowView({
-  chars, spacing = 6
+  chars, spacing = 2, keyWidth = 33
 }: {
   chars: string
   spacing?: number
+  keyWidth?: number
 }) {
   const { lang, capsEnabled } = useContext(StoreContext) as any;
 
@@ -33,6 +34,7 @@ export function RowView({
       <KeyView
         key={i}
         title={getChar(c)}
+        minWidth={keyWidth} // 🛡️ 物理鎖定：強制將寬度傳遞給子元件，防止坍塌成細條
         action={() => {
           CustomKeyboard.insertText(getChar(c));
         }}
