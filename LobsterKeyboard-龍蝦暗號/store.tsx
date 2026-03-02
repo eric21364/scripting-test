@@ -20,7 +20,7 @@ function useStoreState() {
   const [mode, setMode] = useState(KeyboardMode.Standard);
   const [lang, setLang] = useState(KeyboardLang.EN);
   const [capsState, setCapsState] = useState(CapsState.Off);
-  const [isSymbols, setIsSymbols] = useState(false); // 🆕 符號模式狀態
+  const [isSymbols, setIsSymbols] = useState(false); 
   const [debugMsg, setDebugMsg] = useState("龍蝦波段已對齊");
   const [decodedContent, setDecodedContent] = useState("");
 
@@ -39,7 +39,8 @@ function useStoreState() {
 }
 
 export type StoreState = ReturnType<typeof useStoreState>;
-export const StoreContext = createContext<StoreState>(null!);
+// 🛡️ v2.2.7 修復：createContext 在 Scripting 環境不接受預設值參數
+export const StoreContext = createContext<StoreState>();
 
 export function StoreProvider({ children }: { children: VirtualNode }) {
   const store = useStoreState();

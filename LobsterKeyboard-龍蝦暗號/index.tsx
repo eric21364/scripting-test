@@ -24,8 +24,8 @@ declare const Pasteboard: any;
 declare const Clipboard: any;
 
 /**
- * 龍蝦暗號 v2.2.6 [符號模式與連續刪除支援]
- * 支援 123 符號鍵切換，刪除鍵長按可批量移除
+ * 龍蝦暗號 v2.2.7 [編譯修復與連續刪除優化]
+ * 修正 View 未定義錯誤、Font 屬性缺失、與 Haptic API 不相容問題
  */
 export default function MainView() {
   const { mode, setMode } = selectStore(s => ({ mode: s.mode, setMode: s.setMode }));
@@ -37,7 +37,11 @@ export default function MainView() {
 
   const handleEncode = () => {
     const currentText = CustomKeyboard.allText || "";
-    if (!currentText) { setDebugMsg("無內容隱入"); HapticFeedback.lightImpact(); return; }
+    if (!currentText) { 
+        setDebugMsg("無內容隱入"); 
+        HapticFeedback.lightImpact(); 
+        return; 
+    }
     const cipher = encode(currentText);
     const deleteCount = currentText.length;
     for(let i = 0; i < deleteCount; i++) { CustomKeyboard.deleteBackward(); }
@@ -46,12 +50,12 @@ export default function MainView() {
     HapticFeedback.lightImpact();
   };
 
+  // 🧪 連續刪除優化：長按觸發一次較大範圍的批量刪除 (模擬快進)
   const handleContinuousDelete = () => {
-    // 🧪 物理連發：長按一次刪除 8 個字元 (類比連發效果)
-    for(let i = 0; i < 8; i++) {
+     for(let i = 0; i < 15; i++) {
         if (CustomKeyboard.hasText) CustomKeyboard.deleteBackward();
-    }
-    HapticFeedback.notification("warning");
+     }
+     HapticFeedback.lightImpact();
   };
 
   const KEYBOARD_BG = "#828A91"; 
@@ -63,12 +67,11 @@ export default function MainView() {
       
       <Spacer />
 
-      {/* 🔮 龍蝦互動列 */}
       <HStack padding={{ horizontal: 16 }} frame={{ height: 32 }} background={TOOLBAR_BG}>
         <Image systemName="shield.lefthalf.filled" font={{ size: 12, name: "system" }} foregroundStyle="systemOrange" />
-        <Text font={{ size: 10, name: "system-bold" }} padding={{ leading: 4 }}>龍蝦標校 v2.2.6</Text>
+        <Text font={{ size: 10, name: "system-bold" }} padding={{ leading: 4 }}>龍蝦標校 v2.2.7</Text>
         <Spacer />
-        <Text font={{ size: 8 }} foregroundStyle="secondaryLabel">{debugMsg}</Text>
+        <Text font={{ size: 8, name: "system" }} foregroundStyle="secondaryLabel">{debugMsg}</Text>
         <Spacer />
         <Button action={() => {
            setMode(mode === KeyboardMode.Standard ? KeyboardMode.Agent : KeyboardMode.Standard);
@@ -82,20 +85,14 @@ export default function MainView() {
         </Button>
       </HStack>
 
-      <VStack spacing={4} padding={{ top: 2, leading: 6, trailing: 6, bottom: 6 }} frame={{ maxWidth: "infinity" }}>
+      <VStack spacing={5} padding={{ top: 2, leading: 6, trailing: 6, bottom: 6 }} frame={{ maxWidth: "infinity" }}>
         {mode === KeyboardMode.Standard ? (
-          <VStack spacing={4} alignment="center">
+          <VStack spacing={5} alignment="center">
             
-            {/* ROW 1: ㄅ..ㄢ / 1..0 / [..= */}
             <RowView chars="1 2 3 4 5 6 7 8 9 0" spacing={4} keyWidth={35} />
-
-            {/* ROW 2: ㄆ..ㄣ / Q..P / -.." */}
             <RowView chars="Q W E R T Y U I O P" spacing={4} keyWidth={35} />
-
-            {/* ROW 3: ㄇ..ㄤ / A..L / ...` */}
             <RowView chars={lang === KeyboardLang.ZH ? "A S D F G H J K L ;" : "A S D F G H J K L"} spacing={4} keyWidth={35} />
             
-            {/* ROW 4: Shift/Symbols + (ㄈ..ㄥ / Z..M) + Delete */}
             <HStack spacing={4} alignment="center">
               {lang === KeyboardLang.EN || isSymbols ? (
                 <KeyView 
@@ -104,34 +101,38 @@ export default function MainView() {
                   height={40} 
                   functional
                   action={() => {
-                      if (isSymbols) {
-                        // 符號分頁切換 (未來擴充)
-                      } else {
-                        setCapsState(capsState === CapsState.Off ? CapsState.On : CapsState.Off);
-                      }
+                      if (!isSymbols) setCapsState(capsState === CapsState.Off ? CapsState.On : CapsState.Off);
                   }} 
                   onTapGesture={!isSymbols ? { count: 2, perform: () => { setCapsState(CapsState.Locked); HapticFeedback.lightImpact(); } } : undefined}
                   background={(!isSymbols && capsState !== CapsState.Off) ? "white" : FUNCTIONAL_GRAY} 
                   foregroundStyle={(!isSymbols && capsState !== CapsState.Off) ? "#007AFF" : "black"} 
+                  fontSize={isSymbols ? 14 : 18}
                 />
               ) : (
                 <Spacer />
               )}
               
-              <RowView chars={(!isSymbols && lang === KeyboardLang.ZH) ? "Z X C V B N M , ." : "Z X C V B N M"} spacing={4} keyWidth={35} />
+              <RowView 
+                chars={(!isSymbols && lang === KeyboardLang.ZH) ? "Z X C V B N M ' , ." : "Z X C V B N M"} 
+                spacing={4} 
+                keyWidth={(!isSymbols && lang === KeyboardLang.ZH) ? 25 : 35} 
+                fontSize={(!isSymbols && lang === KeyboardLang.ZH) ? 14 : 17}
+              />
               
               <KeyView 
                 title="⌫" 
-                minWidth={lang === KeyboardLang.ZH && !isSymbols ? 54 : 44} 
+                minWidth={lang === KeyboardLang.ZH && !isSymbols ? 52 : 44} 
                 height={40} 
                 functional 
                 background={FUNCTIONAL_GRAY} 
                 action={() => CustomKeyboard.deleteBackward()} 
-                onLongPressGesture={handleContinuousDelete}
+                onLongPressGesture={{
+                    minimumDuration: 0.5,
+                    perform: handleContinuousDelete
+                }}
               />
             </HStack>
             
-            {/* ROW 5: 控制列 */}
             <HStack spacing={6} alignment="center">
               <KeyView 
                 title={isSymbols ? "ABC" : "123"} 
@@ -139,7 +140,7 @@ export default function MainView() {
                 action={() => setIsSymbols(!isSymbols)} 
               />
               <KeyView title={lang === KeyboardLang.ZH ? "中" : "EN"} minWidth={44} height={40} functional background={FUNCTIONAL_GRAY} action={() => setLang(lang === KeyboardLang.ZH ? KeyboardLang.EN : KeyboardLang.ZH)} />
-              <KeyView title="space" wide={true} minWidth={150} height={40} action={() => CustomKeyboard.insertText(" ")} />
+              <KeyView title="space" wide={true} minWidth={185} height={40} action={() => CustomKeyboard.insertText(" ")} />
               <KeyView title="換行" minWidth={64} height={40} background={FUNCTIONAL_GRAY} fontSize={13} action={() => CustomKeyboard.insertText("\n")} />
             </HStack>
           </VStack>
@@ -150,15 +151,17 @@ export default function MainView() {
                <KeyView title="隱入塵煙" action={handleEncode} wide={true} minWidth={170} background="rgba(255, 69, 0, 0.15)" foregroundStyle="systemOrange" height={55} />
                <KeyView title="打字模式" action={() => setMode(KeyboardMode.Standard)} wide={true} minWidth={170} background={FUNCTIONAL_GRAY} height={55} />
             </HStack>
-            <View frame={{ maxWidth: "infinity", height: 75 }} background="white" clipShape={{ type: 'rect', cornerRadius: 10 }}>
+            <ZStack frame={{ maxWidth: "infinity", height: 75 }} background="white" clipShape={{ type: 'rect', cornerRadius: 10 }}>
               {decodedContent ? (
-                <ScrollView padding={10}><Text font={{ size: 14, name: "system" }}>{decodedContent}</Text></ScrollView>
+                <ScrollView padding={10}>
+                    <Text font={{ size: 14, name: "system" }} foregroundStyle="black">{decodedContent}</Text>
+                </ScrollView>
               ) : (
                 <VStack alignment="center" opacity={0.2} frame={{maxWidth:"infinity", maxHeight:"infinity"}}>
                   <Image systemName="waveform" font={{ size: 28, name: "system" }} />
                 </VStack>
               )}
-            </View>
+            </ZStack>
           </VStack>
         )}
       </VStack>
